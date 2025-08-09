@@ -1,7 +1,3 @@
-# RS1 Robot - Autonomous Drone Simulation Package
-
-A comprehensive ROS2 package for simulating an autonomous quadrotor drone in Ignition Gazebo Fortress, featuring advanced sensors and native flight control systems.
-
 ## Overview
 
 This package provides a complete simulation environment for the RS1 drone, a modified SJTU drone model optimised for modern Ignition Gazebo Fortress. The simulation includes realistic sensor models, flight dynamics, and a comprehensive sensor suite suitable for autonomous navigation, mapping, and surveillance applications.
