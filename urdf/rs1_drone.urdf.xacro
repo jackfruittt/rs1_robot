@@ -78,25 +78,15 @@
   </joint>
   <link name="bottom_cam_link"/>
 
-  <!-- UPDATED DRONE PLUGIN FOR FORTRESS/MODERN GAZEBO -->
+  <!-- UPDATED ALL PLUGINS FOR GAZEBO6 FORTRESS COMPATIBILITY -->
   <gazebo>
     <!-- Use native Ignition Gazebo plugins for drone control -->
-    <plugin name="ignition::gazebo::systems::MulticopterVelocityControl" filename="libignition-gazebo-multicopter-velocity-control-system.so">
-      <robotNamespace>${mp['namespace']}</robotNamespace>
-      <commandSubTopic>cmd_vel</commandSubTopic>
-      <motorControlPubTopic>motor_speed</motorControlPubTopic>
-      <enableSubTopic>enable</enableSubTopic>
-      <comLinkName>base_link</comLinkName>
-      <velocityGain>2.7 2.7 2.7</velocityGain>
-      <attitudeGain>3.0 3.0 0.35</attitudeGain>
-      <angularRateGain>0.36 0.36 0.8</angularRateGain>
-      <maximumLinearVelocity>5 5 5</maximumLinearVelocity>
-      <maximumLinearAcceleration>5 5 5</maximumLinearAcceleration>
-      <maximumAngularVelocity>3 3 3</maximumAngularVelocity>
+    <plugin name="ignition::gazebo::systems::VelocityControl" filename="libignition-gazebo6-velocity-control-system.so">
+      <linkName>base_link</linkName>
     </plugin>
 
     <!-- Odometry publisher -->
-    <plugin name="ignition::gazebo::systems::OdometryPublisher" filename="libignition-gazebo-odometry-publisher-system.so">
+    <plugin name="ignition::gazebo::systems::OdometryPublisher" filename="libignition-gazebo6-odometry-publisher-system.so">
       <odom_frame>${mp['namespace']}/odom</odom_frame>
       <robot_base_frame>${mp['namespace']}/base_link</robot_base_frame>
       <odom_publish_frequency>50</odom_publish_frequency>
@@ -104,7 +94,7 @@
     </plugin>
 
     <!-- General Sensors plugin - REQUIRED for all sensors to work -->
-    <plugin filename="libignition-gazebo-sensors-system.so" name="ignition::gazebo::systems::Sensors">
+    <plugin filename="libignition-gazebo6-sensors-system.so" name="ignition::gazebo::systems::Sensors">
     </plugin>
   </gazebo>
 
@@ -172,7 +162,7 @@
           </z>
         </linear_acceleration>
       </imu>
-      <plugin filename="libignition-gazebo-imu-system.so" name="ignition::gazebo::systems::Imu">
+      <plugin filename="libignition-gazebo6-imu-system.so" name="ignition::gazebo::systems::Imu">
       </plugin>
     </sensor>
   </gazebo>
@@ -205,8 +195,6 @@
           <stddev>0.005</stddev>
         </noise>
       </ray>
-      <plugin filename="libignition-gazebo-gpu-lidar-system.so" name="ignition::gazebo::systems::GpuLidar">
-      </plugin>
     </sensor>
   </gazebo>
 
@@ -238,8 +226,6 @@
           <stddev>0.01</stddev>
         </noise>
       </ray>
-      <plugin filename="libignition-gazebo-gpu-lidar-system.so" name="ignition::gazebo::systems::GpuLidar">
-      </plugin>
     </sensor>
   </gazebo>
 
@@ -268,8 +254,6 @@
           <stddev>0.01</stddev>
         </noise>
       </camera>
-      <plugin filename="libignition-gazebo-camera-system.so" name="ignition::gazebo::systems::Camera">
-      </plugin>
     </sensor>
   </gazebo>
 
@@ -298,8 +282,6 @@
           <stddev>0.01</stddev>
         </noise>
       </camera>
-      <plugin filename="libignition-gazebo-camera-system.so" name="ignition::gazebo::systems::Camera">
-      </plugin>
     </sensor>
   </gazebo>
 
@@ -340,7 +322,7 @@
           </vertical>
         </velocity_sensing>
       </navsat>
-      <plugin filename="libignition-gazebo-navsat-system.so" name="ignition::gazebo::systems::NavSat">
+      <plugin filename="libignition-gazebo6-navsat-system.so" name="ignition::gazebo::systems::NavSat">
       </plugin>
     </sensor>
   </gazebo>
@@ -358,3 +340,7 @@
     </sensor>
   </gazebo>
 </robot>
+
+
+
+
