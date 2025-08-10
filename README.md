@@ -145,7 +145,7 @@ ros2 topic echo /rs1_drone/lidar
 ```
 
 ### Camera Streams
-Use RVIZ or image view to visualise camera feeds:
+Use RVIZ or image view to visualise camera feeds (alrady loaded into rviz by default but can use if you launch with rviz disabled at first):
 ```bash
 ros2 run image_view image_view image:=/rs1_drone/front/image
 ros2 run image_view image_view image:=/rs1_drone/bottom/image
