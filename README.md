@@ -33,7 +33,7 @@ This package provides a complete simulation environment for the RS1 drone, a mod
 ### System Requirements
 - Ubuntu 22.04 LTS
 - ROS2 Humble
-- Ignition Gazebo Fortress
+- Ignition Gazebo Fortress version 6.17.0
 
 ### Dependencies
 ```bash
