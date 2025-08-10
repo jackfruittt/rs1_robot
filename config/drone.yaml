@@ -1,7 +1,7 @@
 # ROS namespace for the drone. All topics and tf frames will be prefixed to this namespace (IMPORTANT)
 namespace: /rs1_drone
 
-# Flight control parameters for native Ignition Gazebo MulticopterVelocityControl plugin
+# Flight control parameters for native Ignition Gazebo VelocityControl plugin
 
 # Velocity control gains 
 velocityGain: [2.7, 2.7, 2.7]  # [x, y, z] linear velocity gains
