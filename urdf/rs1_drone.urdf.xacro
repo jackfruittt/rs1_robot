@@ -91,6 +91,7 @@
       <robot_base_frame>${mp['namespace']}/base_link</robot_base_frame>
       <odom_publish_frequency>50</odom_publish_frequency>
       <odom_topic>${mp['namespace']}/odom</odom_topic>
+      <dimensions>3</dimensions> 
     </plugin>
 
     <!-- General Sensors plugin - REQUIRED for all sensors to work -->
@@ -340,6 +341,10 @@
     </sensor>
   </gazebo>
 </robot>
+
+
+
+
 
 
 

@@ -34,12 +34,14 @@ This package provides a complete simulation environment for the RS1 drone, a mod
 - Ubuntu 22.04 LTS
 - ROS2 Humble
 - Ignition Gazebo Fortress version 6.17.0
+- Ignition-sensor6 Plugins
 
 ### Dependencies
 ```bash
 sudo apt install ros-humble-ros-gz-sim ros-humble-ros-gz-bridge
 sudo apt install ros-humble-joint-state-publisher ros-humble-robot-state-publisher
 sudo apt install ros-humble-rviz2
+sudo apt install libignition-sensors6
 ```
 
 ## Installation

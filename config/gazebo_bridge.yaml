@@ -16,10 +16,10 @@
   direction: ROS_TO_GZ
 
 # Odometry output (published by ignition::gazebo::systems::OdometryPublisher)
-- ros_topic_name: "/rs1_drone/odom"
-  gz_topic_name: "/model/rs1_drone/odometry"
-  ros_type_name: "nav_msgs/msg/Odometry"
-  gz_type_name: "ignition.msgs.Odometry"
+- ros_topic_name: "/rs1_drone/odom"   
+  gz_topic_name: "/model/rs1_drone/odometry_with_covariance"   
+  ros_type_name: "nav_msgs/msg/Odometry"   
+  gz_type_name: "gz.msgs.OdometryWithCovariance"   
   direction: GZ_TO_ROS
 
 # IMU
