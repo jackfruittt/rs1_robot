@@ -1,11 +1,20 @@
 <?xml version="1.0"?>
 <sdf version='1.8'>
   <world name="simple_trees_builtin">
-    <!-- Basic world setup  -->
+    <!-- Basic world setup -->
     <plugin name='ignition::gazebo::systems::Physics' filename='ignition-gazebo-physics-system' />
     <plugin name='ignition::gazebo::systems::UserCommands' filename='ignition-gazebo-user-commands-system' />
     <plugin name='ignition::gazebo::systems::SceneBroadcaster' filename='ignition-gazebo-scene-broadcaster-system' />
     <plugin name='ignition::gazebo::systems::Contact' filename='ignition-gazebo-contact-system' />
+    
+    <!-- CRITICAL FIX: Load sensors plugin ONCE globally instead of per-robot -->
+    <plugin name='ignition::gazebo::systems::Sensors' filename='ignition-gazebo-sensors-system'>
+      <render_engine>ogre2</render_engine>
+    </plugin>
+    
+    <!-- CRITICAL FIX: Load sensor-specific plugins globally -->
+    <plugin name='ignition::gazebo::systems::Imu' filename='ignition-gazebo-imu-system' />
+    <plugin name='ignition::gazebo::systems::NavSat' filename='ignition-gazebo-navsat-system' />
     
     <light name="sun" type="directional">
       <cast_shadows>1</cast_shadows>
@@ -127,4 +136,3 @@
 
   </world>
 </sdf>
-
