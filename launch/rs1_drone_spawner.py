@@ -29,7 +29,7 @@ def spawn_multiple_drones(context, *args, **kwargs):
     
     # Generate bridge config for multiple drones
     try:
-        script_path = '/home/jackfruittt/Software/rs1_robot/scripts/generate_dynamic_bridge.py'
+        script_path = '/home/ace-rv/rs1_ros2_ws/src/rs1_robot/scripts/generate_dynamic_bridge.py'
         result = subprocess.run(['python3', script_path, str(num_drones), '-o', '/tmp/rs1_dynamic_bridge.yaml'], 
                               capture_output=True, text=True, check=True)
         print(f"Bridge config generated for {num_drones} drones")
@@ -143,7 +143,7 @@ def generate_launch_description():
 
     world_launch_arg = DeclareLaunchArgument(
         'world',
-        default_value='simple_trees_builtin',
+        default_value='mountain_forest.sdf',
         description='Which world to load'
     )
     ld.add_action(world_launch_arg)
@@ -153,9 +153,9 @@ def generate_launch_description():
         PathJoinSubstitution([FindPackageShare('ros_ign_gazebo'),
                              'launch', 'ign_gazebo.launch.py']),
         launch_arguments={
-            'ign_args': [PathJoinSubstitution([pkg_path,
+            'gz_args': [PathJoinSubstitution([FindPackageShare('rs1_environment'),
                                                'worlds',
-                                               [LaunchConfiguration('world'), '.sdf']]),
+                                               [LaunchConfiguration('world')]]),
                          ' -r']}.items()
     )
     ld.add_action(gazebo)
