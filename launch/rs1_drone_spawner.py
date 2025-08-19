@@ -11,6 +11,7 @@ from launch.substitutions import (Command, LaunchConfiguration,
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
+from pathlib import Path
 import subprocess
 
 
@@ -29,7 +30,7 @@ def spawn_multiple_drones(context, *args, **kwargs):
     
     # Generate bridge config for multiple drones
     try:
-        script_path = '/home/ace-rv/rs1_ros2_ws/src/rs1_robot/scripts/generate_dynamic_bridge.py'
+        script_path = str(Path.home() / 'Software' / 'rs1_robot' / 'scripts' / 'generate_dynamic_bridge.py')
         result = subprocess.run(['python3', script_path, str(num_drones), '-o', '/tmp/rs1_dynamic_bridge.yaml'], 
                               capture_output=True, text=True, check=True)
         print(f"Bridge config generated for {num_drones} drones")
