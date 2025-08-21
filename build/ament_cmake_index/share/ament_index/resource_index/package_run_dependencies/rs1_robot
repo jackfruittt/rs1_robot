@@ -1,1 +1,1 @@
-ros_gz_interfaces;ros_gz_sim;ros_gz_bridge;ros_gz;ros_gz_image;std_msgs;geometry_msgs;sensor_msgs;nav_msgs;robot_state_publisher;joint_state_publisher;xacro;ament_lint_auto;ament_lint_common
+ros_gz_interfaces;ros_gz_sim;ros_gz_bridge;ros_gz;ros_gz_image;std_msgs;geometry_msgs;sensor_msgs;nav_msgs;rs1_environment;robot_state_publisher;joint_state_publisher;xacro;ament_lint_auto;ament_lint_common

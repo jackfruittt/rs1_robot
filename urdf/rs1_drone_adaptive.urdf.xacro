@@ -1,17 +1,14 @@
 <?xml version="1.0" ?>
 <robot name="sjtu_drone" xmlns:xacro="http://www.ros.org/wiki/xacro">
-<!-- https://answers.ros.org/question/379014/passing-outside-parameters-into-urdf-file-using-xacro/ -->
-  <!-- Need argument to get from launch file -->
-  <xacro:arg name="params_path" default="$(find rs1_robot)/config/drone.yaml"/> 
-
-  <!-- Need seperate property for xacro inorder processing -->
-  <xacro:property name="params_path" value="$(arg params_path)"/> 
-
-  <!-- Read in the yaml dict as mp (short for model parameters) -->
-  <xacro:property name="mp" value="${xacro.load_yaml(params_path)}"/> 
-
+  <!-- Dynamic parameters passed from launch file -->
+  <xacro:arg name="drone_name" default="drone_1"/>
+  <xacro:arg name="drone_namespace" default="drone_1"/>
+  
+  <!-- Properties from arguments -->
+  <xacro:property name="drone_name" value="$(arg drone_name)"/>
+  <xacro:property name="namespace" value="$(arg drone_namespace)"/>
+  
   <xacro:property name="M_PI" value="3.14159265359" />
-
 
   <link name="base_footprint"/>
   <joint name="base_footprint_joint" type="fixed">
@@ -40,6 +37,7 @@
     </visual>
   </link>
 
+  <!-- Sensor links -->
   <joint name="sonar_joint" type="fixed">
     <parent link="base_link" />
     <child link="sonar_link" />
@@ -47,7 +45,6 @@
   </joint>
   <link name="sonar_link"/>
 
-  <!-- Sonar sensor link -->
   <joint name="down_sonar_joint" type="fixed">
     <parent link="base_link" />
     <child link="down_sonar_link" />
@@ -55,14 +52,12 @@
   </joint>
   <link name="down_sonar_link"/>
 
-  <!-- 2D Lidar link -->
   <joint name="lidar_joint" type="fixed">
     <parent link="base_link" />
     <child link="lidar_link" />
     <origin rpy="0 0 0" xyz="0 0 0.05"/>
   </joint>
   <link name="lidar_link"/>
-
 
   <joint name="front_cam_joint" type="fixed">
     <origin rpy="0 0 0" xyz="0.2 0 0"/>
@@ -78,36 +73,34 @@
   </joint>
   <link name="bottom_cam_link"/>
 
-  <!-- UPDATED ALL PLUGINS FOR GAZEBO6 FORTRESS COMPATIBILITY -->
+  <!-- GAZEBO PLUGINS -->
   <gazebo>
-    <!-- Use native Ignition Gazebo plugins for drone control -->
     <plugin name="ignition::gazebo::systems::VelocityControl" filename="libignition-gazebo6-velocity-control-system.so">
       <linkName>base_link</linkName>
     </plugin>
 
-    <!-- Odometry publisher -->
     <plugin name="ignition::gazebo::systems::OdometryPublisher" filename="libignition-gazebo6-odometry-publisher-system.so">
-      <odom_frame>${mp['namespace']}/odom</odom_frame>
-      <robot_base_frame>${mp['namespace']}/base_link</robot_base_frame>
+      <odom_frame>${namespace}/odom</odom_frame>
+      <robot_base_frame>${namespace}/base_link</robot_base_frame>
       <odom_publish_frequency>50</odom_publish_frequency>
-      <odom_topic>${mp['namespace']}/odom</odom_topic>
+      <odom_topic>${namespace}/odom</odom_topic>
       <dimensions>3</dimensions> 
     </plugin>
 
-    <!-- General Sensors plugin - REQUIRED for all sensors to work -->
+    <!-- REMOVED: Sensors plugin - will be loaded once in world file instead -->
+    <!-- 
     <plugin filename="libignition-gazebo6-sensors-system.so" name="ignition::gazebo::systems::Sensors">
     </plugin>
+    -->
   </gazebo>
 
-  <!-- Note: Fortress uses simplified sensor definitions, bridge handles ROS integration -->
-  
-  <!-- IMU -->
+  <!-- IMU with dynamic topic -->
   <gazebo reference="base_link">
     <sensor type="imu" name="imu">
       <always_on>true</always_on>
       <visualize>false</visualize>
       <update_rate>100</update_rate>
-      <topic>model/rs1_drone/imu</topic>
+      <topic>model/${drone_name}/imu</topic>
       <gz_frame_id>base_link</gz_frame_id>
       <imu>
         <angular_velocity>
@@ -163,49 +156,21 @@
           </z>
         </linear_acceleration>
       </imu>
+      <!-- REMOVED: Individual sensor plugin - sensors loaded globally -->
+      <!--
       <plugin filename="libignition-gazebo6-imu-system.so" name="ignition::gazebo::systems::Imu">
       </plugin>
+      -->
     </sensor>
   </gazebo>
 
-  <!-- sonar -->
-  <gazebo reference="down_sonar_link">
-    <sensor name="down_sonar" type="gpu_ray">
-      <always_on>true</always_on>
-      <update_rate>50</update_rate>
-      <visualize>false</visualize>
-      <topic>model/rs1_drone/sonar</topic>
-      <gz_frame_id>down_sonar_link</gz_frame_id>
-      <ray>
-        <scan>
-          <horizontal>
-            <samples>1</samples>
-            <resolution>1.0</resolution>
-            <min_angle>0</min_angle>
-            <max_angle>0</max_angle>
-          </horizontal>
-        </scan>
-        <range>
-          <min>0.02</min>
-          <max>25</max>
-          <resolution>0.01</resolution>
-        </range>
-        <noise>
-          <type>gaussian</type>
-          <mean>0.0</mean>
-          <stddev>0.005</stddev>
-        </noise>
-      </ray>
-    </sensor>
-  </gazebo>
-
-  <!-- 2D Lidar -->
+  <!-- 2D Lidar with dynamic topic -->
   <gazebo reference="lidar_link">
     <sensor name="lidar" type="gpu_ray">
       <always_on>true</always_on>
       <update_rate>20</update_rate>
       <visualize>true</visualize>
-      <topic>model/rs1_drone/lidar</topic>
+      <topic>model/${drone_name}/lidar</topic>
       <gz_frame_id>lidar_link</gz_frame_id>
       <ray>
         <scan>
@@ -230,13 +195,44 @@
     </sensor>
   </gazebo>
 
-  <!-- Front Camera with ROS plugin -->
+  <!-- Down sonar with dynamic topic -->
+  <gazebo reference="down_sonar_link">
+    <sensor name="down_sonar" type="gpu_ray">
+      <always_on>true</always_on>
+      <update_rate>50</update_rate>
+      <visualize>false</visualize>
+      <topic>model/${drone_name}/sonar</topic>
+      <gz_frame_id>down_sonar_link</gz_frame_id>
+      <ray>
+        <scan>
+          <horizontal>
+            <samples>1</samples>
+            <resolution>1.0</resolution>
+            <min_angle>0</min_angle>
+            <max_angle>0</max_angle>
+          </horizontal>
+        </scan>
+        <range>
+          <min>0.02</min>
+          <max>25</max>
+          <resolution>0.01</resolution>
+        </range>
+        <noise>
+          <type>gaussian</type>
+          <mean>0.0</mean>
+          <stddev>0.005</stddev>
+        </noise>
+      </ray>
+    </sensor>
+  </gazebo>
+
+  <!-- Front Camera with dynamic topic -->
   <gazebo reference="front_cam_link">
     <sensor name="front_camera" type="camera">
       <always_on>true</always_on>
       <update_rate>60</update_rate>
       <visualize>false</visualize>
-      <topic>model/rs1_drone/front_camera</topic>
+      <topic>model/${drone_name}/front_camera</topic>
       <gz_frame_id>front_cam_link</gz_frame_id>
       <camera>
         <horizontal_fov>2.09</horizontal_fov>
@@ -258,13 +254,13 @@
     </sensor>
   </gazebo>
 
-  <!-- Bottom Camera with ROS plugin -->
+  <!-- Bottom Camera with dynamic topic -->
   <gazebo reference="bottom_cam_link">
     <sensor name="bottom_camera" type="camera">
       <always_on>true</always_on>
       <update_rate>15</update_rate>
       <visualize>false</visualize>
-      <topic>model/rs1_drone/bottom_camera</topic>
+      <topic>model/${drone_name}/bottom_camera</topic>
       <gz_frame_id>bottom_cam_link</gz_frame_id>
       <camera>
         <horizontal_fov>1.047</horizontal_fov>
@@ -286,12 +282,12 @@
     </sensor>
   </gazebo>
 
-  <!-- GPS -->
+  <!-- GPS with dynamic topic -->
   <gazebo reference="base_link">
     <sensor name="gps" type="navsat">
       <always_on>true</always_on>
       <update_rate>10</update_rate>
-      <topic>model/rs1_drone/gps</topic>
+      <topic>model/${drone_name}/gps</topic>
       <gz_frame_id>base_link</gz_frame_id>
       <navsat>
         <position_sensing>
@@ -323,29 +319,24 @@
           </vertical>
         </velocity_sensing>
       </navsat>
+      <!-- REMOVED: Individual NavSat plugin -->
+      <!--
       <plugin filename="libignition-gazebo6-navsat-system.so" name="ignition::gazebo::systems::NavSat">
       </plugin>
+      -->
     </sensor>
   </gazebo>
 
-  <!-- Contact sensor -->
+  <!-- Contact sensor with dynamic topic -->
   <gazebo reference="base_link">
     <sensor name="collision_sensor" type="contact">
       <always_on>true</always_on>
       <update_rate>100</update_rate>
-      <topic>${mp['namespace']}/bumper</topic>
-      <ignition_frame_id>${mp['namespace']}/base_link</ignition_frame_id>
+      <topic>${namespace}/bumper</topic>
+      <ignition_frame_id>${namespace}/base_link</ignition_frame_id>
       <contact>
         <collision>sjtu_drone_collision</collision>
       </contact>
     </sensor>
   </gazebo>
 </robot>
-
-
-
-
-
-
-
-
