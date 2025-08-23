@@ -5,9 +5,9 @@ Adapted to spawn multiple drones using OpaqueFunction
 """
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, TimerAction
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import (Command, LaunchConfiguration,
-                                  PathJoinSubstitution)
+                                  PathJoinSubstitution, PythonExpression)
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
@@ -148,18 +148,60 @@ def generate_launch_description():
         description='Which world to load'
     )
     ld.add_action(world_launch_arg)
-
-    # Start Gazebo (exactly same as working version)
-    gazebo = IncludeLaunchDescription(
-        PathJoinSubstitution([FindPackageShare('ros_ign_gazebo'),
-                             'launch', 'ign_gazebo.launch.py']),
-        launch_arguments={
-            'gz_args': [PathJoinSubstitution([FindPackageShare('rs1_environment'),
-                                               'worlds',
-                                               [LaunchConfiguration('world')]]),
-                         ' -r']}.items()
+    
+    # GUI or headless
+    gazebo_arg = DeclareLaunchArgument(
+        'gazebo',
+        default_value='false',  # lowercase
+        description='true = launch Gazebo GUI, false = headless'
     )
-    ld.add_action(gazebo)
+
+    # Headless (gzserver only + EGL rendering)
+    gazebo_headless = IncludeLaunchDescription(
+        PathJoinSubstitution([
+            FindPackageShare('ros_ign_gazebo'),
+            'launch',
+            'ign_gazebo.launch.py'
+        ]),
+        launch_arguments={
+            'gz_args': [
+                PathJoinSubstitution([
+                    FindPackageShare('rs1_environment'),
+                    'worlds',
+                    LaunchConfiguration('world')
+                ]),
+                ' -s -r --headless-rendering'
+            ]
+        }.items(),
+        condition=IfCondition(
+            PythonExpression(["'", LaunchConfiguration('gazebo'), "' == 'false'"])
+        )
+    )
+
+    # GUI (gzserver + gzclient)
+    gazebo_gui = IncludeLaunchDescription(
+        PathJoinSubstitution([
+            FindPackageShare('ros_ign_gazebo'),
+            'launch',
+            'ign_gazebo.launch.py'
+        ]),
+        launch_arguments={
+            'gz_args': [
+                PathJoinSubstitution([
+                    FindPackageShare('rs1_environment'),
+                    'worlds',
+                    LaunchConfiguration('world')
+                ]),
+                ' -r'
+            ]
+        }.items(),
+        condition=IfCondition(
+            PythonExpression(["'", LaunchConfiguration('gazebo'), "' == 'true'"])
+        )
+    )
+    ld.add_action(gazebo_arg)
+    ld.add_action(gazebo_headless)
+    ld.add_action(gazebo_gui)
 
     # Spawn multiple drones using OpaqueFunction (after short delay)
     multiple_drones = OpaqueFunction(function=spawn_multiple_drones)
