@@ -1,0 +1,6 @@
+Invoking command in '/home/matthew/Software/rs1_robot/build/rs1_robot': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake /home/matthew/Software/rs1_robot -DCMAKE_INSTALL_PREFIX=/home/matthew/Software/rs1_robot/install/rs1_robot
+Invoked command in '/home/matthew/Software/rs1_robot/build/rs1_robot' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake /home/matthew/Software/rs1_robot -DCMAKE_INSTALL_PREFIX=/home/matthew/Software/rs1_robot/install/rs1_robot
+Invoking command in '/home/matthew/Software/rs1_robot/build/rs1_robot': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/matthew/Software/rs1_robot/build/rs1_robot -- -j16 -l16
+Invoked command in '/home/matthew/Software/rs1_robot/build/rs1_robot' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --build /home/matthew/Software/rs1_robot/build/rs1_robot -- -j16 -l16
+Invoking command in '/home/matthew/Software/rs1_robot/build/rs1_robot': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/matthew/Software/rs1_robot/build/rs1_robot
+Invoked command in '/home/matthew/Software/rs1_robot/build/rs1_robot' returned '0': CMAKE_PREFIX_PATH=${CMAKE_PREFIX_PATH}:/opt/ros/humble /usr/bin/cmake --install /home/matthew/Software/rs1_robot/build/rs1_robot

@@ -1,0 +1,190 @@
+-- The C compiler identification is GNU 11.4.0
+-- The CXX compiler identification is GNU 11.4.0
+-- Detecting C compiler ABI info
+-- Detecting C compiler ABI info - done
+-- Check for working C compiler: /usr/bin/cc - skipped
+-- Detecting C compile features
+-- Detecting C compile features - done
+-- Detecting CXX compiler ABI info
+-- Detecting CXX compiler ABI info - done
+-- Check for working CXX compiler: /usr/bin/c++ - skipped
+-- Detecting CXX compile features
+-- Detecting CXX compile features - done
+-- Found ament_cmake: 1.3.12 (/opt/ros/humble/share/ament_cmake/cmake)
+-- Found Python3: /usr/bin/python3 (found version "3.10.12") found components: Interpreter 
+-- Found ros_gz_interfaces: 0.244.20 (/opt/ros/humble/share/ros_gz_interfaces/cmake)
+-- Found rosidl_generator_c: 3.1.7 (/opt/ros/humble/share/rosidl_generator_c/cmake)
+-- Found rosidl_adapter: 3.1.7 (/opt/ros/humble/share/rosidl_adapter/cmake)
+-- Found rosidl_generator_cpp: 3.1.7 (/opt/ros/humble/share/rosidl_generator_cpp/cmake)
+-- Using all available rosidl_typesupport_c: rosidl_typesupport_fastrtps_c;rosidl_typesupport_introspection_c
+-- Using all available rosidl_typesupport_cpp: rosidl_typesupport_fastrtps_cpp;rosidl_typesupport_introspection_cpp
+-- Found ros_gz_sim: 0.244.20 (/opt/ros/humble/share/ros_gz_sim/cmake)
+-- Found rmw_implementation_cmake: 6.1.2 (/opt/ros/humble/share/rmw_implementation_cmake/cmake)
+-- Found rmw_fastrtps_cpp: 6.2.8 (/opt/ros/humble/share/rmw_fastrtps_cpp/cmake)
+-- Found OpenSSL: /usr/lib/x86_64-linux-gnu/libcrypto.so (found version "3.0.2")  
+-- Found FastRTPS: /opt/ros/humble/include  
+-- Using RMW implementation 'rmw_fastrtps_cpp' as default
+-- Looking for pthread.h
+-- Looking for pthread.h - found
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD
+-- Performing Test CMAKE_HAVE_LIBC_PTHREAD - Success
+-- Found Threads: TRUE  
+-- Found ros_gz_bridge: 0.244.20 (/opt/ros/humble/share/ros_gz_bridge/cmake)
+-- Found Protobuf: /usr/lib/x86_64-linux-gnu/libprotobuf.so (found suitable version "3.12.4", minimum required is "3") 
+-- Found Protobuf: /usr/lib/x86_64-linux-gnu/libprotobuf.so (found version "3.12.4") 
+-- Found ament_lint_auto: 0.12.14 (/opt/ros/humble/share/ament_lint_auto/cmake)
+-- Added test 'copyright' to check source files copyright and LICENSE
+-- Added test 'cppcheck' to perform static code analysis on C / C++ code
+-- Configured cppcheck include dirs: 
+-- Configured cppcheck exclude dirs and/or files: 
+-- Added test 'cpplint' to check C / C++ code against the Google style
+-- Configured cpplint exclude dirs and/or files: 
+-- Added test 'flake8' to check Python code syntax and style conventions
+-- Added test 'lint_cmake' to check CMake code style
+-- Added test 'pep257' to check Python code against some of the docstring style conventions in PEP 257
+-- Added test 'uncrustify' to check C / C++ code style
+-- Configured uncrustify additional arguments: 
+-- Added test 'xmllint' to check XML markup files
+-- Configuring done
+-- Generating done
+-- Build files have been written to: /home/matthew/Software/rs1_robot/build/rs1_robot
+-- Install configuration: ""
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/config
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/config/drone.yaml
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/config/gazebo_bridge.yaml
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/config/rs1_robot_config.rviz
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/launch
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/launch/rs1_robot_ignition.py
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/launch/rs1_robot_world.py
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/launch/multi_drone_spawn.launch.py
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/sjtu_drone.sdf
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/grass_plane
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/grass_plane/model.sdf
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/grass_plane/materials
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/grass_plane/materials/textures
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/grass_plane/materials/textures/empty_grass.png
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/grass_plane/model.config
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/quadrotor_4.stl
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/quadrotor_4.dae
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane/model.sdf
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane/materials
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane/materials/textures
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane/materials/textures/empty_grass.png
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane/materials/textures/forest_overhead.png
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane/materials/textures/leaf_litter.png
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane/model.config
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall/model.sdf
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall/materials
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall/materials/textures
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall/materials/textures/forest_wall_transparent.png
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall/materials/textures/forest_wall_transparent_small.png
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall/materials/textures/forest_wall.png
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall/model.config
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/model.config
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-31-10
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-15-04
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-20-45
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-20-25
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-23-54
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-25-28
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-16-53
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-38-13
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-38-52
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-22-05
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-32-53
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-44-29
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-34-00
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-17-57
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-15-58
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/build
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/rs1_drone.urdf
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/model
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/model/model.config
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/install
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/rs1_drone.urdf.xacro
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/worlds
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/worlds/simple_trees.sdf
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/worlds/simple_trees_builtin.sdf
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/worlds/simple_test.world
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/config
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/config/drone.yaml
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/config/gazebo_bridge.yaml
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/config/rs1_robot_config.rviz
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/launch
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/launch/rs1_robot_ignition.py
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/launch/rs1_robot_world.py
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/launch/multi_drone_spawn.launch.py
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/sjtu_drone.sdf
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/grass_plane
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/grass_plane/model.sdf
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/grass_plane/materials
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/grass_plane/materials/textures
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/grass_plane/materials/textures/empty_grass.png
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/grass_plane/model.config
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/quadrotor_4.stl
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/quadrotor_4.dae
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane/model.sdf
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane/materials
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane/materials/textures
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane/materials/textures/empty_grass.png
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane/materials/textures/forest_overhead.png
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane/materials/textures/leaf_litter.png
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_plane/model.config
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall/model.sdf
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall/materials
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall/materials/textures
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall/materials/textures/forest_wall_transparent.png
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall/materials/textures/forest_wall_transparent_small.png
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall/materials/textures/forest_wall.png
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/forest_wall/model.config
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/models/model.config
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-31-10
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-15-04
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-20-45
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-20-25
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-23-54
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-25-28
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-16-53
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-38-13
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-38-52
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-22-05
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-32-53
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-44-29
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-34-00
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-17-57
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/log/build_2025-08-18_01-15-58
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/build
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/rs1_drone.urdf
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/model
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/model/model.config
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/install
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/urdf/rs1_drone.urdf.xacro
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/worlds
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/worlds/simple_trees.sdf
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/worlds/simple_trees_builtin.sdf
+-- Up-to-date: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/worlds/simple_test.world
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/ament_index/resource_index/package_run_dependencies/rs1_robot
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/ament_index/resource_index/parent_prefix_path/rs1_robot
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/environment/ament_prefix_path.sh
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/environment/ament_prefix_path.dsv
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/environment/path.sh
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/environment/path.dsv
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/local_setup.bash
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/local_setup.sh
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/local_setup.zsh
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/local_setup.dsv
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/package.dsv
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/ament_index/resource_index/packages/rs1_robot
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/cmake/rs1_robotConfig.cmake
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/cmake/rs1_robotConfig-version.cmake
+-- Installing: /home/matthew/Software/rs1_robot/install/rs1_robot/share/rs1_robot/package.xml

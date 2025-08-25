@@ -46,16 +46,10 @@ if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_
   file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/rs1_robot" TYPE DIRECTORY FILES
     "/home/matthew/Software/rs1_robot/config"
     "/home/matthew/Software/rs1_robot/launch"
-    "/home/matthew/Software/rs1_robot/models"
     "/home/matthew/Software/rs1_robot/urdf"
+    "/home/matthew/Software/rs1_robot/models"
     "/home/matthew/Software/rs1_robot/worlds"
-    "/home/matthew/Software/rs1_robot/include/"
-    "/home/matthew/Software/rs1_robot/scripts/"
     )
-endif()
-
-if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
-  file(INSTALL DESTINATION "${CMAKE_INSTALL_PREFIX}/share/rs1_robot/launch" TYPE PROGRAM FILES "/home/matthew/Software/rs1_robot/launch/rs1_drone_spawner.py")
 endif()
 
 if("x${CMAKE_INSTALL_COMPONENT}x" STREQUAL "xUnspecifiedx" OR NOT CMAKE_INSTALL_COMPONENT)
