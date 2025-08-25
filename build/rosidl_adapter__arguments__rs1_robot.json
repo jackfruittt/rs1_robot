@@ -1,0 +1,6 @@
+{
+  "package_name": "rs1_robot",
+  "non_idl_tuples": [
+    "/home/matthew/Software/rs1_robot:srv/SetWaypoints.srv"
+  ]
+}
