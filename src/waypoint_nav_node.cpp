@@ -69,15 +69,28 @@ void WaypointNavNode::setWaypointsCb(
 }
 
 void WaypointNavNode::controlLoop() {
-  geometry_msgs::msg::Twist cmd;
+  geometry_msgs::msg::Twist cmd{}; // Zero-initialized
+  if (!odom_sub_->get_publisher_count()) {
+    RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 5000, "No odometry publishers, waiting...");
+    cmd_pub_->publish(cmd);
+    return;
+  }
 
   // Copy state
   geometry_msgs::msg::Pose pose;
   geometry_msgs::msg::Pose goal;
   {
     std::lock_guard<std::mutex> lk(mtx_);
-    if (!have_pose_) { cmd_pub_->publish(cmd); return; }
-    if (wp_idx_ >= waypoints_.size()) { cmd_pub_->publish(cmd); return; }
+    if (!have_pose_ || !std::isfinite(current_pose_.position.x) ||
+        !std::isfinite(current_pose_.position.y) || !std::isfinite(current_pose_.position.z)) {
+      RCLCPP_WARN_THROTTLE(get_logger(), *get_clock(), 1000, "Invalid or missing pose, skipping control");
+      cmd_pub_->publish(cmd);
+      return;
+    }
+    if (wp_idx_ >= waypoints_.size()) {
+      cmd_pub_->publish(cmd);
+      return;
+    }
     pose = current_pose_;
     goal = waypoints_[wp_idx_];
   }
@@ -87,17 +100,17 @@ void WaypointNavNode::controlLoop() {
   const double dy = goal.position.y - pose.position.y;
   const double dz = goal.position.z - pose.position.z;
   const double dist_xy = std::hypot(dx, dy);
-  const double target_yaw = std::atan2(dy, dx);
+  const double target_yaw = (dist_xy > 1e-6) ? std::atan2(dy, dx) : 0.0;
   const double yaw = yaw_from_quat(pose.orientation);
   const double yaw_err = std::atan2(std::sin(target_yaw - yaw), std::cos(target_yaw - yaw));
 
   // Controller
-  cmd.linear.x  = std::clamp(kp_lin_ * dist_xy, -max_speed_,  max_speed_);
-  cmd.linear.z  = std::clamp(kp_lin_ * dz,      -max_speed_,  max_speed_);
-  cmd.angular.z = std::clamp(kp_yaw_ * yaw_err, -max_yaw_rate_, max_yaw_rate_);
+  cmd.linear.x = std::isfinite(dist_xy) ? std::clamp(kp_lin_ * dist_xy, -max_speed_, max_speed_) : 0.0;
+  cmd.linear.z = std::isfinite(dz) ? std::clamp(kp_lin_ * dz, -max_speed_, max_speed_) : 0.0;
+  cmd.angular.z = std::isfinite(yaw_err) ? std::clamp(kp_yaw_ * yaw_err, -max_yaw_rate_, max_yaw_rate_) : 0.0;
 
-  // Arrival criteria
-  if (dist_xy < arrive_xy_tol_ && std::abs(yaw_err) < arrive_yaw_tol_) {
+  // Arrival criteria (add z tolerance)
+  if (dist_xy < arrive_xy_tol_ && std::abs(yaw_err) < arrive_yaw_tol_ && std::abs(dz) < arrive_xy_tol_) {
     std::lock_guard<std::mutex> lk(mtx_);
     wp_idx_++;
     RCLCPP_INFO_THROTTLE(get_logger(), *get_clock(), 1000,

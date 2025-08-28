@@ -32,6 +32,8 @@ private:
   std::mutex mtx_;
   geometry_msgs::msg::Pose current_pose_;
   bool have_pose_ = false;
+  bool initialized_ = false;
+  double last_yaw_ = 0.0;
 
   std::vector<geometry_msgs::msg::Pose> waypoints_;
   std::size_t wp_idx_ = 0;
