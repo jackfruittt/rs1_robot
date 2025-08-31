@@ -1,970 +1,403 @@
 #include "drone_node.h"
-#include "sensor_node.h"
+#include <cmath>
 
-
-using namespace std::chrono_literals;
-
-DroneNode::DroneNode()
-    : Node("drone_controller"),
-      should_terminate_(false),
-      sensor_node_(nullptr)  // Initialise to nullptr
+namespace drone_swarm
 {
-    // Declare parameters
-    this->declare_parameter("road_gradient", 3.0); // Default 3%
-    max_gradient_ = this->get_parameter("road_gradient").as_double();
 
-    // Declare advanced parameter
-    this->declare_parameter("advanced", false);
-    advanced_mode_ = this->get_parameter("advanced").as_bool();
-
-    // Declare drone namespace parameter
+  // DroneControllerNode Implementation
+  DroneControllerNode::DroneControllerNode(const rclcpp::NodeOptions &options)
+      : Node("drone_controller", options), current_flight_mode_(FlightMode::DISARMED), armed_(false)
+  {
+    // Initialise ROS parameters for drone configuration
     this->declare_parameter("drone_namespace", std::string("rs1_drone"));
+
     drone_namespace_ = this->get_parameter("drone_namespace").as_string();
 
-    // Initialise subscribers
+    // Initialise control components for flight management
+    drone_control_ = std::make_unique<DroneControl>();
+    // sensor_manager_ = std::make_unique<SensorManager>();  // Commented out - future implementation
+
+    last_control_update_ = std::chrono::steady_clock::now();
+
+    // Create ROS subscriptions using drone namespace pattern
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "/" + drone_namespace_ + "/odom", 10, std::bind(&DroneNode::odomCallback, this, std::placeholders::_1));
+        "/" + drone_namespace_ + "/odom", 10,
+        std::bind(&DroneControllerNode::odomCallback, this, std::placeholders::_1));
 
     goals_sub_ = this->create_subscription<geometry_msgs::msg::PoseArray>(
-        "/" + drone_namespace_ + "/mission/goals", 10, std::bind(&DroneNode::goalCallback, this, std::placeholders::_1));
+        "/" + drone_namespace_ + "/mission/goals", 10,
+        std::bind(&DroneControllerNode::goalCallback, this, std::placeholders::_1));
 
-    grid_map_sub_ = this->create_subscription<grid_map_msgs::msg::GridMap>(
-        "/grid_map", 10, std::bind(&DroneNode::gridMapCallback, this, std::placeholders::_1));
+    target_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
+        "/" + drone_namespace_ + "/target_pose", 10,
+        std::bind(&DroneControllerNode::targetPoseCallback, this, std::placeholders::_1));
 
-    // Subscribe to laser and sonar (For RTP)
+    // imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
+    //     "/" + drone_namespace_ + "/imu", 10,
+    //     std::bind(&DroneControllerNode::imuCallback, this, std::placeholders::_1));
+
+    // gps_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
+    //     "/" + drone_namespace_ + "/gps", 10,
+    //     std::bind(&DroneControllerNode::gpsCallback, this, std::placeholders::_1));
+
+    // Subscribe to laser and sonar (future implementation)
     laser_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-        "/" + drone_namespace_ + "/laserscan", 10, 
-        [this](const sensor_msgs::msg::LaserScan::SharedPtr msg) {
-            std::lock_guard<std::mutex> lock(laser_mutex_);
-            latest_laser_ = msg;
+        "/" + drone_namespace_ + "/laserscan", 10,
+        [this](const sensor_msgs::msg::LaserScan::SharedPtr msg)
+        {
+          // TODO: Process laser data when sensor manager is implemented
+          (void)msg;
         });
 
     sonar_sub_ = this->create_subscription<sensor_msgs::msg::Range>(
         "/" + drone_namespace_ + "/sonar", 10,
-        [this](const sensor_msgs::msg::Range::SharedPtr msg) {
-            // Store sonar data
-            {
-                std::lock_guard<std::mutex> lock(sonar_mutex_);
-                latest_sonar_ = msg;
-            }
-            
-            // If the drone is flying, update altitude adjustment
-            if (!vehicles_.empty() && vehicles_[0]->takeoff_complete) {
-                // Get current altitude
-                double current_altitude = 0.0;
-                {
-                    std::lock_guard<std::mutex> lock(vehicles_[0]->odom_mutex);
-                    current_altitude = vehicles_[0]->current_odom.pose.pose.position.z;
-                }
-                
-                // Calculate and set altitude adjustment
-                double adjustment = controller_->calculateAltitudeAdjustment(
-                    current_altitude, msg->range);
-                controller_->setAltitudeAdjustment(adjustment);
-                
-                // Debug output with proper formatting
-                static int count = 0;
-                if (++count % 10 == 0) {  // Log every 10 messages
-                    RCLCPP_INFO(this->get_logger(), 
-                               "Sonar: alt=%.2fm, range=%.2fm, adjustment=%.2fm/s",
-                               current_altitude, static_cast<double>(msg->range), adjustment);
-                }
-            }
+        [this](const sensor_msgs::msg::Range::SharedPtr msg)
+        {
+          // TODO: Process sonar data when sensor manager is implemented
+          (void)msg;
         });
 
-    // Initialise publishers
-    cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/" + drone_namespace_ + "/cmd_vel", 10);
-    takeoff_pub_ = this->create_publisher<std_msgs::msg::Empty>("/" + drone_namespace_ + "/takeoff", 10);
-    land_pub_ = this->create_publisher<std_msgs::msg::Empty>("/" + drone_namespace_ + "/landing", 10);
-    waypoints_pub_ = this->create_publisher<geometry_msgs::msg::PoseArray>("/" + drone_namespace_ + "/mission/path", 10);
-    markers_pub_ = this->create_publisher<visualization_msgs::msg::MarkerArray>("/" + drone_namespace_ + "/visualization_marker", 10);
+    mission_state_sub_ = this->create_subscription<std_msgs::msg::String>(
+        "/" + drone_namespace_ + "/mission_state", 10,
+        std::bind(&DroneControllerNode::missionStateCallback, this, std::placeholders::_1));
 
-    // Initialise services
-    mission_service_ = this->create_service<std_srvs::srv::SetBool>(
-        "/" + drone_namespace_ + "/mission/control",
-        std::bind(&DroneNode::missionControlCallback, this, std::placeholders::_1, std::placeholders::_2));
+    // Create publishers
+    cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
+        "/" + drone_namespace_ + "/cmd_vel", 10);
+    pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+        "/" + drone_namespace_ + "/pose", 10);
+    velocity_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
+        "/" + drone_namespace_ + "/velocity", 10);
+    flight_mode_pub_ = this->create_publisher<std_msgs::msg::String>(
+        "/" + drone_namespace_ + "/flight_mode", 10);
 
-    // Initialise timer for periodic updates
-    timer_ = this->create_wall_timer(
-        500ms, std::bind(&DroneNode::timerCallback, this));
+    // Create services
 
-    // Create controller instance
-    controller_ = std::make_unique<Controller>(cmd_vel_pub_, takeoff_pub_, land_pub_, this->get_logger());
-    
-    // TODO: Re-enable when waypoint_manager.h is available
-    // // Create waypoint manager
-    // waypoint_manager_ = std::make_unique<WaypointManager>(
-    //     this->get_logger(),
-    //     max_gradient_,
-    //     waypoints_pub_,
-    //     markers_pub_);
-    // 
-    // // Set the elevation function to use map data
-    // waypoint_manager_->setElevationFunction(
-    //     [this](const geometry_msgs::msg::Point& point) { 
-    //         return this->getElevationAtPoint(point); 
-    //     });
+    // Create control timer
+    auto timer_period = std::chrono::milliseconds(static_cast<int>(1000.0 / control_frequency_));
+    control_timer_ = this->create_wall_timer(
+        timer_period,
+        std::bind(&DroneControllerNode::controlLoopCallback, this));
 
-    // // FIXED: Using real sensor data for gradient calculation
-    // waypoint_manager_->setGradientFunction([this](double x, double y) {
-    //     if (sensor_node_) {
-    //         // Get real gradient data from sensor node
-    //         return sensor_node_->getGradientMagnitudeAtPoint(x, y);
-    //     } else {
-    //         // Fallback to default if sensor node not available yet
-    //         RCLCPP_DEBUG(this->get_logger(), "Sensor node not available, using default gradient");
-    //         return 0.02;  // 2% gradient - safe default
-    //     }
-    // });
+    // Load control parameters
+    loadControlParams();
 
-    // // Create TSP solver for advanced mode
-    // tsp_solver_ = std::make_unique<TSPSolver>(this->get_logger());
+    RCLCPP_INFO(this->get_logger(), "Drone Controller Node initialized for %s", drone_namespace_.c_str());
+  }
 
-    // Create main drone vehicle
-    std::unique_ptr<VehicleData> main_drone = std::make_unique<VehicleData>("main_drone");
-    vehicles_.push_back(std::move(main_drone));
+  // Template implementations for callback functions
+  void DroneControllerNode::controlLoopCallback() {
+    // Main control loop - executed at control frequency
 
-    // Start controller thread
-    controller_thread_ = new std::thread(&DroneNode::controllerThread, this);
-
-    RCLCPP_INFO(this->get_logger(), "Drone controller initialized with max gradient: %.1f%%, advanced mode: %s", 
-                max_gradient_, advanced_mode_ ? "ENABLED" : "DISABLED");
-}
-
-DroneNode::~DroneNode()
-{
-    // Set termination flag and wait for controller thread to finish
-    should_terminate_ = true;
-
-    // Notify all waiting threads
-    for (auto &vehicle : vehicles_)
+    // Check current mission state and execute appropriate control
+    if (current_mission_state_ == "TAKEOFF")
     {
-        vehicle->queue_cv.notify_all();
+      executeTakeoffSequence();
+    }
+    else if (current_mission_state_ == "WAYPOINT_NAVIGATION")
+    {
+      executeWaypointNavigation();
+    }
+    else if (current_mission_state_ == "LANDING")
+    {
+      executeLandingSequence();
+    }
+    else if (current_mission_state_ == "HOVERING")
+    {
+      executeHoverControl();
     }
 
-    if (controller_thread_ != nullptr && controller_thread_->joinable())
+    // Publish telemetry
+    publishTelemetry();
+
+    RCLCPP_DEBUG(this->get_logger(), "Control loop executed - Flight mode: %s, Mission state: %s",
+                 flightModeToString(current_flight_mode_).c_str(), current_mission_state_.c_str());
+  }
+
+  void DroneControllerNode::loadControlParams() {
+    // Load control parameters from ROS parameters
+    this->declare_parameter("control_frequency", 20.0);
+    this->declare_parameter("telemetry_frequency", 5.0);
+    this->declare_parameter("takeoff_altitude", 2.0);
+    this->declare_parameter("landing_speed", 0.5);
+    this->declare_parameter("hover_altitude_tolerance", 0.2);
+
+    control_frequency_ = this->get_parameter("control_frequency").as_double();
+    telemetry_frequency_ = this->get_parameter("telemetry_frequency").as_double();
+
+    // Configure drone control system
+    drone_control_->setLogger(this->get_logger());
+    drone_control_->setCmdVelPublisher(cmd_vel_pub_);
+
+    RCLCPP_INFO(this->get_logger(), "Control parameters loaded - Control freq: %.1fHz, Telemetry freq: %.1fHz",
+                control_frequency_, telemetry_frequency_);
+  }
+
+  void DroneControllerNode::missionStateCallback(const std_msgs::msg::String::SharedPtr msg) {
+    std::string previous_state = current_mission_state_;
+    current_mission_state_ = msg->data;
+
+    if (previous_state != current_mission_state_)
     {
-        controller_thread_->join();
-        delete controller_thread_;
+      RCLCPP_INFO(this->get_logger(), "Mission state changed from %s to %s",
+                  previous_state.c_str(), current_mission_state_.c_str());
+
+      // Handle state transitions
+      if (current_mission_state_ == "TAKEOFF")
+      {
+        // Arm the drone and prepare for takeoff
+        armed_ = true;
+        current_flight_mode_ = FlightMode::GUIDED;
+        takeoff_start_time_ = this->get_clock()->now();
+
+        RCLCPP_INFO(this->get_logger(), "Drone armed and ready for takeoff");
+      }
+      else if (current_mission_state_ == "LANDING")
+      {
+        // Prepare for landing
+        current_flight_mode_ = FlightMode::GUIDED;
+        landing_start_time_ = this->get_clock()->now();
+
+        RCLCPP_INFO(this->get_logger(), "Initiating landing sequence");
+      }
+      else if (current_mission_state_ == "IDLE")
+      {
+        // Disarm the drone
+        armed_ = false;
+        current_flight_mode_ = FlightMode::DISARMED;
+        // TODO: Clear waypoints when waypoint system is implemented
+
+        RCLCPP_INFO(this->get_logger(), "Drone disarmed and in IDLE state");
+      }
+    }
+  }
+
+  void DroneControllerNode::targetPoseCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
+    target_pose_ = *msg;
+
+    RCLCPP_DEBUG(this->get_logger(), "Target pose updated: [%.2f, %.2f, %.2f]",
+                 msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
+  }
+
+  // void DroneControllerNode::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
+  // {
+  //   (void)msg; // Suppress unused parameter warning
+  //   // TODO: Process IMU data for attitude estimation
+  //   // sensor_manager_->updateIMU(msg);
+  //   RCLCPP_DEBUG(this->get_logger(), "IMU data received");
+  // }
+
+  // void DroneControllerNode::gpsCallback(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
+  // {
+  //   (void)msg; // Suppress unused parameter warning
+  //   // TODO: Process GPS data for position estimation
+  //   // sensor_manager_->updateGPS(msg);
+  //   RCLCPP_DEBUG(this->get_logger(), "GPS data received");
+  // }
+
+  void DroneControllerNode::goalCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg) {
+    // Future implementation for waypoint handling
+    (void)msg; // Suppress unused parameter warning
+
+    RCLCPP_INFO(this->get_logger(), "Received %zu waypoints for %s (waypoint system not yet implemented)",
+                msg->poses.size(), drone_namespace_.c_str());
+
+    // Log waypoints for debugging (future implementation)
+    for (size_t i = 0; i < msg->poses.size(); ++i)
+    {
+      const auto &wp = msg->poses[i];
+      RCLCPP_INFO(this->get_logger(), "Waypoint %zu: [%.2f, %.2f, %.2f]",
+                  i, wp.position.x, wp.position.y, wp.position.z);
     }
 
-    // Land all drones that are still flying
-    for (auto &vehicle : vehicles_)
+    // If drone is in waypoint navigation mode, start navigating immediately
+    if (current_mission_state_ == "WAYPOINT_NAVIGATION")
     {
-        if (vehicle->mission_active || vehicle->takeoff_complete)
-        {
-            controller_->land(*vehicle);
-        }
+      RCLCPP_INFO(this->get_logger(), "Starting waypoint navigation immediately");
+    }
+  }
+
+  void DroneControllerNode::odomCallback(const nav_msgs::msg::Odometry::SharedPtr msg)
+  {
+    // Store current odometry for navigation
+    current_odom_ = *msg;
+
+    // Update pose publisher with current position
+    geometry_msgs::msg::PoseStamped current_pose;
+    current_pose.header = msg->header;
+    current_pose.pose = msg->pose.pose;
+    pose_pub_->publish(current_pose);
+
+    RCLCPP_DEBUG(this->get_logger(), "Odometry updated: [%.2f, %.2f, %.2f]",
+                 msg->pose.pose.position.x, msg->pose.pose.position.y, msg->pose.pose.position.z);
+  }
+
+  // Mission execution methods
+  void DroneControllerNode::executeTakeoffSequence()
+  {
+    if (!armed_)
+    {
+      RCLCPP_WARN(this->get_logger(), "Cannot execute takeoff - drone not armed");
+      return;
     }
 
-    RCLCPP_INFO(this->get_logger(), "Drone controller shutting down");
-}
+    // Simple takeoff control - ascend to target altitude
+    double target_altitude = this->get_parameter("takeoff_altitude").as_double();
+    double current_altitude = current_odom_.pose.pose.position.z;
 
-void DroneNode::odomCallback(const std::shared_ptr<nav_msgs::msg::Odometry> msg)
-{
-    if (vehicles_.empty())
+    geometry_msgs::msg::Twist cmd_vel;
+    cmd_vel.linear.x = 0.0;
+    cmd_vel.linear.y = 0.0;
+    cmd_vel.angular.x = cmd_vel.angular.y = cmd_vel.angular.z = 0.0;
+
+    if (current_altitude < target_altitude - 0.2)
     {
-        return;
-    }
-
-    // Update main drone odometry (can update this later if doing multi-drone, i.e. specifying drone id)
-    auto &vehicle = vehicles_[0];
-    std::lock_guard<std::mutex> lock(vehicle->odom_mutex);
-    vehicle->current_odom = *msg;
-}
-
-void DroneNode::gridMapCallback(const std::shared_ptr<grid_map_msgs::msg::GridMap> msg)
-{
-    // Store the received grid map
-    std::lock_guard<std::mutex> lock(grid_map_mutex_);
-    latest_grid_map_ = *msg;
-    has_grid_map_ = true;
-}
-
-void DroneNode::missionControlCallback(
-    const std::shared_ptr<std_srvs::srv::SetBool::Request> request,
-    std::shared_ptr<std_srvs::srv::SetBool::Response> response)
-{
-    if (vehicles_.empty())
-    {
-        response->success = false;
-        response->message = "No vehicles available";
-        return;
-    }
-
-    auto &vehicle = vehicles_[0];
-
-    if (request->data)
-    {
-        // START MISSION
-        if (!vehicle->mission_active)
-        {
-            // Check if we have goals to work with
-            {
-                std::lock_guard<std::mutex> lock(vehicle->goals_mutex);
-                if (vehicle->goals.empty()) {
-                    response->success = false;
-                    response->message = "No goals available. Please publish goals to /mission/goals first.";
-                    return;
-                }
-            }
-
-            // Store starting position
-            {
-                std::lock_guard<std::mutex> lock_odom(vehicle->odom_mutex);
-                vehicle->start_position.position = vehicle->current_odom.pose.pose.position;
-                vehicle->start_position.orientation = vehicle->current_odom.pose.pose.orientation;
-            }
-            
-            // Validate goals are within terrain map boundaries
-            if (!validateAllGoals(*vehicle)) {
-                response->success = false;
-                response->message = "Goals are outside terrain map boundaries (20x20x20m). Mission aborted.";
-                return;
-            }
-
-            // TODO: Re-enable when Graph class is implemented
-            // // Build traversability graph for route planning
-            // auto graph = buildTraversabilityGraph(*vehicle);
-            // graph->printGraphInfo(this->get_logger());
-
-            // Start mission
-            controller_->startMission(*vehicle);
-
-            response->success = true;
-            response->message = "Mission started - drone will survey terrain and navigate goals";
-            RCLCPP_INFO(this->get_logger(), "Mission mode activated for %s with %zu goals", 
-                       vehicle->id.c_str(), vehicle->goals.size());
-        }
-        else
-        {
-            // Already in mission mode
-            response->success = true;
-            response->message = "Mission mode already active - progress: " + 
-                               std::to_string(static_cast<int>(vehicle->mission_progress)) + "%";
-        }
+      // Ascend at controlled rate
+      cmd_vel.linear.z = 0.5; // 0.5 m/s ascent rate
+      RCLCPP_DEBUG(this->get_logger(), "Ascending - Current: %.2fm, Target: %.2fm",
+                   current_altitude, target_altitude);
     }
     else
     {
-        // STOP MISSION
-        if (vehicle->mission_active)
-        {
-            controller_->stopMission(*vehicle);
-            response->success = true;
-            response->message = "Mission stopped - drone will return and land";
-            RCLCPP_INFO(this->get_logger(), "Mission mode deactivated for %s", vehicle->id.c_str());
-        }
-        else
-        {
-            response->success = true;
-            response->message = "Mission mode already inactive";
-        }
+      // Maintain altitude - takeoff complete
+      cmd_vel.linear.z = 0.0;
+      RCLCPP_DEBUG(this->get_logger(), "Takeoff altitude reached - hovering");
     }
-}
 
-void DroneNode::goalCallback(const std::shared_ptr<geometry_msgs::msg::PoseArray> msg)
-{
-    if (vehicles_.empty())
+    cmd_vel_pub_->publish(cmd_vel);
+  }
+
+  void DroneControllerNode::executeWaypointNavigation() {
+    // Future implementation for waypoint navigation
+    // Currently uses target_pose_ from mission planner instead
+
+    // Use target pose from mission planner
+    if (target_pose_.header.stamp.sec == 0)
     {
-        return;
+      RCLCPP_DEBUG(this->get_logger(), "No target pose available for navigation");
+      return;
     }
 
-    auto &vehicle = vehicles_[0];
+    // Calculate control command using drone control system
+    geometry_msgs::msg::PoseStamped current_pose;
+    current_pose.header.stamp = this->get_clock()->now();
+    current_pose.pose = current_odom_.pose.pose;
 
-    RCLCPP_INFO(this->get_logger(), "Received %zu new goals - mode: %s",
-                msg->poses.size(), advanced_mode_ ? "ADVANCED (TSP)" : "BASIC (Sequential)");
+    geometry_msgs::msg::Twist cmd_vel = drone_control_->calculateAdvancedPositionControl(
+        current_pose, target_pose_, 0.05); // 20Hz control loop = 0.05s dt
 
-    // Store new goals in the vehicle's goals vector
-    storeMissionGoals(*vehicle, msg->poses);
+    cmd_vel_pub_->publish(cmd_vel);
 
-    // Log altitude mode for each goal
-    for (size_t i = 0; i < msg->poses.size(); i++) {
-        const auto& goal = msg->poses[i];
-        if (goal.position.z > 0.1) {
-            RCLCPP_INFO(this->get_logger(), "Goal %zu: (%.2f, %.2f, %.2f) - MANUAL ALTITUDE", 
-                       i, goal.position.x, goal.position.y, goal.position.z);
-        } else {
-            RCLCPP_INFO(this->get_logger(), "Goal %zu: (%.2f, %.2f, terrain) - TERRAIN FOLLOWING", 
-                       i, goal.position.x, goal.position.y);
-        }
+    // Check if target is reached
+    double distance = calculateDistanceToWaypoint(current_pose.pose, target_pose_.pose);
+
+    if (distance < 0.8)
+    { // Target tolerance
+      RCLCPP_DEBUG(this->get_logger(), "Target reached (distance: %.2fm)", distance);
     }
 
-    // ADVANCED MODE: Use TSP to optimise goal order
-    if (advanced_mode_ && msg->poses.size() > 1) {
-        RCLCPP_INFO(this->get_logger(), "ADVANCED MODE: Running TSP solver for %zu goals...", msg->poses.size());
-        
-        // TODO: Implement TSP solver
-        // if (!solveTSPAndReorderGoals(*vehicle)) {
-        //     RCLCPP_ERROR(this->get_logger(), "TSP solver failed - falling back to sequential order");
-        // }
-    } else if (advanced_mode_) {
-        RCLCPP_INFO(this->get_logger(), "ADVANCED MODE: Single goal, no TSP optimization needed");
-    }
+    RCLCPP_DEBUG(this->get_logger(), "Navigating to target - distance: %.2fm", distance);
+  }
 
-    // HANDLE ALL MISSION STATES
-    if (vehicle->mission_active && vehicle->takeoff_complete)
-    {
-        // Validate if goals are within terrain map boundaries
-        if (!validateAllGoals(*vehicle)) {
-            RCLCPP_ERROR(this->get_logger(), "Some goals are outside terrain map boundaries. Returning to origin and landing.");
-            returnToOriginAndLand(*vehicle);
-            return;
-        }
+  void DroneControllerNode::executeLandingSequence() {
+    // Simple landing control - descend at controlled rate
+    double landing_speed = this->get_parameter("landing_speed").as_double();
+    double current_altitude = current_odom_.pose.pose.position.z;
 
-        RCLCPP_INFO(this->get_logger(), "MISSION ACTIVE - Adding new goals to queue");
+    geometry_msgs::msg::Twist cmd_vel;
+    cmd_vel.linear.x = 0.0;
+    cmd_vel.linear.y = 0.0;
+    cmd_vel.angular.x = cmd_vel.angular.y = cmd_vel.angular.z = 0.0;
 
-        // ALWAYS add new goals to the command queue
-        {
-            std::lock_guard<std::mutex> lock(vehicle->queue_mutex);
-            
-            // Clear existing commands and add new goals
-            std::queue<VehicleData::Command> empty;
-            std::swap(vehicle->command_queue, empty);
-            
-            // Add new goal commands in order
-            std::vector<geometry_msgs::msg::Pose> ordered_goals;
-            {
-                std::lock_guard<std::mutex> goals_lock(vehicle->goals_mutex);
-                ordered_goals = vehicle->goals;
-            }
-            
-            for (const auto &goal : ordered_goals)
-            {
-                vehicle->command_queue.push(
-                    VehicleData::Command(VehicleData::Command::Type::FLYING, goal));
-            }
-            
-            RCLCPP_INFO(this->get_logger(), "Added %zu new goals to command queue", ordered_goals.size());
-        }
-
-        // Reset mission progress for new goals
-        vehicle->current_goal_index = 0;
-        vehicle->mission_progress = 0.0;
-
-        // Notify controller thread
-        vehicle->queue_cv.notify_one();
-        
-        RCLCPP_INFO(this->get_logger(), "New goals queued for immediate execution");
-    }
-    else if (vehicle->mission_active && !vehicle->takeoff_complete)
-    {
-        // Mission active but not taken off yet - goals will be used when takeoff completes
-        RCLCPP_INFO(this->get_logger(), "Mission active but not airborne - goals will be used after takeoff");
+    if (current_altitude > 0.3)
+    {                                    // Land until 30cm above ground
+      cmd_vel.linear.z = -landing_speed; // Descend
+      RCLCPP_DEBUG(this->get_logger(), "Landing - Current altitude: %.2fm", current_altitude);
     }
     else
     {
-        // Mission not active - just store the goals for future use
-        RCLCPP_INFO(this->get_logger(), "Goals stored. Start mission with service call to begin navigation.");
+      // Landing complete
+      cmd_vel.linear.z = 0.0;
+      RCLCPP_DEBUG(this->get_logger(), "Landing complete - altitude: %.2fm", current_altitude);
     }
-}
 
-bool DroneNode::validateAllGoals(VehicleData& vehicle)
-{
-    std::vector<geometry_msgs::msg::Pose> goals;
+    cmd_vel_pub_->publish(cmd_vel);
+  }
+
+  void DroneControllerNode::executeHoverControl() {
+    // Hover at current position using target pose
+    geometry_msgs::msg::PoseStamped current_pose;
+    current_pose.header.stamp = this->get_clock()->now();
+    current_pose.pose = current_odom_.pose.pose;
+
+    // Use current position as target for hovering
+    geometry_msgs::msg::PoseStamped hover_target = target_pose_;
+    if (hover_target.pose.position.x == 0.0 && hover_target.pose.position.y == 0.0)
     {
-        std::lock_guard<std::mutex> lock(vehicle.goals_mutex);
-        goals = vehicle.goals;
+      // Use current position if no target set
+      hover_target = current_pose;
     }
 
-    if (goals.empty()) {
-        RCLCPP_WARN(this->get_logger(), "No goals available to validate");
-        return false;
-    }
+    geometry_msgs::msg::Twist cmd_vel = drone_control_->calculateAdvancedPositionControl(
+        current_pose, hover_target, 0.05);
 
-    // Check if goals are within terrain map boundaries (40x40x20m centered at origin)
-    const double MAX_X = 100.0;  // -100 to +100
-    const double MAX_Y = 100.0;  // -100 to +100
-    const double MAX_Z = 100.0;  // 0 to +100
+    cmd_vel_pub_->publish(cmd_vel);
 
-    for (size_t i = 0; i < goals.size(); i++) {
-        const auto& goal = goals[i];
-        
-        if (std::abs(goal.position.x) > MAX_X || 
-            std::abs(goal.position.y) > MAX_Y || 
-            goal.position.z < 0 || goal.position.z > MAX_Z) {
-            
-            RCLCPP_ERROR(this->get_logger(), 
-                        "Goal %zu at (%.2f, %.2f, %.2f) is outside terrain map boundaries (±10m x,y; 0-20m z)",
-                        i, goal.position.x, goal.position.y, goal.position.z);
-            return false;
-        }
-    }
+    RCLCPP_DEBUG(this->get_logger(), "Hovering at position [%.2f, %.2f, %.2f]",
+                 hover_target.pose.position.x, hover_target.pose.position.y, hover_target.pose.position.z);
+  }
 
-    RCLCPP_INFO(this->get_logger(), "All %zu goals are within terrain map boundaries", goals.size());
-    return true;
-}
+  // Helper methods
+  double DroneControllerNode::calculateDistanceToWaypoint(const geometry_msgs::msg::Pose &current,
+                                                          const geometry_msgs::msg::Pose &target) const
+  {
+    double dx = target.position.x - current.position.x;
+    double dy = target.position.y - current.position.y;
+    double dz = target.position.z - current.position.z;
+    return std::sqrt(dx * dx + dy * dy + dz * dz);
+  }
 
-void DroneNode::returnToOriginAndLand(VehicleData& vehicle) {
-    RCLCPP_WARN(this->get_logger(), "Returning to origin (0,0) and landing due to untraversable goals");
-    
-    // Clear existing command queue
+  std::string DroneControllerNode::flightModeToString(FlightMode mode) const {
+    switch (mode)
     {
-        std::lock_guard<std::mutex> lock(vehicle.queue_mutex);
-        std::queue<VehicleData::Command> empty;
-        std::swap(vehicle.command_queue, empty);
-        
-        // Create return-to-origin goal
-        geometry_msgs::msg::Pose origin_pose;
-        origin_pose.position.x = 0.0;
-        origin_pose.position.y = 0.0;
-        origin_pose.position.z = 2.0;  // 2m altitude for safe flight
-        
-        // Set orientation to face forward (0 degrees)
-        tf2::Quaternion q;
-        q.setRPY(0, 0, 0);
-        origin_pose.orientation = tf2::toMsg(q);
-        
-        // Add command to return to origin
-        vehicle.command_queue.push(
-            VehicleData::Command(VehicleData::Command::Type::FLYING, origin_pose));
-        
-        // Add landing command
-        vehicle.command_queue.push(
-            VehicleData::Command(VehicleData::Command::Type::LANDING));
-        
-        // Add stop command
-        vehicle.command_queue.push(
-            VehicleData::Command(VehicleData::Command::Type::STOP));
-        
-        // Mark mission as failed
-        vehicle.mission_active = false;
+    case FlightMode::MANUAL:
+      return "MANUAL";
+    case FlightMode::STABILISE:
+      return "STABILISE";
+    case FlightMode::GUIDED:
+      return "GUIDED";
+    case FlightMode::AUTO:
+      return "AUTO";
+    case FlightMode::EMERGENCY_LAND:
+      return "EMERGENCY_LAND";
+    default:
+      return "UNKNOWN";
     }
-    
-    // Notify controller thread
-    vehicle.queue_cv.notify_one();
-}
+  }
 
-void DroneNode::timerCallback() {
-    if (vehicles_.empty()) {
-        return;
-    }
+  void DroneControllerNode::publishTelemetry() {
+    // Publish flight mode
+    std_msgs::msg::String flight_mode_msg;
+    flight_mode_msg.data = flightModeToString(current_flight_mode_);
+    flight_mode_pub_->publish(flight_mode_msg);
 
-    auto &vehicle = vehicles_[0];
-    
-    // Always publish waypoints and markers if we have goals, regardless of mission state
-    std::vector<geometry_msgs::msg::Pose> current_goals;
-    {
-        std::lock_guard<std::mutex> lock(vehicle->goals_mutex);
-        current_goals = vehicle->goals;
-    }
-    
-    if (!current_goals.empty()) {
-        // TODO: Re-enable when waypoint_manager is implemented
-        // // Always publish waypoints and markers when we have goals
-        // waypoint_manager_->publishWaypoints(*vehicle, this->now());
-        // waypoint_manager_->publishMarkers(*vehicle, this->now());
-        
-        RCLCPP_DEBUG(this->get_logger(), "Would publish waypoints and markers for %zu goals", current_goals.size());
-    }
-    
-    // Update mission progress if active
-    if (vehicle->mission_active) {
-        // Calculate progress based on completed goals
-        std::lock_guard<std::mutex> lock(vehicle->goals_mutex);
-        if (!vehicle->goals.empty()) {
-            double progress = (static_cast<double>(vehicle->current_goal_index) / vehicle->goals.size()) * 100.0;
-            vehicle->mission_progress = std::min(progress, 100.0);
-        }
-        
-        // Log status periodically
-        static int status_counter = 0;
-        if (++status_counter % 10 == 0) {  // Every 5 seconds
-            RCLCPP_INFO(this->get_logger(), 
-                       "Mission Status: ACTIVE, Progress: %.1f%%, Goal: %zu/%zu",
-                       vehicle->mission_progress.load(),
-                       static_cast<size_t>(vehicle->current_goal_index.load()),
-                       current_goals.size());
-        }
-    }
-}
+    // Publish velocity (from odometry)
+    geometry_msgs::msg::Twist velocity_msg;
+    velocity_msg = current_odom_.twist.twist;
+    velocity_pub_->publish(velocity_msg);
+  }
 
-void DroneNode::controllerThread()
-{
-    RCLCPP_INFO(this->get_logger(), "Controller thread started");
-    rclcpp::Rate rate(10); // 10Hz for responsive control
-    
-    while (!should_terminate_)
-    {
-        for (auto &vehicle : vehicles_)
-        {
-            // Get sensor data
-            sensor_msgs::msg::LaserScan::SharedPtr laser;
-            sensor_msgs::msg::Range::SharedPtr sonar;
-            {
-                std::lock_guard<std::mutex> lock(laser_mutex_);
-                laser = latest_laser_;
-            }
-            {
-                std::lock_guard<std::mutex> lock(sonar_mutex_);
-                sonar = latest_sonar_;
-            }
-           
-            // Continuous obstacle detection
-            if (laser && vehicle->mission_active && vehicle->takeoff_complete) {
-                geometry_msgs::msg::Point current_pos;
-                {
-                    std::lock_guard<std::mutex> lock(vehicle->odom_mutex);
-                    current_pos = vehicle->current_odom.pose.pose.position;
-                }
-                
-                geometry_msgs::msg::Point target_pos = current_pos;
-                bool has_target = false;
-                
-                {
-                    std::lock_guard<std::mutex> lock(vehicle->goals_mutex);
-                    int current_goal = vehicle->current_goal_index.load();
-                    if (current_goal < static_cast<int>(vehicle->goals.size())) {
-                        target_pos = vehicle->goals[current_goal].position;
-                        has_target = true;
-                    }
-                }
-                
-                if (has_target) {
-                    bool obstacle_in_path = controller_->checkObstaclesInDirection(
-                        laser, current_pos, target_pos);
-                    
-                    // Obstacle avoidance state machine
-                    if (obstacle_in_path && !vehicle->avoiding_obstacle) {
-                        vehicle->avoiding_obstacle = true;
-                        vehicle->obstacle_avoidance_start_altitude = current_pos.z;
-                        
-                        RCLCPP_ERROR(this->get_logger(), 
-                                   "STARTING OBSTACLE AVOIDANCE - ascending from %.2fm!", 
-                                   current_pos.z);
-                    }
-                    
-                    if (vehicle->avoiding_obstacle) {
-                        bool obstacle_cleared = controller_->isObstacleClearanceAchieved(
-                            laser, current_pos, target_pos, 4.0);
-                        
-                        bool altitude_sufficient = (current_pos.z > vehicle->obstacle_avoidance_start_altitude + 3.0);
-                        
-                        if (obstacle_cleared && altitude_sufficient) {
-                            vehicle->avoiding_obstacle = false;
-                            RCLCPP_INFO(this->get_logger(), 
-                                       "OBSTACLE CLEARED - resuming normal flight at %.2fm", 
-                                       current_pos.z);
-                        } else {
-                            geometry_msgs::msg::Twist ascent_cmd;
-                            ascent_cmd.linear.x = 0.0;
-                            ascent_cmd.linear.y = 0.0;
-                            ascent_cmd.linear.z = 2.0;
-                            cmd_vel_pub_->publish(ascent_cmd);
-                            
-                            controller_->setAltitudeAdjustment(2.0);
-                            
-                            continue;
-                        }
-                    }
-                }
-            }
-            
-            // Normal altitude adjustment
-            if (sonar && vehicle->takeoff_complete && !vehicle->avoiding_obstacle) {
-                double current_altitude;
-                {
-                    std::lock_guard<std::mutex> lock(vehicle->odom_mutex);
-                    current_altitude = vehicle->current_odom.pose.pose.position.z;
-                }
-                
-                double altitude_adjustment = controller_->calculateAltitudeAdjustment(
-                    current_altitude, sonar->range);
-                
-                controller_->setAltitudeAdjustment(altitude_adjustment);
-            }
+  // Commented out methods for future implementation
+  /*
+  void DroneControllerNode::handleEmergency()
+  {
+    // TODO: Implement emergency handling
+    current_flight_mode_ = FlightMode::EMERGENCY_LAND;
+    RCLCPP_ERROR(this->get_logger(), "Emergency situation detected - initiating emergency landing");
+  }
+  */
 
-            // Command processing
-            if (!vehicle->avoiding_obstacle) {
-                VehicleData::Command cmd;
-                bool has_cmd = false;
+} // namespace drone_swarm
 
-                {
-                    std::unique_lock<std::mutex> lock(vehicle->queue_mutex);
-                    if (!vehicle->command_queue.empty())
-                    {
-                        cmd = vehicle->command_queue.front();
-                        vehicle->command_queue.pop();
-                        has_cmd = true;
-                    }
-                }
-
-                if (has_cmd)
-                {
-                    bool success = controller_->processCommand(*vehicle, cmd);
-                    
-                    if (success && cmd.type == VehicleData::Command::Type::FLYING) {
-                        // Successfully completed a flying command - increment goal index
-                        vehicle->current_goal_index++;
-                        
-                        RCLCPP_INFO(this->get_logger(), 
-                                   "Goal %d completed. Moving to next goal.", 
-                                   vehicle->current_goal_index.load() - 1);
-                        
-                        // Check if we have more goals to process
-                        {
-                            std::lock_guard<std::mutex> goals_lock(vehicle->goals_mutex);
-                            int current_goal_idx = vehicle->current_goal_index.load();
-                            
-                            if (current_goal_idx >= static_cast<int>(vehicle->goals.size())) {
-                                RCLCPP_INFO(this->get_logger(), 
-                                           "All goals completed! Drone will hover and wait for new goals.");
-                                // Mission remains active, drone hovers waiting for new goals
-                            }
-                        }
-                    }
-                    
-                    if (!success && cmd.type == VehicleData::Command::Type::FLYING) {
-                        RCLCPP_ERROR(this->get_logger(), 
-                                   "Failed to reach goal. Aborting mission.");
-                        controller_->abortMission(*vehicle);
-                    }
-                } else {
-                    // No commands in queue - check if mission is active and we're waiting for new goals
-                    if (vehicle->mission_active && vehicle->takeoff_complete) {
-                        // Hover in place while waiting for new goals with real-time altitude control
-                        geometry_msgs::msg::Twist hover_cmd;
-                        hover_cmd.linear.x = 0.0;
-                        hover_cmd.linear.y = 0.0;
-                        
-                        // Calculate real-time altitude adjustment using sonar
-                        if (sonar) {
-                            double current_altitude;
-                            {
-                                std::lock_guard<std::mutex> lock(vehicle->odom_mutex);
-                                current_altitude = vehicle->current_odom.pose.pose.position.z;
-                            }
-                            
-                            // Get real-time altitude adjustment based on current sonar reading
-                            double altitude_adjustment = controller_->calculateAltitudeAdjustment(
-                                current_altitude, sonar->range);
-                            hover_cmd.linear.z = altitude_adjustment;
-                            
-                            // Debug every 2 seconds during hover
-                            static int hover_debug_counter = 0;
-                            if (++hover_debug_counter % 20 == 0) {
-                                RCLCPP_DEBUG(this->get_logger(), 
-                                           "Hovering: altitude=%.2fm, sonar=%.2fm, adjustment=%.2fm/s", 
-                                           current_altitude, static_cast<double>(sonar->range), altitude_adjustment);
-                            }
-                        } else {
-                            // No sonar available - maintain current altitude
-                            hover_cmd.linear.z = 0.0;
-                            
-                            static int no_sonar_warning_counter = 0;
-                            if (++no_sonar_warning_counter % 100 == 0) {  // Every 10 seconds
-                                RCLCPP_WARN(this->get_logger(), "Hovering without sonar - maintaining current altitude");
-                            }
-                        }
-                        
-                        cmd_vel_pub_->publish(hover_cmd);
-                    }
-                }
-            }
-        }
-
-        rate.sleep();
-    }
-
-    RCLCPP_INFO(this->get_logger(), "Controller thread stopped");
-}
-
-double DroneNode::getElevationAtPoint(const geometry_msgs::msg::Point& point) {
-    std::lock_guard<std::mutex> lock(grid_map_mutex_);
-    
-    if (!has_grid_map_) {
-        return 0.0;  // Default elevation if no grid map is available
-    }
-    
-    try {
-        // Convert the grid map message to grid_map::GridMap
-        grid_map::GridMap map;
-        grid_map::GridMapRosConverter::fromMessage(latest_grid_map_, map);
-        
-        // Get elevation at specified point
-        grid_map::Position position(point.x, point.y);
-        if (map.isInside(position)) {
-            return map.atPosition("elevation", position);
-        }
-    } catch (const std::exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "Error getting elevation: %s", e.what());
-    }
-    
-    return 0.0;  // Default elevation if point not in map
-}
-
-/*
-std::unique_ptr<Graph> DroneNode::buildTraversabilityGraph(const VehicleData& vehicle) {
-    std::vector<geometry_msgs::msg::Pose> goals;
-    {
-        std::lock_guard<std::mutex> lock(const_cast<VehicleData&>(vehicle).goals_mutex);
-        goals = vehicle.goals;
-    }
-    
-    size_t num_goals = goals.size();
-    auto graph = std::make_unique<Graph>(num_goals);
-    
-    RCLCPP_INFO(this->get_logger(), "Building traversability graph for %zu goals", num_goals);
-    
-    // Build edges between all pairs of goals
-    for (size_t i = 0; i < num_goals; i++) {
-        for (size_t j = i + 1; j < num_goals; j++) {
-            // For drone operations, all goals within terrain bounds are traversable (unless below ground)
-            // (unlike ground vehicles which need to check gradients)
-            double distance = controller_->calculateDistance(
-                goals[i].position, goals[j].position);
-            
-            graph->addEdge(i, j, distance);
-            
-            RCLCPP_DEBUG(this->get_logger(), 
-                        "Added edge from goal %zu to goal %zu with distance %.2fm", 
-                        i, j, distance);
-        }
-    }
-    
-    RCLCPP_INFO(this->get_logger(), "Graph construction complete - all goals are traversable for drone");
-    return graph;
-}
-*/
-
-void DroneNode::setSensorNode(std::shared_ptr<SensorNode> sensor_node) {
-    sensor_node_ = sensor_node;
-    RCLCPP_INFO(this->get_logger(), "Sensor node connected to drone node");
-}
-
-void DroneNode::storeMissionGoals(VehicleData& vehicle, const std::vector<geometry_msgs::msg::Pose>& new_goals) {
-    std::lock_guard<std::mutex> lock(vehicle.goals_mutex);
-    vehicle.goals.clear();
-    vehicle.goals = new_goals;
-    
-    RCLCPP_INFO(this->get_logger(), "Stored %zu mission goals in vehicle data structure", 
-                new_goals.size());
-}
-
-// bool DroneNode::solveTSPAndReorderGoals(VehicleData& vehicle) {
-    // TODO: Re-enable when TSP solver is implemented
- //   RCLCPP_INFO(this->get_logger(), "TSP solver not implemented - using goals in original order");
- //   return false;  // Return false to indicate TSP was not performed
-    
-    /*
-    // Get current goals and drone position
-    std::vector<geometry_msgs::msg::Pose> original_goals;
-    geometry_msgs::msg::Point start_position;
-    
-    {
-        std::lock_guard<std::mutex> lock(vehicle.goals_mutex);
-        original_goals = vehicle.goals;
-    }
-    
-    {
-        std::lock_guard<std::mutex> lock(vehicle.odom_mutex);
-        start_position = vehicle.current_odom.pose.pose.position;
-    }
-    
-    if (original_goals.empty()) {
-        RCLCPP_WARN(this->get_logger(), "TSP: No goals to optimize");
-        return false;
-    }
-    
-    // Cost function (3D Euclidean distance)
-    auto cost_function = [this](const geometry_msgs::msg::Point& from, const geometry_msgs::msg::Point& to) -> double {
-        return controller_->calculateDistance(from, to);
-    };
-    
-    // Traversability function 
-    auto traversability_function = [this](const geometry_msgs::msg::Point& from, const geometry_msgs::msg::Point& to) -> bool {
-        // For drone missions, check basic bounds and reasonable altitude changes
-        if (std::abs(from.x) > 20.0 || std::abs(from.y) > 20.0 || from.z < 0 || from.z > 20.0 ||
-            std::abs(to.x) > 20.0 || std::abs(to.y) > 20.0 || to.z < 0 || to.z > 20.0) {
-            return false;
-        }
-        
-        // Check for reasonable altitude changes
-        double altitude_diff = std::abs(to.z - from.z);
-        double horizontal_distance = std::sqrt(std::pow(to.x - from.x, 2) + std::pow(to.y - from.y, 2));
-        
-        if (horizontal_distance > 0.1) {
-            double climb_angle = std::atan(altitude_diff / horizontal_distance) * 180.0 / M_PI;
-            if (climb_angle > 45.0) {  // Very steep climb/descent
-                return false;
-            }
-        }
-        
-        return true;  // Path is traversable for drone
-    };
-    
-    // Calculate baseline cost (sequential order) manually
-    double baseline_cost = cost_function(start_position, original_goals[0].position);
-    for (size_t i = 0; i < original_goals.size() - 1; ++i) {
-        baseline_cost += cost_function(original_goals[i].position, original_goals[i+1].position);
-    }
-    
-    RCLCPP_INFO(this->get_logger(), "TSP: Starting optimization for %zu goals, baseline cost: %.2fm", 
-                original_goals.size(), baseline_cost);
-    
-    // Solve TSP
-    auto solution = tsp_solver_->solveTSP(original_goals, start_position, cost_function, traversability_function);
-    
-    if (!solution.solution_found) {
-        RCLCPP_ERROR(this->get_logger(), "TSP: No valid solution found!");
-        return false;
-    }
-    
-    // Reorder goals based on TSP solution
-    std::vector<geometry_msgs::msg::Pose> optimized_goals;
-    for (size_t idx : solution.path) {
-        optimized_goals.push_back(original_goals[idx]);
-    }
-    
-    // Update vehicle goals with optimized order
-    {
-        std::lock_guard<std::mutex> lock(vehicle.goals_mutex);
-        vehicle.goals = optimized_goals;
-    }
-    
-    // Publish visualisation of all valid TSP paths
-    publishTSPPathVisualisation(solution, original_goals, start_position);
-    
-    // Calculate optimisation benefit
-    double optimization_percentage = ((baseline_cost - solution.total_cost) / baseline_cost) * 100.0;
-    
-    RCLCPP_INFO(this->get_logger(), "TSP: Goals reordered successfully!");
-    RCLCPP_INFO(this->get_logger(), "TSP: Baseline cost: %.2fm, Optimized cost: %.2fm", 
-                baseline_cost, solution.total_cost);
-    RCLCPP_INFO(this->get_logger(), "TSP: Optimization benefit: %.1f%% (saved %.2fm)", 
-                optimization_percentage, baseline_cost - solution.total_cost);
-    
-    return true;
-    */
-
-bool DroneNode::isPathTraversable(const geometry_msgs::msg::Point& from, const geometry_msgs::msg::Point& to) {
-    // TODO: Re-enable when sensor data integration is complete
-    // For now, assume all paths are traversable
-    return true;
-    
-    /*
-    // For drone operations, most paths are traversable unless terrain is too steep
-    // Check terrain gradients along the path using the waypoint manager's gradient function
-    
-    // Sample points along the path
-    const int num_samples = 10;
-    for (int i = 0; i <= num_samples; i++) {
-        double t = static_cast<double>(i) / num_samples;
-        double x = from.x + t * (to.x - from.x);
-        double y = from.y + t * (to.y - from.y);
-        
-        // Get gradient at this point
-        if (sensor_node_) {
-            double gradient = sensor_node_->getGradientMagnitudeAtPoint(x, y);
-            if (gradient > max_gradient_ / 100.0) {  // Convert percentage to decimal
-                RCLCPP_DEBUG(this->get_logger(), "TSP: Path untraversable due to steep gradient %.1f%% at (%.2f, %.2f)", 
-                           gradient * 100.0, x, y);
-                return false;
-            }
-        }
-    }
-    
-    return true;  // Path is traversable
-    */
-}
-
-void DroneNode::publishTSPPathVisualisation(
-    const int& solution,  // Temporary placeholder
-    const std::vector<geometry_msgs::msg::Pose>& goals,
-    const geometry_msgs::msg::Point& start_position) {
-    
-    // TODO: Re-enable when TSP solver is implemented
-    RCLCPP_DEBUG(this->get_logger(), "TSP visualization not implemented");
-    
-    /*
-    const TSPSolver::TSPSolution& solution,
-    visualization_msgs::msg::MarkerArray marker_array;
-    
-    // Publish all valid paths with different colors
-    for (size_t path_idx = 0; path_idx < solution.all_valid_paths.size(); path_idx++) {
-        const auto& path = solution.all_valid_paths[path_idx];
-        double path_cost = solution.path_costs[path_idx];
-        bool is_optimal = (path == solution.path);
-        
-        // Generate waypoints for this path
-        std::vector<geometry_msgs::msg::Point> path_waypoints;
-        path_waypoints.push_back(start_position);
-        
-        for (size_t goal_idx : path) {
-            path_waypoints.push_back(goals[goal_idx].position);
-        }
-        
-        // Create intermediate waypoints every 1m along the path
-        std::vector<geometry_msgs::msg::Point> intermediate_waypoints;
-        for (size_t i = 0; i < path_waypoints.size() - 1; i++) {
-            auto from = path_waypoints[i];
-            auto to = path_waypoints[i + 1];
-            
-            double dx = to.x - from.x;
-            double dy = to.y - from.y;
-            double dz = to.z - from.z;
-            double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
-            
-            int num_segments = std::max(1, static_cast<int>(std::ceil(distance / 1.0)));  // 1m spacing
-            
-            for (int j = 0; j <= num_segments; j++) {
-                double t = static_cast<double>(j) / num_segments;
-                geometry_msgs::msg::Point waypoint;
-                waypoint.x = from.x + t * dx;
-                waypoint.y = from.y + t * dy;
-                waypoint.z = from.z + t * dz;
-                
-                // Ensure minimum 2m altitude for visualization
-                if (waypoint.z < 2.0) {
-                    waypoint.z = 2.0;
-                }
-                
-                intermediate_waypoints.push_back(waypoint);
-            }
-        }
-        
-        // Create markers for intermediate waypoints
-        for (size_t wp_idx = 0; wp_idx < intermediate_waypoints.size(); wp_idx++) {
-            visualization_msgs::msg::Marker marker;
-            marker.header.frame_id = "world";
-            marker.header.stamp = this->now();
-            marker.ns = is_optimal ? "tsp_optimal_path" : "tsp_alternative_path";
-            marker.id = static_cast<int>(path_idx * 1000 + wp_idx);  // Unique ID
-            marker.type = visualization_msgs::msg::Marker::SPHERE;
-            marker.action = visualization_msgs::msg::Marker::ADD;
-            
-            marker.pose.position = intermediate_waypoints[wp_idx];
-            marker.pose.orientation.w = 1.0;
-            
-            // Size
-            marker.scale.x = 0.3;
-            marker.scale.y = 0.3;
-            marker.scale.z = 0.3;
-            
-            // Color based on path type
-            if (is_optimal) {
-                // Optimal path: bright green
-                marker.color.r = 0.0;
-                marker.color.g = 1.0;
-                marker.color.b = 0.0;
-                marker.color.a = 0.9;
-            } else {
-                // Alternative paths: different colors based on relative cost
-                double cost_ratio = path_cost / solution.total_cost;
-                marker.color.r = std::min(1.0, cost_ratio);  // More red for expensive paths
-                marker.color.g = 0.0;
-                marker.color.b = std::max(0.0, 2.0 - cost_ratio);  // More blue for cheaper paths
-                marker.color.a = 0.5;  // Semi-transparent
-            }
-            
-            marker.lifetime = rclcpp::Duration(0, 0);  // Persistent
-            marker_array.markers.push_back(marker);
-        }
-    }
-    
-    // Publish the marker array
-    markers_pub_->publish(marker_array);
-    
-    RCLCPP_INFO(this->get_logger(), "TSP: Published visualization of %zu valid paths (%zu total waypoints)", 
-                solution.all_valid_paths.size(), marker_array.markers.size());
-    */
-}
+#include "rclcpp_components/register_node_macro.hpp"
+RCLCPP_COMPONENTS_REGISTER_NODE(drone_swarm::DroneControllerNode)
