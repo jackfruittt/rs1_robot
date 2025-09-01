@@ -143,7 +143,7 @@ def generate_launch_description():
 
     world_launch_arg = DeclareLaunchArgument(
         'world',
-        default_value='mountain_forest.sdf',
+        default_value='world_1.sdf',
         description='Which world to load'
     )
     ld.add_action(world_launch_arg)
@@ -153,7 +153,7 @@ def generate_launch_description():
         PathJoinSubstitution([FindPackageShare('ros_ign_gazebo'),
                              'launch', 'ign_gazebo.launch.py']),
         launch_arguments={
-            'gz_args': [PathJoinSubstitution([FindPackageShare('rs1_environment'),
+            'ign_args': [PathJoinSubstitution([FindPackageShare('rs1_environment'),
                                                'worlds',
                                                [LaunchConfiguration('world')]]),
                          ' -r']}.items()
