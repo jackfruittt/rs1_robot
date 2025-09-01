@@ -15,6 +15,9 @@ from launch_ros.substitutions import FindPackageShare
 from pathlib import Path
 import subprocess
 
+# TODO: ADD NAV2 IMPORTS FOR RRT PATH PLANNER INTEGRATION
+# from nav2_common.launch import RewrittenYaml
+
 
 def spawn_multiple_drones_with_composition(context, *args, **kwargs):
     """Spawn multiple drones with composed mission planner + drone controller"""
@@ -54,16 +57,21 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
     )
     nodes.append(gazebo_bridge)
     
+    # TODO: ADD NAV2 SHARED COMPONENTS FOR RRT PATH PLANNING
+    
     # Create individual drone nodes for each drone
     for i in range(1, num_drones + 1):
         drone_name = f'rs1_drone_{i}'
+        
+        # TODO: ADD NAV2 RRT PLANNER PARAMETER CONFIGURATION PER DRONE
         
         # Common parameters for both mission planner and drone controller
         mission_planner_params = {
             'use_sim_time': use_sim_time,
             'drone_namespace': drone_name,
             'mission_update_rate': 10.0,
-            'waypoint_tolerance': 0.5
+            'waypoint_tolerance': 0.5,
+            # TODO: ADD NAV2 RRT PLANNER PARAMETERS FOR AUTONOMOUS PATH PLANNING
         }
         
         drone_controller_params = {
@@ -119,6 +127,7 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
                         }],
                         extra_arguments=[{'use_intra_process_comms': True}],
                     ),
+                    # TODO: ADD NAV2 RRT PLANNER COMPONENTS TO COMPOSABLE NODE CONTAINER
                 ],
                 output='screen'
             )
@@ -184,13 +193,15 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
                 arguments=['--ros-args', '--log-level', 'info']
             )
             nodes.append(sensor_processor)
+            
+            # TODO: ADD SEPARATE NAV2 RRT PLANNER NODES FOR AUTONOMOUS PATH PLANNING
     
     # Create robot description and spawner nodes for each drone
     for i in range(1, num_drones + 1):
         drone_name = f'rs1_drone_{i}'
         
         # Position drones in a line with 3m spacing
-        x_pos = (i - 1) * 3.0  # Start at 0, then 3, 6, 9...
+        x_pos = (i - 5) * 3.0  # Start at 0, then 3, 6, 9...
         y_pos = 0.0
         z_pos = 4.0
         
@@ -284,10 +295,33 @@ def generate_launch_description():
 
     world_launch_arg = DeclareLaunchArgument(
         'world',
-        default_value='mountain_forest.sdf',
+        default_value='world_1.sdf',
         description='Which world to load'
     )
     ld.add_action(world_launch_arg)
+    
+    # TODO: ADD NAV2 RRT PLANNER LAUNCH ARGUMENTS
+    # map_launch_arg = DeclareLaunchArgument(
+    #     'map',
+    #     default_value=PathJoinSubstitution([config_path, 'map.yaml']),
+    #     description='Full path to map yaml file to load'
+    # )
+    # ld.add_action(map_launch_arg)
+    # 
+    # nav2_params_launch_arg = DeclareLaunchArgument(
+    #     'nav2_params_file',
+    #     default_value=PathJoinSubstitution([config_path, 'nav2_params.yaml']),
+    #     description='Full path to nav2 parameters file'
+    # )
+    # ld.add_action(nav2_params_launch_arg)
+    # 
+    # use_nav2_launch_arg = DeclareLaunchArgument(
+    #     'use_nav2',
+    #     default_value='true',
+    #     description='Enable NAV2 RRT path planning for autonomous navigation'
+    # )
+    # ld.add_action(use_nav2_launch_arg)
+    # Example: Add launch arguments for NAV2 configuration files and options
     
     # Gazebo launch arguments
     gazebo_arg = DeclareLaunchArgument(

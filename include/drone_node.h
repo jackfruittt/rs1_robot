@@ -28,6 +28,12 @@
 #include "std_msgs/msg/string.hpp"
 #include "std_srvs/srv/trigger.hpp"
 
+// TODO: ADD NAV2 CONTROLLER INCLUDES FOR LOCAL PLANNING AND OBSTACLE AVOIDANCE (OPTIONAL)
+// #include "nav2_msgs/action/follow_path.hpp"
+// #include "nav2_msgs/msg/speed_limit.hpp"
+// #include "geometry_msgs/msg/twist_stamped.hpp"
+// Example: Include nav2 controller interfaces for local planning and dynamic obstacle avoidance
+
 #include "drone_control.h"
 // #include "drone/sensor_manager.h"     // Commented out - future implementation
 // #include "drone/safety_monitor.h"     // Commented out - future implementation
@@ -205,6 +211,10 @@ private:
   rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr laser_sub_;         ///< Laser scan (unused)
   rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr sonar_sub_;             ///< Sonar range (unused)
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr mission_state_sub_;       ///< Mission state subscription
+
+  // TODO: ADD NAV2 CONTROLLER SUBSCRIPTIONS FOR LOCAL PLANNING (OPTIONAL)
+  // rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr nav2_cmd_vel_sub_; ///< Nav2 velocity commands
+  // rclcpp::Subscription<nav2_msgs::msg::SpeedLimit>::SharedPtr speed_limit_sub_;        ///< Dynamic speed limits
 
   // Publisher interfaces
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;            ///< Velocity command publisher

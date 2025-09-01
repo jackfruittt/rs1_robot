@@ -12,6 +12,9 @@
 #include <vector>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 
+// TODO: ADD NAV2 PATH HANDLING INCLUDES FOR AUTONOMOUS PATH PLANNING
+// #include "nav_msgs/msg/path.hpp"
+
 namespace drone_swarm
 {
 
@@ -40,6 +43,17 @@ public:
    * Waypoints should be ordered for sequential navigation.
    */
   void setWaypoints(const std::vector<geometry_msgs::msg::PoseStamped>& waypoints);
+  
+  // TODO: ADD NAV2 PATH CONVERSION METHOD FOR AUTONOMOUS PATH PLANNING
+  // /**
+  //  * @brief Set waypoints directly from nav2 path
+  //  * @param path Planned path from nav2 RRT planner
+  //  * @param subsample_distance Minimum distance between waypoints (optional)
+  //  * 
+  //  * Converts nav_msgs::Path to waypoint sequence with optional subsampling
+  //  * to reduce waypoint density for smoother drone navigation.
+  //  */
+  // void setWaypointsFromPath(const nav_msgs::msg::Path& path, double subsample_distance = 1.0);
   
   /**
    * @brief Get next waypoint and advance index

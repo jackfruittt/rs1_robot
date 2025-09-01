@@ -269,9 +269,9 @@ namespace drone_swarm
 
   void DroneControllerNode::executeWaypointNavigation() {
     // Future implementation for waypoint navigation
-    // Currently uses target_pose_ from mission planner instead
+    // 
 
-    // Use target pose from mission planner
+    // Use target pose from drone node
     if (target_pose_.header.stamp.sec == 0)
     {
       RCLCPP_DEBUG(this->get_logger(), "No target pose available for navigation");
