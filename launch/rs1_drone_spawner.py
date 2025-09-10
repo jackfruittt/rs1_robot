@@ -56,28 +56,10 @@ def spawn_multiple_drones(context, *args, **kwargs):
     for i in range(1, num_drones + 1):
         drone_name = f'rs1_drone_{i}'
         
-        # Create drone controller node for this drone with namespace
-        drone_controller = Node(
-            package='rs1_robot',
-            executable='drone_controller',
-            name=f'drone_controller_{i}',
-            output='screen',
-            parameters=[{
-                'use_sim_time': use_sim_time,
-                'drone_namespace': drone_name
-            }],
-            arguments=['--ros-args', '--log-level', 'info']
-        )
-        nodes.append(drone_controller)
-    
-    # Create robot description and spawner nodes for each drone
-    for i in range(1, num_drones + 1):
-        drone_name = f'rs1_drone_{i}'
-        
-        # Position drones in a line with 3m spacing
-        x_pos = (i - 1) * 3.0  # Start at 0, then 3, 6, 9...
-        y_pos = 0.0
-        z_pos = 4.0
+        # Position drones in a line (same spacing as before) - Edited to spawn on World 1 Helipad Center
+        x_pos = (i - 10.43)  * 3.0  # Start at 0, then 3, 6, 9...
+        y_pos = 14.0
+        z_pos = 13.1
         
         print(f"Creating drone {i}: {drone_name} at ({x_pos}, {y_pos}, {z_pos})")
         
@@ -163,7 +145,7 @@ def generate_launch_description():
 
     world_launch_arg = DeclareLaunchArgument(
         'world',
-        default_value='mountain_forest.sdf',
+        default_value='world_1.sdf',
         description='Which world to load'
     )
     ld.add_action(world_launch_arg)
