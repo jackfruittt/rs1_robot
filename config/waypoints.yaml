@@ -1,0 +1,84 @@
+# Pre-planned waypoint routes for drone swarm
+# Each drone has a sequence of waypoints with position and timing information
+
+waypoint_configs:
+  rs1_drone_1:
+    mission_name: "perimeter_patrol_north"
+    waypoints:
+      - position: {x: 5.0, y: 5.0, z: 15.0}
+        dwell_time: 2.0
+      - position: {x: 10.0, y: 5.0, z: 15.0}
+        dwell_time: 3.0
+      - position: {x: 10.0, y: 10.0, z: 15.0}
+        dwell_time: 2.0
+      - position: {x: 5.0, y: 10.0, z: 15.0}
+        dwell_time: 3.0
+      - position: {x: 5.0, y: 5.0, z: 15.0}
+        dwell_time: 5.0
+
+  rs1_drone_2:
+    mission_name: "perimeter_patrol_west"
+    waypoints:
+      - position: {x: -5.0, y: 5.0, z: 15.0}
+        dwell_time: 2.0
+      - position: {x: -10.0, y: 5.0, z: 15.0}
+        dwell_time: 3.0
+      - position: {x: -10.0, y: 10.0, z: 15.0}
+        dwell_time: 2.0
+      - position: {x: -5.0, y: 10.0, z: 15.0}
+        dwell_time: 3.0
+      - position: {x: -5.0, y: 5.0, z: 15.0}
+        dwell_time: 5.0
+
+  rs1_drone_3:
+    mission_name: "low_altitude_survey"
+    waypoints:
+      - position: {x: -5.0, y: -5.0, z: 3.0}
+        dwell_time: 1.5
+      - position: {x: -10.0, y: -5.0, z: 3.0}
+        dwell_time: 2.0
+      - position: {x: -10.0, y: -10.0, z: 3.0}
+        dwell_time: 1.5
+      - position: {x: -5.0, y: -10.0, z: 3.0}
+        dwell_time: 2.0
+      - position: {x: 0.0, y: -7.5, z: 5.0}
+        dwell_time: 4.0
+
+  rs1_drone_4:
+    mission_name: "diagonal_sweep"
+    waypoints:
+      - position: {x: 5.0, y: -5.0, z: 8.0}
+        dwell_time: 2.0
+      - position: {x: 10.0, y: -8.0, z: 8.0}
+        dwell_time: 1.5
+      - position: {x: 15.0, y: -10.0, z: 10.0}
+        dwell_time: 3.0
+      - position: {x: 8.0, y: -15.0, z: 6.0}
+        dwell_time: 2.5
+      - position: {x: 5.0, y: -5.0, z: 8.0}
+        dwell_time: 3.0
+
+  rs1_drone_5:
+    mission_name: "figure_eight_pattern"
+    waypoints:
+      - position: {x: 6.0, y: -6.0, z: 10.0}
+        dwell_time: 1.0
+      - position: {x: 12.0, y: -3.0, z: 10.0}
+        dwell_time: 1.0
+      - position: {x: 15.0, y: -6.0, z: 10.0}
+        dwell_time: 2.0
+      - position: {x: 12.0, y: -9.0, z: 8.0}
+        dwell_time: 1.0
+      - position: {x: 6.0, y: -6.0, z: 8.0}
+        dwell_time: 1.0
+      - position: {x: 9.0, y: -12.0, z: 8.0}
+        dwell_time: 2.0
+      - position: {x: 6.0, y: -6.0, z: 10.0}
+        dwell_time: 3.0
+
+mission_params:
+  takeoff_altitude: 2.0
+  landing_speed: 0.5
+  waypoint_tolerance: 0.8
+  max_velocity: 3.0
+  loop_missions: true

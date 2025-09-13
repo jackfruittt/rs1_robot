@@ -14,9 +14,59 @@ from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
 from pathlib import Path
 import subprocess
+import yaml
+import os
 
-# TODO: ADD NAV2 IMPORTS FOR RRT PATH PLANNER INTEGRATION
-# from nav2_common.launch import RewrittenYaml
+def load_waypoints_for_drone(waypoints_file_path, drone_name):
+    """Load waypoints from YAML file for a specific drone"""
+    try:
+        # Resolve the file path
+        if hasattr(waypoints_file_path, 'perform'):
+            pkg_share = FindPackageShare('rs1_robot').find('rs1_robot')
+            full_path = os.path.join(pkg_share, 'config', 'waypoints.yaml')
+        else:
+            full_path = str(waypoints_file_path)
+        
+        print(f"Loading waypoints from: {full_path}")
+        
+        with open(full_path, 'r') as file:
+            waypoints_data = yaml.safe_load(file)
+        
+        # Extract waypoints for this specific drone
+        drone_config = waypoints_data.get('waypoint_configs', {}).get(drone_name, {})
+        
+        if not drone_config:
+            print(f"No waypoints found for {drone_name}, using fallback")
+            return {}
+        
+        # Flatten the structure for ROS 2 parameters
+        flattened_params = {}
+        
+        # Add mission name
+        if 'mission_name' in drone_config:
+            flattened_params['mission_name'] = drone_config['mission_name']
+        
+        # Add waypoints
+        waypoints = drone_config.get('waypoints', [])
+        for i, waypoint in enumerate(waypoints):
+            position = waypoint.get('position', {})
+            flattened_params[f'waypoints.{i}.position.x'] = position.get('x', 0.0)
+            flattened_params[f'waypoints.{i}.position.y'] = position.get('y', 0.0)
+            flattened_params[f'waypoints.{i}.position.z'] = position.get('z', 0.0)
+            if 'dwell_time' in waypoint:
+                flattened_params[f'waypoints.{i}.dwell_time'] = waypoint['dwell_time']
+        
+        # Add mission parameters
+        mission_params = waypoints_data.get('mission_params', {})
+        for key, value in mission_params.items():
+            flattened_params[f'mission_params.{key}'] = value
+        
+        print(f"Loaded {len(waypoints)} waypoints for {drone_name}")
+        return flattened_params
+        
+    except Exception as e:
+        print(f"Error loading waypoints for {drone_name}: {e}")
+        return {}
 
 
 def spawn_multiple_drones_with_composition(context, *args, **kwargs):
@@ -32,6 +82,9 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
     # Get paths
     pkg_path = FindPackageShare('rs1_robot')
     config_path = PathJoinSubstitution([pkg_path, 'config'])
+    
+    # Get waypoints file path
+    waypoints_file_path = PathJoinSubstitution([pkg_path, 'config', 'waypoints.yaml'])
     
     # Generate bridge config for multiple drones
     try:
@@ -57,13 +110,12 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
     )
     nodes.append(gazebo_bridge)
     
-    # TODO: ADD NAV2 SHARED COMPONENTS FOR RRT PATH PLANNING
-    
     # Create individual drone nodes for each drone
     for i in range(1, num_drones + 1):
         drone_name = f'rs1_drone_{i}'
         
-        # TODO: ADD NAV2 RRT PLANNER PARAMETER CONFIGURATION PER DRONE
+        # Load waypoints for this specific drone
+        waypoint_params = load_waypoints_for_drone(waypoints_file_path, drone_name)
         
         # Common parameters for both mission planner and drone controller
         mission_planner_params = {
@@ -71,7 +123,8 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
             'drone_namespace': drone_name,
             'mission_update_rate': 10.0,
             'waypoint_tolerance': 0.5,
-            # TODO: ADD NAV2 RRT PLANNER PARAMETERS FOR AUTONOMOUS PATH PLANNING
+            # Add the loaded waypoint parameters
+            **waypoint_params,
         }
         
         drone_controller_params = {
@@ -127,7 +180,6 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
                         }],
                         extra_arguments=[{'use_intra_process_comms': True}],
                     ),
-                    # TODO: ADD NAV2 RRT PLANNER COMPONENTS TO COMPOSABLE NODE CONTAINER
                 ],
                 output='screen'
             )
@@ -193,8 +245,6 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
                 arguments=['--ros-args', '--log-level', 'info']
             )
             nodes.append(sensor_processor)
-            
-            # TODO: ADD SEPARATE NAV2 RRT PLANNER NODES FOR AUTONOMOUS PATH PLANNING
     
     # Create robot description and spawner nodes for each drone
     for i in range(1, num_drones + 1):
@@ -299,29 +349,6 @@ def generate_launch_description():
         description='Which world to load'
     )
     ld.add_action(world_launch_arg)
-    
-    # TODO: ADD NAV2 RRT PLANNER LAUNCH ARGUMENTS
-    # map_launch_arg = DeclareLaunchArgument(
-    #     'map',
-    #     default_value=PathJoinSubstitution([config_path, 'map.yaml']),
-    #     description='Full path to map yaml file to load'
-    # )
-    # ld.add_action(map_launch_arg)
-    # 
-    # nav2_params_launch_arg = DeclareLaunchArgument(
-    #     'nav2_params_file',
-    #     default_value=PathJoinSubstitution([config_path, 'nav2_params.yaml']),
-    #     description='Full path to nav2 parameters file'
-    # )
-    # ld.add_action(nav2_params_launch_arg)
-    # 
-    # use_nav2_launch_arg = DeclareLaunchArgument(
-    #     'use_nav2',
-    #     default_value='true',
-    #     description='Enable NAV2 RRT path planning for autonomous navigation'
-    # )
-    # ld.add_action(use_nav2_launch_arg)
-    # Example: Add launch arguments for NAV2 configuration files and options
     
     # Gazebo launch arguments
     gazebo_arg = DeclareLaunchArgument(
