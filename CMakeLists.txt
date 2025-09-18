@@ -8,22 +8,148 @@ endif()
 # Find dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclcpp_components REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(sensor_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
+find_package(std_srvs REQUIRED)
 find_package(ros_gz_interfaces REQUIRED)
+find_package(visualization_msgs REQUIRED)
 find_package(ros_gz_sim REQUIRED)
 find_package(ros_gz_bridge REQUIRED)
+find_package(tf2 REQUIRED)
+find_package(tf2_ros REQUIRED)
+find_package(tf2_geometry_msgs REQUIRED)
+find_package(grid_map_ros REQUIRED)
+find_package(grid_map_msgs REQUIRED)
 
 # Include directories
 include_directories(include)
 
-# Add executable for multi-drone controller
+# NEW: Create separate libraries for mission planning components
+add_library(pid_controller SHARED
+  src/pid.cpp
+)
 
-# Install executables
+# Add dependencies for pid_controller
+ament_target_dependencies(pid_controller
+  rclcpp
+)
+
+add_library(drone_control SHARED
+  src/drone_control.cpp
+)
+
+# Add dependencies for drone_control
+ament_target_dependencies(drone_control
+  rclcpp
+  rclcpp_components
+  geometry_msgs
+  sensor_msgs
+  nav_msgs
+  std_msgs
+  std_srvs
+)
+
+# Link drone_control with pid_controller
+target_link_libraries(drone_control pid_controller)
+
+# NEW: Create mission system libraries
+add_library(state_machine SHARED
+  src/state_machine.cpp
+)
+
+add_library(path_planner SHARED
+  src/path_planner.cpp
+)
+
+add_library(mission_executor SHARED
+  src/mission_executor.cpp
+)
+
+# Add dependencies for mission system libraries
+ament_target_dependencies(state_machine
+  rclcpp
+)
+
+ament_target_dependencies(path_planner
+  rclcpp
+  geometry_msgs
+)
+
+ament_target_dependencies(mission_executor
+  rclcpp
+  geometry_msgs
+)
+
+# NEW: Create mission planner component library
+add_library(mission_planner_component SHARED
+  src/mission_node.cpp
+)
+
+# Link mission planner with mission system libraries
+target_link_libraries(mission_planner_component
+  state_machine
+  path_planner
+  mission_executor
+)
+
+# NEW: Create enhanced drone controller component with mission planning
+add_library(drone_controller_enhanced_component SHARED
+  src/drone_node.cpp
+)
+
+# Link enhanced drone controller with control libraries
+target_link_libraries(drone_controller_enhanced_component drone_control pid_controller)
+
+# Dependencies for new mission planning components
+ament_target_dependencies(mission_planner_component
+  rclcpp
+  rclcpp_components
+  geometry_msgs
+  sensor_msgs
+  nav_msgs
+  std_msgs
+  std_srvs
+)
+
+ament_target_dependencies(drone_controller_enhanced_component
+  rclcpp
+  rclcpp_components
+  geometry_msgs
+  sensor_msgs
+  nav_msgs
+  std_msgs
+  std_srvs
+)
+
+# NEW: Register mission planning components
+rclcpp_components_register_nodes(mission_planner_component "drone_swarm::MissionPlannerNode")
+rclcpp_components_register_nodes(drone_controller_enhanced_component "drone_swarm::DroneControllerNode")
+
+# NEW: Create composed executables
+add_executable(drone_mission_composed src/main_composition.cpp)
+target_link_libraries(drone_mission_composed
+  mission_planner_component
+  drone_controller_enhanced_component
+)
+
+# Install executables and libraries
 install(TARGETS
-  DESTINATION lib/${PROJECT_NAME}
+    pid_controller
+    drone_control
+    state_machine
+    path_planner
+    mission_executor
+    mission_planner_component
+    drone_controller_enhanced_component
+    DESTINATION lib/${PROJECT_NAME}
+)
+
+install(TARGETS
+    drone_mission_composed
+    DESTINATION lib/${PROJECT_NAME}
 )
 
 # Install package directories
@@ -36,12 +162,41 @@ install(
 install(
   PROGRAMS
     launch/rs1_drone_spawner.py
+    launch/rs1_single_drone.py
+    launch/rs1_swarm_composed.py  # NEW: Your enhanced swarm launch
   DESTINATION share/${PROJECT_NAME}/launch
 )
 
-if(BUILD_TESTING)
-  find_package(ament_lint_auto REQUIRED)
-  ament_lint_auto_find_test_dependencies()
-endif()
+# Export dependencies
+ament_export_dependencies(
+    rclcpp
+    rclcpp_components
+    std_srvs
+    geometry_msgs
+    nav_msgs
+    sensor_msgs
+    std_msgs
+    visualization_msgs
+    tf2
+    tf2_ros
+    tf2_geometry_msgs
+    grid_map_msgs
+    grid_map_ros
+)
+
+# NEW: Export mission planning components
+ament_export_targets(export_mission_components)
+install(TARGETS mission_planner_component
+        drone_controller_enhanced_component
+        pid_controller
+        drone_control
+        state_machine
+        path_planner
+        mission_executor
+        EXPORT export_mission_components
+        ARCHIVE DESTINATION lib
+        LIBRARY DESTINATION lib
+        RUNTIME DESTINATION bin
+)
 
 ament_package()
