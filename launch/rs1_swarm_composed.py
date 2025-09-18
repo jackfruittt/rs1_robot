@@ -250,10 +250,11 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
     for i in range(1, num_drones + 1):
         drone_name = f'rs1_drone_{i}'
         
-        # Position drones in a line with 3m spacing
-        x_pos = (i - 5) * 3.0  # Start at 0, then 3, 6, 9...
-        y_pos = 0.0
-        z_pos = 4.0
+        # # Position drones in a line with 3m spacing
+        x_pos = (i - 10.43)  * 3.0  # Start at centre of Helipad Location
+        y_pos = 14.0
+        z_pos = 13.1
+        
         
         print(f"Creating drone {i}: {drone_name} at ({x_pos}, {y_pos}, {z_pos})")
         

@@ -255,7 +255,6 @@
   </gazebo>
 
   <!-- Bottom Camera with dynamic topic -->
-  <!--
   <gazebo reference="bottom_cam_link">
     <sensor name="bottom_camera" type="camera">
       <always_on>true</always_on>
@@ -282,7 +281,7 @@
       </camera>
     </sensor>
   </gazebo>
-  -->
+  
   <!-- GPS with dynamic topic -->
   <gazebo reference="base_link">
     <sensor name="gps" type="navsat">
