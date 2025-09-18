@@ -11,39 +11,21 @@ namespace drone_swarm
     this->declare_parameter<double>("mission_update_rate", 10.0);
     this->declare_parameter<double>("waypoint_tolerance", 0.5);
 
-    // TODO: ADD NAV2 RRT PLANNER PARAMETERS FOR AUTONOMOUS PATH PLANNING
-    // this->declare_parameter<double>("replanning_frequency", 1.0);  // Hz
-    // this->declare_parameter<double>("planning_timeout", 10.0);     // seconds
-    // this->declare_parameter<std::string>("planner_id", "RRT*");    // RRT planner type
-    // this->declare_parameter<std::string>("global_frame", "map");   // Global coordinate frame
-    // Example: Declare parameters to configure RRT planning behavior and timeouts
-
     drone_namespace_ = this->get_parameter("drone_namespace").as_string();
     mission_update_rate_ = this->get_parameter("mission_update_rate").as_double();
     waypoint_tolerance_ = this->get_parameter("waypoint_tolerance").as_double();
-
-    // TODO: GET NAV2 RRT PLANNER PARAMETERS FOR AUTONOMOUS PATH PLANNING
-    // replanning_frequency_ = this->get_parameter("replanning_frequency").as_double();
-    // planning_timeout_ = this->get_parameter("planning_timeout").as_double();
-    // planner_id_ = this->get_parameter("planner_id").as_string();
-    // Example: Read RRT planner configuration from parameters
 
     // Initialise mission management components
     state_machine_ = std::make_unique<StateMachine>();
     path_planner_ = std::make_unique<PathPlanner>();
     mission_executor_ = std::make_unique<MissionExecutor>();
 
-    // TODO: INITIALISE NAV2 RRT PLANNER CLIENT FOR AUTONOMOUS PATH PLANNING
-    // path_planner_client_ = rclcpp_action::create_client<nav2_msgs::action::ComputePathToPose>(
-    //   this, "compute_path_to_pose");
-    // path_planning_active_ = false;
-    // last_replan_time_ = this->get_clock()->now();
-    // Example: Create action client to communicate with nav2 planner server
-    // IMPORTANT: Ensure nav2 planner server is running before sending requests
-
     // Set drone identifier from namespace
     drone_id_ = drone_namespace_;
 
+    // Load waypoints from YAML parameters
+    loadWaypointsFromParams();
+    
     // Create ROS subscriptions for drone state monitoring
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
       "/" + drone_namespace_ + "/odom", 10,
@@ -57,11 +39,6 @@ namespace drone_swarm
     waypoint_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
       "/" + drone_namespace_ + "/waypoint_command", 10,
       std::bind(&MissionPlannerNode::waypointCallback, this, std::placeholders::_1));
-
-    // TODO: ADD NAV2 RRT PLANNER SUBSCRIPTIONS FOR AUTONOMOUS PATH PLANNING
-    // Add a cost_map_sub_ and map_sub_
-    //
-    // Example: Subscribe to costmap and map updates to trigger replanning when obstacles change
 
     // Create publishers  
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
@@ -93,6 +70,145 @@ namespace drone_swarm
     RCLCPP_INFO(this->get_logger(), "Mission Planner Node initialised for %s", drone_id_.c_str());
   }
 
+void MissionPlannerNode::loadWaypointsFromParams() {
+    RCLCPP_INFO(this->get_logger(), "Loading waypoints from flattened parameters for %s", drone_id_.c_str());
+    
+    try {
+        // Check if mission name parameter exists
+        if (this->has_parameter("mission_name")) {
+            std::string mission_name = this->get_parameter("mission_name").as_string();
+            RCLCPP_INFO(this->get_logger(), "Mission: %s", mission_name.c_str());
+        }
+        
+        // Load waypoints from flattened parameters
+        std::vector<geometry_msgs::msg::PoseStamped> waypoints;
+        int i = 0;
+        
+        while (true) {
+            std::string x_key = "waypoints." + std::to_string(i) + ".position.x";
+            
+            if (!this->has_parameter(x_key)) {
+                break; // No more waypoints
+            }
+            
+            std::string y_key = "waypoints." + std::to_string(i) + ".position.y";
+            std::string z_key = "waypoints." + std::to_string(i) + ".position.z";
+            std::string dwell_time_key = "waypoints." + std::to_string(i) + ".dwell_time";
+            
+            geometry_msgs::msg::PoseStamped waypoint;
+            waypoint.header.frame_id = "map";
+            waypoint.header.stamp = this->get_clock()->now();
+            waypoint.pose.position.x = this->get_parameter(x_key).as_double();
+            waypoint.pose.position.y = this->get_parameter(y_key).as_double();
+            waypoint.pose.position.z = this->get_parameter(z_key).as_double();
+            waypoint.pose.orientation.w = 1.0;
+            
+            // Optionally load dwell time if available
+            if (this->has_parameter(dwell_time_key)) {
+                double dwell_time = this->get_parameter(dwell_time_key).as_double();
+                RCLCPP_DEBUG(this->get_logger(), "Waypoint %d dwell time: %.2f", i, dwell_time);
+                // You could store this in a custom message or handle it in your path planner
+            }
+            
+            waypoints.push_back(waypoint);
+            RCLCPP_INFO(this->get_logger(), "Loaded waypoint %d: [%.2f, %.2f, %.2f]", 
+                       i, waypoint.pose.position.x, waypoint.pose.position.y, waypoint.pose.position.z);
+            i++;
+        }
+        
+        if (!waypoints.empty()) {
+            path_planner_->setWaypoints(waypoints);
+            RCLCPP_INFO(this->get_logger(), "Loaded %zu waypoints from parameters for %s", waypoints.size(), drone_id_.c_str());
+            
+            // Load mission parameters if available
+            loadMissionParams();
+        } else {
+            RCLCPP_WARN(this->get_logger(), "No waypoints found in parameters for %s - using fallback", drone_id_.c_str());
+            loadFallbackWaypoints();
+        }
+        
+    } catch (const std::exception& e) {
+        RCLCPP_ERROR(this->get_logger(), "Error loading waypoints from parameters: %s", e.what());
+        RCLCPP_INFO(this->get_logger(), "Loading fallback waypoints for %s", drone_id_.c_str());
+        loadFallbackWaypoints();
+    }
+}
+
+// Load mission parameters
+void MissionPlannerNode::loadMissionParams() {
+    try {
+        // Load mission parameters if they exist
+        if (this->has_parameter("mission_params.takeoff_altitude")) {
+            double takeoff_altitude = this->get_parameter("mission_params.takeoff_altitude").as_double();
+            RCLCPP_INFO(this->get_logger(), "Takeoff altitude: %.2f", takeoff_altitude);
+            // Store or use this parameter as needed
+        }
+        
+        if (this->has_parameter("mission_params.landing_speed")) {
+            double landing_speed = this->get_parameter("mission_params.landing_speed").as_double();
+            RCLCPP_INFO(this->get_logger(), "Landing speed: %.2f", landing_speed);
+        }
+        
+        if (this->has_parameter("mission_params.waypoint_tolerance")) {
+            double yaml_tolerance = this->get_parameter("mission_params.waypoint_tolerance").as_double();
+            // Override the default tolerance with YAML value
+            waypoint_tolerance_ = yaml_tolerance;
+            RCLCPP_INFO(this->get_logger(), "Updated waypoint tolerance to: %.2f", waypoint_tolerance_);
+        }
+        
+        if (this->has_parameter("mission_params.max_velocity")) {
+            double max_velocity = this->get_parameter("mission_params.max_velocity").as_double();
+            RCLCPP_INFO(this->get_logger(), "Max velocity: %.2f", max_velocity);
+        }
+        
+        if (this->has_parameter("mission_params.loop_missions")) {
+            bool loop_missions = this->get_parameter("mission_params.loop_missions").as_bool();
+            RCLCPP_INFO(this->get_logger(), "Loop missions: %s", loop_missions ? "true" : "false");
+            // @TODO store this in a member variable for use in mission execution
+        }
+        
+    } catch (const std::exception& e) {
+        RCLCPP_WARN(this->get_logger(), "Error loading mission parameters: %s", e.what());
+    }
+}
+
+  // Fallback function in case YAML loading fails:
+  void MissionPlannerNode::loadFallbackWaypoints() {
+      std::vector<geometry_msgs::msg::PoseStamped> waypoints;
+      
+      // Simple fallback waypoint for each drone
+      geometry_msgs::msg::PoseStamped waypoint;
+      waypoint.header.frame_id = "map";
+      waypoint.header.stamp = this->get_clock()->now();
+      waypoint.pose.orientation.w = 1.0;
+      
+      if (drone_id_ == "rs1_drone_1") {
+          waypoint.pose.position.x = 5.0;
+          waypoint.pose.position.y = 5.0;
+          waypoint.pose.position.z = 15.0;
+      } else if (drone_id_ == "rs1_drone_2") {
+          waypoint.pose.position.x = -5.0;
+          waypoint.pose.position.y = 5.0;
+          waypoint.pose.position.z = 15.0;
+      } else if (drone_id_ == "rs1_drone_3") {
+          waypoint.pose.position.x = -5.0;
+          waypoint.pose.position.y = -5.0;
+          waypoint.pose.position.z = 3.0;
+      } else if (drone_id_ == "rs1_drone_4") {
+          waypoint.pose.position.x = 5.0;
+          waypoint.pose.position.y = -5.0;
+          waypoint.pose.position.z = 8.0;
+      } else {
+          waypoint.pose.position.x = 6.0;
+          waypoint.pose.position.y = -6.0;
+          waypoint.pose.position.z = 10.0;
+      }
+      
+      waypoints.push_back(waypoint);
+      path_planner_->setWaypoints(waypoints);
+      RCLCPP_INFO(this->get_logger(), "Loaded fallback waypoint for %s", drone_id_.c_str());
+  }
+
   // Service callback implementations
   void MissionPlannerNode::startMissionCallback(
       const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
@@ -109,23 +225,6 @@ namespace drone_swarm
       RCLCPP_WARN(this->get_logger(), "%s", response->message.c_str());
       return;
     }
-    
-    // TODO: ADD NAV2 RRT PLANNER GOAL SETTING FOR AUTONOMOUS PATH PLANNING
-    // // Set mission goal pose (either from parameters or service request)
-    // mission_goal_.header.frame_id = "map";  // Use global frame
-    // mission_goal_.header.stamp = this->get_clock()->now();
-    // mission_goal_.pose.position.x = 10.0;   // Example goal coordinates
-    // mission_goal_.pose.position.y = 5.0;
-    // mission_goal_.pose.position.z = 2.0;
-    // mission_goal_.pose.orientation.w = 1.0; // No rotation
-    // 
-    // // Request initial path planning to mission goal
-    // if (!requestPathPlanning(current_pose_, mission_goal_)) {
-    //   response->success = false;
-    //   response->message = "Failed to start path planning to mission goal";
-    //   return;
-    // }
-    // Example: Set mission goal and request path planning instead of manual waypoints
     
     // Transition to takeoff state
     state_machine_->setState(MissionState::TAKEOFF);
@@ -203,9 +302,6 @@ namespace drone_swarm
           if (elapsed > std::chrono::seconds(5)) { // 5 second takeoff simulation
             RCLCPP_INFO(this->get_logger(), "Takeoff completed for %s - transitioning to waypoint navigation", drone_id_.c_str());
             
-            // TODO: REPLACE MANUAL WAYPOINT CHECK WITH NAV2 RRT PLANNER PATH EXECUTION
-            // // After takeoff, ensure we have a planned path to the mission goal
-            // 
             // Check if we have waypoints to navigate
             if (path_planner_->hasNextWaypoint()) {
               state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
@@ -219,7 +315,6 @@ namespace drone_swarm
         break;
         
       case MissionState::WAYPOINT_NAVIGATION:
-        // TODO: ADD NAV2 RRT PLANNER REPLANNING CHECK FOR AUTONOMOUS PATH PLANNING
         
         // Check if current waypoint is reached
         if (isWaypointReached()) {
@@ -315,36 +410,6 @@ namespace drone_swarm
     }
   }
 
-  void MissionPlannerNode::loadWaypointsFromParams() {
-    // TODO: Implement parameter-based waypoint loading
-    // This could load waypoints from ROS parameters for autonomous missions
-    RCLCPP_DEBUG(this->get_logger(), "Waypoint parameter loading not yet implemented");
-    
-    /* Example implementation:
-    std::vector<geometry_msgs::msg::PoseStamped> waypoints;
-    
-    try {
-      auto waypoint_list = this->get_parameter("waypoints").as_double_array();
-      
-      for (size_t i = 0; i + 2 < waypoint_list.size(); i += 3) {
-        geometry_msgs::msg::PoseStamped wp;
-        wp.header.frame_id = "map";
-        wp.pose.position.x = waypoint_list[i];
-        wp.pose.position.y = waypoint_list[i + 1];
-        wp.pose.position.z = waypoint_list[i + 2];
-        wp.pose.orientation.w = 1.0; // Default orientation
-        waypoints.push_back(wp);
-      }
-      
-      path_planner_->setWaypoints(waypoints);
-      RCLCPP_INFO(this->get_logger(), "Loaded %zu waypoints from parameters", waypoints.size());
-      
-    } catch (const std::exception& e) {
-      RCLCPP_WARN(this->get_logger(), "No waypoints found in parameters: %s", e.what());
-    }
-    */
-  }
-
   // Helper methods
   bool MissionPlannerNode::isWaypointReached() const {
     if (!path_planner_->hasNextWaypoint()) {
@@ -384,62 +449,5 @@ namespace drone_swarm
       state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
     }
   }
-
-  // TODO: ADD NAV2 RRT PLANNER IMPLEMENTATION METHODS FOR AUTONOMOUS PATH PLANNING
-  // 
-  // bool MissionPlannerNode::requestPathPlanning(const geometry_msgs::msg::PoseStamped& start_pose,
-  //                                              const geometry_msgs::msg::PoseStamped& goal_pose) {
-  //   1. Check if nav2 planner server is available
-  //   
-  //   2. Create path planning request
-  //   
-  //   3. Set planning options
-  //   
-  //   4. Send planning request
-  // }
-  // 
-  // void MissionPlannerNode::pathPlanningResultCallback(
-  //   const rclcpp_action::ClientGoalHandle<nav2_msgs::action::ComputePathToPose>::WrappedResult& result) {
-  //   
-  //   path_planning_active_ = false;
-  //   
-  //   if (result.code == rclcpp_action::ResultCode::SUCCEEDED) {
-  //     current_planned_path_ = result.result->path;
-  //     convertPathToWaypoints(current_planned_path_);
-  //     RCLCPP_INFO(this->get_logger(), "Path planning succeeded - %zu waypoints generated", 
-  //                 current_planned_path_.poses.size());
-  //   } else {
-  //     RCLCPP_ERROR(this->get_logger(), "Path planning failed with code: %d", (int)result.code);
-  //     // Handle planning failure - maybe try alternative goal or enter emergency mode
-  //   }
-  // }
-  // 
-  // void MissionPlannerNode::convertPathToWaypoints(const nav_msgs::msg::Path& path) {
-  //   if (path.poses.empty()) {
-  //     RCLCPP_WARN(this->get_logger(), "Cannot convert empty path to waypoints");
-  //     return;
-  //   }
-  //   
-  //   // Optionally subsample the path to reduce waypoint density
-  //   std::vector<geometry_msgs::msg::PoseStamped> waypoints;
-  //   double min_waypoint_distance = 1.0;  // Minimum distance between waypoints
-  //   
-  //   waypoints.push_back(path.poses[0]);  // Always include first waypoint
-  //   
-  //   for (size_t i = 1; i < path.poses.size(); ++i) {
-  // }
-  // 
-  // bool MissionPlannerNode::needsReplanning() const {
-  //   // Check various conditions that would require replanning:
-  //   // 1. Significant deviation from planned path
-  //   // 2. New obstacles detected in costmap
-  //   // 3. Goal position changed
-  //   // 4. Path no longer valid due to environment changes
-  //   
-  //   
-  //   // Example: Check if drone is too far from planned path
-  //   // Find closest point on path and check distance
-  // }
-  // Example: These methods implement the core RRT path planning functionality
 
 }  // namespace drone_swarm
