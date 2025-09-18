@@ -1,13 +1,13 @@
 #!/usr/bin/env python3
 """
-Multi-drone launch file based on the working rs1_robot_ignition.py
-Adapted to spawn multiple drones using OpaqueFunction
+Multi-drone launch file with individual drone controllers
+Each drone runs its own sensor processor + controller nodes
 """
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, IncludeLaunchDescription, OpaqueFunction, TimerAction
-from launch.conditions import IfCondition
+from launch.conditions import IfCondition, UnlessCondition
 from launch.substitutions import (Command, LaunchConfiguration,
-                                  PathJoinSubstitution)
+                                  PathJoinSubstitution, PythonExpression)
 from launch_ros.actions import Node
 from launch_ros.parameter_descriptions import ParameterValue
 from launch_ros.substitutions import FindPackageShare
@@ -16,15 +16,15 @@ import subprocess
 
 
 def spawn_multiple_drones(context, *args, **kwargs):
-    """Spawn multiple drones based on the working single drone pattern"""
+    """Spawn multiple drones with individual drone controllers"""
     
     # Get launch configurations
     num_drones = int(context.launch_configurations['num_drones'])
     use_sim_time = LaunchConfiguration('use_sim_time')
     
-    print(f"Spawning {num_drones} drones using working pattern")
+    print(f"Spawning {num_drones} drones with individual controllers")
     
-    # Get paths (same as working launch)
+    # Get paths
     pkg_path = FindPackageShare('rs1_robot')
     config_path = PathJoinSubstitution([pkg_path, 'config'])
     
@@ -40,19 +40,19 @@ def spawn_multiple_drones(context, *args, **kwargs):
     
     nodes = []
     
-    # Create bridge node (adapted from working version)
+    # Create bridge node
     gazebo_bridge = Node(
         package='ros_ign_bridge',
         executable='parameter_bridge',
         parameters=[{
-            'config_file': '/tmp/rs1_dynamic_bridge.yaml',  # Use generated config
+            'config_file': '/tmp/rs1_dynamic_bridge.yaml',
             'use_sim_time': use_sim_time
         }],
         output='screen'
     )
     nodes.append(gazebo_bridge)
     
-    # Create nodes for each drone (following working pattern exactly)
+    # Create individual drone controller nodes for each drone
     for i in range(1, num_drones + 1):
         drone_name = f'rs1_drone_{i}'
         
@@ -63,7 +63,7 @@ def spawn_multiple_drones(context, *args, **kwargs):
         
         print(f"Creating drone {i}: {drone_name} at ({x_pos}, {y_pos}, {z_pos})")
         
-        # Robot description (adapted from working version)
+        # Robot description
         robot_description_content = ParameterValue(
             Command(['xacro ',
                      PathJoinSubstitution([pkg_path,
@@ -73,12 +73,12 @@ def spawn_multiple_drones(context, *args, **kwargs):
                      ' drone_namespace:=', drone_name]),
             value_type=str)
         
-        # Robot state publisher (same as working version but with namespace)
+        # Robot state publisher (namespaced)
         robot_state_publisher_node = Node(
             package='robot_state_publisher',
             executable='robot_state_publisher',
             name=f'robot_state_publisher_{i}',
-            namespace=drone_name,  # Add namespace for multi-drone
+            namespace=drone_name,
             parameters=[{
                 'robot_description': robot_description_content,
                 'use_sim_time': use_sim_time
@@ -86,7 +86,7 @@ def spawn_multiple_drones(context, *args, **kwargs):
             output='screen'
         )
         
-        # Spawn drone in Gazebo (same pattern as working version)
+        # Spawn drone in Gazebo
         robot_spawner = Node(
             package='ros_ign_gazebo',
             executable='create',
@@ -94,32 +94,33 @@ def spawn_multiple_drones(context, *args, **kwargs):
             output='screen',
             parameters=[{'use_sim_time': use_sim_time}],
             arguments=[
-                '-topic', f'/{drone_name}/robot_description',  # Use namespaced topic
-                '-name', drone_name,  # Unique name for each drone
+                '-topic', f'/{drone_name}/robot_description',
+                '-name', drone_name,
                 '-x', str(x_pos),
                 '-y', str(y_pos),
                 '-z', str(z_pos)
             ]
         )
         
-        # Add both nodes for this drone
+        # Add nodes for this drone
         nodes.append(robot_state_publisher_node)
         nodes.append(robot_spawner)
     
-    print(f"Created {len(nodes)} nodes for {num_drones} drones")
+    print(f"Created {len(nodes)} nodes for {num_drones} drones with individual controllers")
+    print("Each drone will run: DroneController with integrated SensorNode")
     return nodes
 
 
 def generate_launch_description():
-    """Generate launch description based on working rs1_robot_ignition.py"""
+    """Generate launch description for multi-drone system with individual controllers"""
 
     ld = LaunchDescription()
 
-    # Get paths (same as working launch)
+    # Get paths
     pkg_path = FindPackageShare('rs1_robot')
     config_path = PathJoinSubstitution([pkg_path, 'config'])
 
-    # Launch arguments (based on working version + num_drones)
+    # Launch arguments
     use_sim_time_launch_arg = DeclareLaunchArgument(
         'use_sim_time',
         default_value='True',
@@ -131,13 +132,13 @@ def generate_launch_description():
     num_drones_launch_arg = DeclareLaunchArgument(
         'num_drones',
         default_value='3',
-        description='Number of drones to spawn (1-10)'
+        description='Number of drones to spawn with composition (1-10)'
     )
     ld.add_action(num_drones_launch_arg)
 
     rviz_launch_arg = DeclareLaunchArgument(
         'rviz',
-        default_value='False',  # Default to False for multi-drone
+        default_value='False',
         description='Flag to launch RViz'
     )
     ld.add_action(rviz_launch_arg)
@@ -148,20 +149,62 @@ def generate_launch_description():
         description='Which world to load'
     )
     ld.add_action(world_launch_arg)
-
-    # Start Gazebo (exactly same as working version)
-    gazebo = IncludeLaunchDescription(
-        PathJoinSubstitution([FindPackageShare('ros_ign_gazebo'),
-                             'launch', 'ign_gazebo.launch.py']),
-        launch_arguments={
-            'gz_args': [PathJoinSubstitution([FindPackageShare('rs1_environment'),
-                                               'worlds',
-                                               [LaunchConfiguration('world')]]),
-                         ' -r']}.items()
+    
+    # Gazebo launch arguments
+    gazebo_arg = DeclareLaunchArgument(
+        'gazebo',
+        default_value='false',
+        description='true = launch Gazebo GUI, false = headless'
     )
-    ld.add_action(gazebo)
 
-    # Spawn multiple drones using OpaqueFunction (after short delay)
+    # Headless Gazebo (gzserver only + EGL rendering)
+    gazebo_headless = IncludeLaunchDescription(
+        PathJoinSubstitution([
+            FindPackageShare('ros_ign_gazebo'),
+            'launch',
+            'ign_gazebo.launch.py'
+        ]),
+        launch_arguments={
+            'gz_args': [
+                PathJoinSubstitution([
+                    FindPackageShare('rs1_environment'),
+                    'worlds',
+                    LaunchConfiguration('world')
+                ]),
+                ' -s -r --headless-rendering'
+            ]
+        }.items(),
+        condition=IfCondition(
+            PythonExpression(["'", LaunchConfiguration('gazebo'), "' == 'false'"])
+        )
+    )
+
+    # GUI Gazebo (gzserver + gzclient)
+    gazebo_gui = IncludeLaunchDescription(
+        PathJoinSubstitution([
+            FindPackageShare('ros_ign_gazebo'),
+            'launch',
+            'ign_gazebo.launch.py'
+        ]),
+        launch_arguments={
+            'gz_args': [
+                PathJoinSubstitution([
+                    FindPackageShare('rs1_environment'),
+                    'worlds',
+                    LaunchConfiguration('world')
+                ]),
+                ' -r'
+            ]
+        }.items(),
+        condition=IfCondition(
+            PythonExpression(["'", LaunchConfiguration('gazebo'), "' == 'true'"])
+        )
+    )
+    ld.add_action(gazebo_arg)
+    ld.add_action(gazebo_headless)
+    ld.add_action(gazebo_gui)
+
+    # Spawn multiple drones with individual controllers
     multiple_drones = OpaqueFunction(function=spawn_multiple_drones)
     drone_spawner = TimerAction(
         period=3.0,  # Short delay for Gazebo to start
@@ -169,7 +212,7 @@ def generate_launch_description():
     )
     ld.add_action(drone_spawner)
 
-    # RViz2 for visualization (same as working version)
+    # RViz2 for visualisation (optional)
     rviz_node = Node(
         package='rviz2',
         executable='rviz2',
