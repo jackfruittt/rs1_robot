@@ -8,7 +8,7 @@ namespace drone_swarm
   {
     // Initialise ROS parameters for mission configuration
     this->declare_parameter("drone_namespace", std::string("rs1_drone"));
-    this->declare_parameter<double>("mission_update_rate", 10.0);
+    this->declare_parameter<double>("mission_update_rate", 5.0);
     this->declare_parameter<double>("waypoint_tolerance", 0.5);
 
     drone_namespace_ = this->get_parameter("drone_namespace").as_string();
