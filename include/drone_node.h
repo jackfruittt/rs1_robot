@@ -259,7 +259,4 @@ private:
 
 }  // namespace drone_swarm
 
-#include "rclcpp_components/register_node_macro.hpp"
-RCLCPP_COMPONENTS_REGISTER_NODE(drone_swarm::DroneControllerNode)
-
 #endif  // DRONE_SWARM_DRONE_CONTROLLER_NODE_H_

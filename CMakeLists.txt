@@ -27,7 +27,7 @@ find_package(grid_map_msgs REQUIRED)
 # Include directories
 include_directories(include)
 
-# NEW: Create separate libraries for mission planning components
+# Create separate libraries for mission planning components
 add_library(pid_controller SHARED
   src/pid.cpp
 )
@@ -55,7 +55,7 @@ ament_target_dependencies(drone_control
 # Link drone_control with pid_controller
 target_link_libraries(drone_control pid_controller)
 
-# NEW: Create mission system libraries
+# Create mission system libraries
 add_library(state_machine SHARED
   src/state_machine.cpp
 )
@@ -83,7 +83,7 @@ ament_target_dependencies(mission_executor
   geometry_msgs
 )
 
-# NEW: Create mission planner component library
+# Create mission planner component library
 add_library(mission_planner_component SHARED
   src/mission_node.cpp
 )
@@ -95,7 +95,7 @@ target_link_libraries(mission_planner_component
   mission_executor
 )
 
-# NEW: Create enhanced drone controller component with mission planning
+# Create enhanced drone controller component with mission planning
 add_library(drone_controller_enhanced_component SHARED
   src/drone_node.cpp
 )
@@ -124,11 +124,11 @@ ament_target_dependencies(drone_controller_enhanced_component
   std_srvs
 )
 
-# NEW: Register mission planning components
+# Register mission planning components
 rclcpp_components_register_nodes(mission_planner_component "drone_swarm::MissionPlannerNode")
 rclcpp_components_register_nodes(drone_controller_enhanced_component "drone_swarm::DroneControllerNode")
 
-# NEW: Create composed executables
+# Create composed executables
 add_executable(drone_mission_composed src/main_composition.cpp)
 target_link_libraries(drone_mission_composed
   mission_planner_component
@@ -163,7 +163,7 @@ install(
   PROGRAMS
     launch/rs1_drone_spawner.py
     launch/rs1_single_drone.py
-    launch/rs1_swarm_composed.py  # NEW: Your enhanced swarm launch
+    launch/rs1_swarm_composed.py  
   DESTINATION share/${PROJECT_NAME}/launch
 )
 

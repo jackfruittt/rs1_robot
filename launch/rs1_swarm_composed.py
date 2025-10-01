@@ -76,8 +76,9 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
     num_drones = int(context.launch_configurations['num_drones'])
     use_sim_time = LaunchConfiguration('use_sim_time')
     use_composition = context.launch_configurations['use_composition']
+    use_perception = context.launch_configurations['use_perception']
     
-    print(f"Spawning {num_drones} drones with composed controllers (composition: {use_composition})")
+    print(f"Spawning {num_drones} drones with composed controllers (composition: {use_composition}, perception: {use_perception})")
     
     # Get paths
     pkg_path = FindPackageShare('rs1_robot')
@@ -185,6 +186,29 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
             )
             nodes.append(drone_container)
             
+            # Add perception node if enabled (always separate process, never composed)
+            if use_perception == 'true':
+                perception_node = Node(
+                    package='rs1_perception',
+                    executable='perception_node',
+                    name=f'perception_node_{i}',
+                    namespace=drone_name,
+                    output='screen',
+                    parameters=[{
+                        'use_sim_time': use_sim_time,
+                        'drone_namespace': drone_name,
+                        'detector_type': 'umich',
+                        'tag_family': 'tf36h11',
+                        'image_transport': 'raw',
+                        'front_camera_focal_length': 185.7,
+                        'april_tag_size': 1.0,
+                        'position_tolerance': 0.5,
+                        'image_qos_profile': 'default'
+                    }],
+                    arguments=['--ros-args', '--log-level', 'info']
+                )
+                nodes.append(perception_node)
+            
         elif use_composition == 'custom':
             # Option 2: Use custom composed executable
             drone_composed = Node(
@@ -210,6 +234,29 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
                 arguments=['--ros-args', '--log-level', 'info']
             )
             nodes.append(sensor_processor)
+            
+            # Add perception node if enabled (separate process, not composed)
+            if use_perception == 'true':
+                perception_node = Node(
+                    package='rs1_perception',
+                    executable='perception_node',
+                    name=f'perception_node_{i}',
+                    namespace=drone_name,
+                    output='screen',
+                    parameters=[{
+                        'use_sim_time': use_sim_time,
+                        'drone_namespace': drone_name,
+                        'detector_type': 'umich',
+                        'tag_family': 'tf36h11',
+                        'image_transport': 'raw',
+                        'front_camera_focal_length': 185.7,
+                        'april_tag_size': 1.0,
+                        'position_tolerance': 0.5,
+                        'image_qos_profile': 'default'
+                    }],
+                    arguments=['--ros-args', '--log-level', 'info']
+                )
+                nodes.append(perception_node)
             
         else:
             # Option 3: Separate processes 
@@ -245,6 +292,29 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
                 arguments=['--ros-args', '--log-level', 'info']
             )
             nodes.append(sensor_processor)
+            
+            # Add perception node if enabled (separate process, not composed)
+            if use_perception == 'true':
+                perception_node = Node(
+                    package='rs1_perception',
+                    executable='perception_node',
+                    name=f'perception_node_{i}',
+                    namespace=drone_name,
+                    output='screen',
+                    parameters=[{
+                        'use_sim_time': use_sim_time,
+                        'drone_namespace': drone_name,
+                        'detector_type': 'umich',
+                        'tag_family': 'tf36h11',
+                        'image_transport': 'raw',
+                        'front_camera_focal_length': 185.7,
+                        'april_tag_size': 1.0,
+                        'position_tolerance': 0.5,
+                        'image_qos_profile': 'default'
+                    }],
+                    arguments=['--ros-args', '--log-level', 'info']
+                )
+                nodes.append(perception_node)
     
     # Create robot description and spawner nodes for each drone
     for i in range(1, num_drones + 1):
@@ -350,6 +420,14 @@ def generate_launch_description():
         description='Which world to load'
     )
     ld.add_action(world_launch_arg)
+    
+    # Perception launch argument
+    use_perception_launch_arg = DeclareLaunchArgument(
+        'use_perception',
+        default_value='false',
+        description='Flag to enable perception nodes for AprilTag detection'
+    )
+    ld.add_action(use_perception_launch_arg)
     
     # Gazebo launch arguments
     gazebo_arg = DeclareLaunchArgument(
