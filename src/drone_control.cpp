@@ -1,23 +1,30 @@
 #include "drone_control.h"
 #include <algorithm>
 #include <cmath>
+#define _USE_MATH_DEFINES
+#ifndef M_PI
+#define M_PI 3.14159265358979323846
+#endif
 
 namespace drone_swarm
 {
 
   DroneControl::DroneControl() 
     : drone_mass_(1.5), max_thrust_(20.0), max_velocity_(5.0), max_angular_velocity_(1.0),
-      first_command_(true), logger_(rclcpp::get_logger("drone_control"))
+      first_command_(true), current_yaw_(0.0), imu_data_available_(false),
+      logger_(rclcpp::get_logger("drone_control"))
   {
     // Initialise PID controllers with optimised gains from flyToGoal testing
     pid_x_ = std::make_unique<PIDController>(0.8, 0.05, 0.15);  // Horizontal X control
     pid_y_ = std::make_unique<PIDController>(0.8, 0.05, 0.15);  // Horizontal Y control
     pid_z_ = std::make_unique<PIDController>(0.3, 0.02, 0.1);   // Vertical Z control (more conservative)
+    pid_yaw_ = std::make_unique<PIDController>(2.0, 0.1, 0.3);  // Yaw orientation control
     
     // Configure integral windup protection for stable flight
     pid_x_->setIntegralLimits(-1.0, 1.0);
     pid_y_->setIntegralLimits(-1.0, 1.0);
     pid_z_->setIntegralLimits(-0.5, 0.5);  // More conservative for altitude
+    pid_yaw_->setIntegralLimits(-0.5, 0.5);  // Conservative yaw integral
     
     // Initialise command smoothing history
     last_cmd_.linear.x = last_cmd_.linear.y = last_cmd_.linear.z = 0.0;
@@ -68,8 +75,10 @@ namespace drone_swarm
     pid_x_->reset();
     pid_y_->reset();
     pid_z_->reset();
+    pid_yaw_->reset();
     
     first_command_ = true;  // Reset smoothing filter
+    imu_data_available_ = false;
   }
 
   geometry_msgs::msg::Twist DroneControl::calculateAdvancedPositionControl(
@@ -87,27 +96,62 @@ namespace drone_swarm
     double error_y = target_pose.pose.position.y - current_pose.pose.position.y;
     double horizontal_distance = std::sqrt(error_x*error_x + error_y*error_y);
     
-    // Apply advanced PID calculation with windup protection (from flyToGoal optimisation)
     geometry_msgs::msg::Twist raw_cmd;
-    raw_cmd.linear.x = pid_x_->calculateWithWindupProtection(target_pose.pose.position.x, current_pose.pose.position.x, dt, 2.0);
-    raw_cmd.linear.y = pid_y_->calculateWithWindupProtection(target_pose.pose.position.y, current_pose.pose.position.y, dt, 2.0);
     
-    // Adaptive speed ramping based on distance to target (flyToGoal derived logic)
-    double max_horizontal_vel = 5.0;
-
-    if (horizontal_distance > 5.0) {
-        max_horizontal_vel = 3.0;  // Full speed when far from target
+    // Forward flight control using yaw orientation
+    if (imu_data_available_ && horizontal_distance > 0.3) {
+      // Calculate desired yaw to face target
+      double target_yaw = calculateYawToTarget(current_pose.pose.position, target_pose.pose.position);
+      
+      // Calculate yaw control command
+      raw_cmd.angular.z = calculateYawControl(target_yaw, current_yaw_, dt);
+      
+      // Calculate forward velocity based on distance and orientation accuracy
+      double yaw_error = normalizeAngle(target_yaw - current_yaw_);
+      double orientation_accuracy = std::cos(yaw_error);  // 1.0 when perfectly aligned, 0.0 when perpendicular
+      
+      // Adaptive speed ramping based on distance to target
+      double max_forward_vel = 2.0;
+      if (horizontal_distance > 5.0) {
+        max_forward_vel = 2.5;  // Higher speed when far from target
       } else if (horizontal_distance > 1.0) {
-        max_horizontal_vel = 3.0;  // Medium speed when approaching target
+        max_forward_vel = 2.0;  // Medium speed when approaching target
       } else {
-        max_horizontal_vel = 1.5;  // Slow speed for precision when close
+        max_forward_vel = 1.0;  // Slow speed for precision when close
       }
-    
-    // Apply velocity limits with proportional scaling to maintain direction
-    double cmd_magnitude = std::sqrt(raw_cmd.linear.x*raw_cmd.linear.x + raw_cmd.linear.y*raw_cmd.linear.y);
-    if (cmd_magnitude > max_horizontal_vel) {
-      raw_cmd.linear.x = (raw_cmd.linear.x / cmd_magnitude) * max_horizontal_vel;
-      raw_cmd.linear.y = (raw_cmd.linear.y / cmd_magnitude) * max_horizontal_vel;
+      
+      // Forward velocity reduced by orientation error
+      raw_cmd.linear.x = max_forward_vel * std::min(1.0, horizontal_distance / 1.0) * std::max(0.2, orientation_accuracy);
+      raw_cmd.linear.y = 0.0;  // No lateral strafing in forward flight mode
+      
+      // Small position correction for fine positioning when close
+      if (horizontal_distance < 1.0) {
+        // Add small lateral corrections when close to target
+        raw_cmd.linear.y = pid_y_->calculateWithWindupProtection(target_pose.pose.position.y, current_pose.pose.position.y, dt, 1.0) * 0.3;
+      }
+      
+    } else {
+      // Fallback to direct position control when IMU unavailable or very close
+      raw_cmd.linear.x = pid_x_->calculateWithWindupProtection(target_pose.pose.position.x, current_pose.pose.position.x, dt, 2.0);
+      raw_cmd.linear.y = pid_y_->calculateWithWindupProtection(target_pose.pose.position.y, current_pose.pose.position.y, dt, 2.0);
+      raw_cmd.angular.z = 0.0;
+      
+      // Adaptive speed ramping for fallback mode
+      double max_horizontal_vel = 2.0;
+      if (horizontal_distance > 5.0) {
+        max_horizontal_vel = 2.0;
+      } else if (horizontal_distance > 1.0) {
+        max_horizontal_vel = 1.5;
+      } else {
+        max_horizontal_vel = 1.0;
+      }
+      
+      // Apply velocity limits with proportional scaling to maintain direction
+      double cmd_magnitude = std::sqrt(raw_cmd.linear.x*raw_cmd.linear.x + raw_cmd.linear.y*raw_cmd.linear.y);
+      if (cmd_magnitude > max_horizontal_vel) {
+        raw_cmd.linear.x = (raw_cmd.linear.x / cmd_magnitude) * max_horizontal_vel;
+        raw_cmd.linear.y = (raw_cmd.linear.y / cmd_magnitude) * max_horizontal_vel;
+      }
     }
     
     // Altitude control with manual or terrain following modes
@@ -129,10 +173,10 @@ namespace drone_swarm
     geometry_msgs::msg::Twist cmd_vel;
     applySmoothingFilter(cmd_vel, raw_cmd);
     
-    // Ensure angular velocities are zero to prevent unwanted rotation
+    // Keep roll and pitch zero for stability, allow yaw control
     cmd_vel.angular.x = 0.0;
     cmd_vel.angular.y = 0.0;
-    cmd_vel.angular.z = 0.0;
+    // cmd_vel.angular.z is preserved from raw_cmd for yaw control
     
     // Final scaling for compatibility with basic velocity control
     scaleForBasicVelocityControl(cmd_vel);
@@ -254,6 +298,9 @@ namespace drone_swarm
       cmd_vel.linear.x = alpha * raw_cmd.linear.x + (1.0 - alpha) * last_cmd_.linear.x;
       cmd_vel.linear.y = alpha * raw_cmd.linear.y + (1.0 - alpha) * last_cmd_.linear.y;
       cmd_vel.linear.z = alpha * raw_cmd.linear.z + (1.0 - alpha) * last_cmd_.linear.z;
+      cmd_vel.angular.x = alpha * raw_cmd.angular.x + (1.0 - alpha) * last_cmd_.angular.x;
+      cmd_vel.angular.y = alpha * raw_cmd.angular.y + (1.0 - alpha) * last_cmd_.angular.y;
+      cmd_vel.angular.z = alpha * raw_cmd.angular.z + (1.0 - alpha) * last_cmd_.angular.z;
     }
     
     last_cmd_ = cmd_vel;
@@ -333,6 +380,29 @@ namespace drone_swarm
 
   double DroneControl::calculateZControl(double target_z, double current_z, double dt) {
     return pid_z_->calculate(target_z, current_z, dt);
+  }
+
+  void DroneControl::updateCurrentYaw(double yaw) {
+    current_yaw_ = normalizeAngle(yaw);
+    imu_data_available_ = true;
+  }
+
+  double DroneControl::calculateYawToTarget(const geometry_msgs::msg::Point& current_pos, const geometry_msgs::msg::Point& target_pos) {
+    double dx = target_pos.x - current_pos.x;
+    double dy = target_pos.y - current_pos.y;
+    return std::atan2(dy, dx);  // Returns angle in [-pi, pi]
+  }
+
+  double DroneControl::calculateYawControl(double target_yaw, double current_yaw, double dt) {
+    // Normalize the yaw error to handle wraparound
+    double yaw_error = normalizeAngle(target_yaw - current_yaw);
+    return pid_yaw_->calculate(0.0, -yaw_error, dt);  // Negative error for proper direction
+  }
+
+  double DroneControl::normalizeAngle(double angle) {
+    while (angle > M_PI) angle -= 2.0 * M_PI;
+    while (angle < -M_PI) angle += 2.0 * M_PI;
+    return angle;
   }
 
 }  // namespace drone_swarm
