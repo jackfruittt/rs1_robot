@@ -73,14 +73,14 @@ namespace drone_swarm
 
     // Create services
 
+    // Load control parameters
+    loadControlParams();
+
     // Create control timer
     auto timer_period = std::chrono::milliseconds(static_cast<int>(1000.0 / control_frequency_));
     control_timer_ = this->create_wall_timer(
         timer_period,
         std::bind(&DroneControllerNode::controlLoopCallback, this));
-
-    // Load control parameters
-    loadControlParams();
 
     RCLCPP_INFO(this->get_logger(), "Drone Controller Node initialized for %s", drone_namespace_.c_str());
   }
@@ -116,7 +116,7 @@ namespace drone_swarm
 
   void DroneControllerNode::loadControlParams() {
     // Load control parameters from ROS parameters
-    this->declare_parameter("control_frequency", 20.0);
+    this->declare_parameter("control_frequency", 10.0);
     this->declare_parameter("telemetry_frequency", 5.0);
     this->declare_parameter("takeoff_altitude", 2.0);
     this->declare_parameter("landing_speed", 0.5);
@@ -124,6 +124,12 @@ namespace drone_swarm
 
     control_frequency_ = this->get_parameter("control_frequency").as_double();
     telemetry_frequency_ = this->get_parameter("telemetry_frequency").as_double();
+
+    // Validate frequencies
+    if (control_frequency_ <= 0.0) {
+      RCLCPP_WARN(this->get_logger(), "Invalid control frequency %.2f, using default 20.0 Hz", control_frequency_);
+      control_frequency_ = 20.0;
+    }
 
     // Configure drone control system
     drone_control_->setLogger(this->get_logger());
