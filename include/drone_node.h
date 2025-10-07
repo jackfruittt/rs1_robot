@@ -99,12 +99,10 @@ private:
   void goalCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg);
   
   /**
-   * @brief Process IMU data for attitude estimation (currently unused)
+   * @brief Process IMU data for attitude estimation and yaw control
    * @param msg IMU sensor data
-   * 
-   * TODO: Implement attitude-based control
    */
-  // void imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
+  void imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg);
   
   /**
    * @brief Process GPS data for global positioning (currently unused)

@@ -1,5 +1,6 @@
 #include "drone_node.h"
 #include <cmath>
+#define _USE_MATH_DEFINES
 
 namespace drone_swarm
 {
@@ -32,9 +33,9 @@ namespace drone_swarm
         "/" + drone_namespace_ + "/target_pose", 10,
         std::bind(&DroneControllerNode::targetPoseCallback, this, std::placeholders::_1));
 
-    // imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
-    //     "/" + drone_namespace_ + "/imu", 10,
-    //     std::bind(&DroneControllerNode::imuCallback, this, std::placeholders::_1));
+    imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
+        "/" + drone_namespace_ + "/imu", 10,
+        std::bind(&DroneControllerNode::imuCallback, this, std::placeholders::_1));
 
     // gps_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
     //     "/" + drone_namespace_ + "/gps", 10,
@@ -185,13 +186,23 @@ namespace drone_swarm
                  msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
   }
 
-  // void DroneControllerNode::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
-  // {
-  //   (void)msg; // Suppress unused parameter warning
-  //   // TODO: Process IMU data for attitude estimation
-  //   // sensor_manager_->updateIMU(msg);
-  //   RCLCPP_DEBUG(this->get_logger(), "IMU data received");
-  // }
+  void DroneControllerNode::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
+  {
+    // Extract yaw angle from quaternion orientation
+    double x = msg->orientation.x;
+    double y = msg->orientation.y;
+    double z = msg->orientation.z;
+    double w = msg->orientation.w;
+    
+    // Convert quaternion to yaw angle (Euler Z rotation)
+    double yaw = std::atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
+    
+    // Update drone control with current yaw
+    drone_control_->updateCurrentYaw(yaw);
+    
+    RCLCPP_DEBUG(this->get_logger(), "IMU data received - Yaw: %.2f rad (%.1f deg)", 
+                 yaw, yaw * 180.0 / M_PI);
+  }
 
   // void DroneControllerNode::gpsCallback(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
   // {

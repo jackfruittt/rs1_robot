@@ -31,6 +31,8 @@ namespace drone_swarm
       "/" + drone_namespace_ + "/odom", 10,
       std::bind(&MissionPlannerNode::odomCallback, this, std::placeholders::_1));
 
+    // IMU data is handled by drone_node for orientation control
+
     velocity_sub_ = this->create_subscription<geometry_msgs::msg::Twist>(
       "/" + drone_namespace_ + "/velocity", 10,
       std::bind(&MissionPlannerNode::velocityCallback, this, std::placeholders::_1));
