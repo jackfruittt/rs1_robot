@@ -20,7 +20,6 @@ waypoint_configs:
       - position: {x: -11.266300, y: -9.183030, z: 5.0}
         dwell_time: 2.0
 
-
   rs1_drone_2:
     mission_name: "perimeter_patrol_north_west_light_green"
     waypoints:
@@ -100,3 +99,4 @@ mission_params:
   waypoint_tolerance: 0.8
   max_velocity: 3.0
   loop_missions: true
+  # fire_bag_location: {0, 0}

@@ -29,6 +29,25 @@
 namespace drone_swarm
 {
 
+// Add this enum (names match what Perception publishes)
+enum class Scenario {
+  UNKNOWN = 0,
+  STRANDED_HIKER,
+  WILDFIRE,
+  DEBRIS_OBSTRUCTION
+};
+
+// Event decoded from the CSV payload
+struct ScenarioEvent {
+  Scenario type{Scenario::UNKNOWN};
+  MissionState state;
+  geometry_msgs::msg::Point target{};
+  double heading{0.0};          // radians (as published by perception/IMU)
+  bool can_respond{false};
+  rclcpp::Time stamp{};         // when we received it
+  std::string raw;              // original raw string (for audit/logs)
+};
+
 /**
  * @class MissionPlannerNode
  * @brief ROS 2 node for autonomous mission planning and execution
@@ -130,14 +149,38 @@ private:
    */
   bool isWaypointReached() const;
 
+  void scenarioDetectionCallback(const std_msgs::msg::String::SharedPtr msg);
+
+  void takeoff(void);
+  void waypointNavigation(void);
+  void hovering(void);
+  void landing(void);
+  void manualControl(void);
+  void emergency(void); 
+  void wildFireReaction(void);
+
+  void alertIncidentGui(const std::optional<ScenarioEvent>& ev);
+  const char* evTypeToString(Scenario s) const ;
+
+  // Parser: turns CSV string into a typed ScenarioEvent
+  std::optional<ScenarioEvent> parseScenarioDetection(const std_msgs::msg::String& msg);
+
+  // Local string->enum mapper (kept private to this package)
+  static Scenario scenarioFromString(const std::string& s);
+
+  // Determine target mission state for a detected scenario
+  MissionState targetStateForScenario(Scenario s);
+
   // ROS 2 communication interfaces
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;              ///< Odometry subscription
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_sub_;        ///< Velocity subscription (unused)
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr waypoint_sub_;  ///< Waypoint command subscription
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr scenario_sub_;
   
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;            ///< Velocity command publisher
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr target_pose_pub_;  ///< Target pose publisher
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr mission_state_pub_;          ///< Mission state publisher
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr incident_pub_;               ///< Incident publisher
   
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_mission_service_;       ///< Start mission service
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_mission_service_;        ///< Stop mission service
@@ -158,6 +201,8 @@ private:
   std::string drone_id_;          ///< Unique drone identifier
   double mission_update_rate_;    ///< Mission timer frequency in Hz
   double waypoint_tolerance_;     ///< Waypoint arrival tolerance in metres
+  int incident_counter_;
+  int drone_numeric_id_;
 };
 
 }  // namespace drone_swarm

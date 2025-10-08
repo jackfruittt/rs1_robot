@@ -25,7 +25,7 @@ def load_waypoints_for_drone(waypoints_file_path, drone_name):
             pkg_share = FindPackageShare('rs1_robot').find('rs1_robot')
             full_path = os.path.join(pkg_share, 'config', 'waypoints.yaml')
         else:
-            full_path = str(waypoints_file_path)
+            full_path = str(waypoints_file_path)    
         
         print(f"Loading waypoints from: {full_path}")
         
