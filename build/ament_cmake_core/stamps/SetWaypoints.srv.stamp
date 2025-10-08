@@ -1,4 +1,0 @@
-geometry_msgs/PoseArray targets
----
-bool accepted
-string info

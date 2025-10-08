@@ -1,4 +1,0 @@
-srv/SetWaypoints.idl
-srv/SetWaypoints.srv
-srv/SetWaypoints_Request.msg
-srv/SetWaypoints_Response.msg
