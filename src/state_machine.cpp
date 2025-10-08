@@ -31,11 +31,7 @@ namespace drone_swarm
       case MissionState::MANUAL_CONTROL: return "MANUAL_CONTROL";
       case MissionState::EMERGENCY: return "EMERGENCY";
       case MissionState::WILDFIRE_REACTION: return "WILDFIRE_REACTION";
-<<<<<<< Updated upstream
       case MissionState::ORBIT_INCIDENT: return "ORBIT_INCIDENT";
-=======
-      case MissionState::OBSERVE: return "OBSERVE";
->>>>>>> Stashed changes
       case MissionState::STRANDED_HIKER_REACTION: return "STRANDED_HIKER_REACTION";
       case MissionState::DEBRIS_OBSTRUCTION_REACTION: return "DEBRIS_OBSTRUCTION_REACTION";
       default: return "UNKNOWN";
@@ -58,11 +54,7 @@ namespace drone_swarm
                 target_state == MissionState::LANDING ||
                 target_state == MissionState::EMERGENCY || 
                 target_state == MissionState::WILDFIRE_REACTION ||
-<<<<<<< Updated upstream
                 target_state == MissionState::ORBIT_INCIDENT || 
-=======
-                target_state == MissionState::OBSERVE || 
->>>>>>> Stashed changes
                 target_state == MissionState::STRANDED_HIKER_REACTION ||
                 target_state == MissionState::DEBRIS_OBSTRUCTION_REACTION;
       case MissionState::HOVERING:
@@ -70,11 +62,7 @@ namespace drone_swarm
                 target_state == MissionState::LANDING ||
                 target_state == MissionState::EMERGENCY || 
                 target_state == MissionState::WILDFIRE_REACTION ||
-<<<<<<< Updated upstream
                 target_state == MissionState::ORBIT_INCIDENT || 
-=======
-                target_state == MissionState::OBSERVE || 
->>>>>>> Stashed changes
                 target_state == MissionState::STRANDED_HIKER_REACTION ||
                 target_state == MissionState::DEBRIS_OBSTRUCTION_REACTION;
       case MissionState::LANDING:
@@ -85,11 +73,7 @@ namespace drone_swarm
                 target_state == MissionState::EMERGENCY;
       case MissionState::EMERGENCY:
         return  target_state == MissionState::IDLE;
-<<<<<<< Updated upstream
       case MissionState::ORBIT_INCIDENT:
-=======
-      case MissionState::OBSERVE:
->>>>>>> Stashed changes
         return  target_state == MissionState::IDLE ||
                 target_state == MissionState::TAKEOFF ||
                 target_state == MissionState::WAYPOINT_NAVIGATION ||
@@ -97,11 +81,7 @@ namespace drone_swarm
                 target_state == MissionState::LANDING ||
                 target_state == MissionState::MANUAL_CONTROL ||
                 target_state == MissionState::WILDFIRE_REACTION ||
-<<<<<<< Updated upstream
                 target_state == MissionState::ORBIT_INCIDENT ||
-=======
-                target_state == MissionState::OBSERVE ||
->>>>>>> Stashed changes
                 target_state == MissionState::STRANDED_HIKER_REACTION ||
                 target_state == MissionState::DEBRIS_OBSTRUCTION_REACTION ||
                 target_state == MissionState::EMERGENCY;
@@ -113,11 +93,7 @@ namespace drone_swarm
                 target_state == MissionState::LANDING ||
                 target_state == MissionState::MANUAL_CONTROL ||
                 target_state == MissionState::WILDFIRE_REACTION ||
-<<<<<<< Updated upstream
                 target_state == MissionState::ORBIT_INCIDENT ||
-=======
-                target_state == MissionState::OBSERVE ||
->>>>>>> Stashed changes
                 target_state == MissionState::STRANDED_HIKER_REACTION ||
                 target_state == MissionState::DEBRIS_OBSTRUCTION_REACTION ||
                 target_state == MissionState::EMERGENCY;
@@ -129,11 +105,7 @@ namespace drone_swarm
                 target_state == MissionState::LANDING ||
                 target_state == MissionState::MANUAL_CONTROL ||
                 target_state == MissionState::WILDFIRE_REACTION ||
-<<<<<<< Updated upstream
                 target_state == MissionState::ORBIT_INCIDENT ||
-=======
-                target_state == MissionState::OBSERVE ||
->>>>>>> Stashed changes
                 target_state == MissionState::STRANDED_HIKER_REACTION ||
                 target_state == MissionState::DEBRIS_OBSTRUCTION_REACTION ||
                 target_state == MissionState::EMERGENCY;
@@ -145,11 +117,7 @@ namespace drone_swarm
                 target_state == MissionState::LANDING ||
                 target_state == MissionState::MANUAL_CONTROL ||
                 target_state == MissionState::WILDFIRE_REACTION ||
-<<<<<<< Updated upstream
                 target_state == MissionState::ORBIT_INCIDENT ||
-=======
-                target_state == MissionState::OBSERVE ||
->>>>>>> Stashed changes
                 target_state == MissionState::STRANDED_HIKER_REACTION ||
                 target_state == MissionState::DEBRIS_OBSTRUCTION_REACTION ||
                 target_state == MissionState::EMERGENCY;

@@ -28,11 +28,7 @@ enum class MissionState
   LANDING,                      ///< Descending to ground
   MANUAL_CONTROL,               ///< External manual control mode
   WILDFIRE_REACTION,            ///< Respond to fire accordingly
-<<<<<<< Updated upstream
   ORBIT_INCIDENT,                      ///< Hovers around a focal point to keep an eye on an incident
-=======
-  OBSERVE,                      ///< Hovers around a focal point to keep an eye on an incident
->>>>>>> Stashed changes
   STRANDED_HIKER_REACTION,      ///< Respond to hiker accordingly
   DEBRIS_OBSTRUCTION_REACTION,  ///< Respond to debris accordingly
   EMERGENCY                     ///< Emergency state requiring immediate attention
