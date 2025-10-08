@@ -5,7 +5,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Find dependencies
+# --- Dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
@@ -24,7 +24,7 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(grid_map_ros REQUIRED)
 find_package(grid_map_msgs REQUIRED)
 
-# Include directories
+# --- Public headers in 'include/'
 include_directories(include)
 
 # Create separate libraries for mission planning components
@@ -158,7 +158,7 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 
-# Install Python launch files
+# If you specifically need this as an executable launch script:
 install(
   PROGRAMS
     launch/rs1_drone_spawner.py

@@ -1,5 +1,10 @@
 #include "mission_node.h"
-
+#include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <sstream>
+#include <iomanip>
+#include <ctime>
 namespace drone_swarm
 {
 
@@ -19,9 +24,17 @@ namespace drone_swarm
     state_machine_ = std::make_unique<StateMachine>();
     path_planner_ = std::make_unique<PathPlanner>();
     mission_executor_ = std::make_unique<MissionExecutor>();
+    incident_counter_ = 0;
 
     // Set drone identifier from namespace
     drone_id_ = drone_namespace_;
+
+    drone_numeric_id_ = 1;
+    auto pos = drone_id_.find_last_not_of("0123456789");
+    if (pos != std::string::npos && pos + 1 < drone_id_.size()) {
+      try { drone_numeric_id_ = std::stoi(drone_id_.substr(pos + 1)); } catch (...) {}
+    }
+
 
     // Load waypoints from YAML parameters
     loadWaypointsFromParams();
@@ -42,16 +55,24 @@ namespace drone_swarm
       "/" + drone_namespace_ + "/waypoint_command", 10,
       std::bind(&MissionPlannerNode::waypointCallback, this, std::placeholders::_1));
 
+    // Subscribe to perception scenario detection topic
+    scenario_sub_ = this->create_subscription<std_msgs::msg::String>(
+        "/" + drone_id_ + "/scenario_detection", 10,
+        std::bind(&MissionPlannerNode::scenarioDetectionCallback, this, std::placeholders::_1));
+
     // Create publishers  
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
       "/" + drone_namespace_ + "/cmd_vel", 10);
-      
+
     target_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
       "/" + drone_namespace_ + "/target_pose", 10);
 
     mission_state_pub_ = this->create_publisher<std_msgs::msg::String>(
       "/" + drone_namespace_ + "/mission_state", 10);
 
+    incident_pub_ = this->create_publisher<std_msgs::msg::String>(
+      "/" + drone_namespace_ + "/incident", 10);
+      
     // Create services
     start_mission_service_ = this->create_service<std_srvs::srv::Trigger>(
       "/" + drone_namespace_ + "/start_mission",
@@ -297,69 +318,98 @@ void MissionPlannerNode::loadMissionParams() {
       case MissionState::TAKEOFF:
         // Monitor takeoff completion - this would normally check altitude
         // For now, simulate takeoff completion after a delay
-        {
-          static auto takeoff_start = std::chrono::steady_clock::now();
-          auto elapsed = std::chrono::steady_clock::now() - takeoff_start;
-          
-          if (elapsed > std::chrono::seconds(5)) { // 5 second takeoff simulation
-            RCLCPP_INFO(this->get_logger(), "Takeoff completed for %s - transitioning to waypoint navigation", drone_id_.c_str());
-            
-            // Check if we have waypoints to navigate
-            if (path_planner_->hasNextWaypoint()) {
-              state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
-            } else {
-              state_machine_->setState(MissionState::HOVERING);
-              RCLCPP_INFO(this->get_logger(), "No waypoints available - transitioning to HOVERING");
-            }
-            takeoff_start = std::chrono::steady_clock::now(); // Reset for next time
-          }
-        }
+        takeoff();
         break;
         
       case MissionState::WAYPOINT_NAVIGATION:
-        
         // Check if current waypoint is reached
-        if (isWaypointReached()) {
-          if (path_planner_->hasNextWaypoint()) {
-            RCLCPP_INFO(this->get_logger(), "Waypoint reached - moving to next waypoint");
-          } else {
-            RCLCPP_INFO(this->get_logger(), "All waypoints completed - transitioning to HOVERING");
-            state_machine_->setState(MissionState::HOVERING);
-          }
-        }
+        waypointNavigation();
         break;
         
       case MissionState::HOVERING:
         // Maintain position - could wait for new waypoints or manual commands
-        RCLCPP_DEBUG(this->get_logger(), "Hovering at current position");
+        hovering();
         break;
         
       case MissionState::LANDING:
         // Monitor landing completion
-        {
-          static auto landing_start = std::chrono::steady_clock::now();
-          auto elapsed = std::chrono::steady_clock::now() - landing_start;
-          
-          if (elapsed > std::chrono::seconds(8)) { // 8 second landing simulation
-            RCLCPP_INFO(this->get_logger(), "Landing completed for %s - transitioning to IDLE", drone_id_.c_str());
-            state_machine_->setState(MissionState::IDLE);
-            path_planner_->reset(); // Reset waypoints for next mission
-            landing_start = std::chrono::steady_clock::now(); // Reset for next time
-          }
-        }
+        landing();
         break;
         
       case MissionState::MANUAL_CONTROL:
         // External control - monitor for return to autonomous mode
-        RCLCPP_DEBUG(this->get_logger(), "In manual control mode");
+        manualControl();
         break;
         
       case MissionState::EMERGENCY:
         // Emergency handling - immediate landing
-        RCLCPP_WARN(this->get_logger(), "Emergency state active - initiating emergency landing");
-        state_machine_->setState(MissionState::LANDING);
+        emergency();
+        break;
+
+      case MissionState::WILDFIRE_REACTION:
+        wildFireReaction();
         break;
     }
+  }
+
+  void MissionPlannerNode::takeoff() {
+    static auto takeoff_start = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::steady_clock::now() - takeoff_start;
+    
+    if (elapsed > std::chrono::seconds(5)) { // 5 second takeoff simulation
+      RCLCPP_INFO(this->get_logger(), "Takeoff completed for %s - transitioning to waypoint navigation", drone_id_.c_str());
+      
+      // Check if we have waypoints to navigate
+      if (path_planner_->hasNextWaypoint()) {
+        state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
+      } else {
+        state_machine_->setState(MissionState::HOVERING);
+        RCLCPP_INFO(this->get_logger(), "No waypoints available - transitioning to HOVERING");
+      }
+      takeoff_start = std::chrono::steady_clock::now(); // Reset for next time
+    }   
+  }
+
+  void MissionPlannerNode::waypointNavigation() {
+    if (isWaypointReached()) {
+      if (path_planner_->hasNextWaypoint()) {
+        RCLCPP_INFO(this->get_logger(), "Waypoint reached - moving to next waypoint");
+      } else {
+        RCLCPP_INFO(this->get_logger(), "All waypoints completed - transitioning to HOVERING");
+        state_machine_->setState(MissionState::HOVERING);
+      }
+    }
+  }
+
+  void MissionPlannerNode::landing() {
+    static auto landing_start = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::steady_clock::now() - landing_start;
+    
+    if (elapsed > std::chrono::seconds(8)) { // 8 second landing simulation
+      RCLCPP_INFO(this->get_logger(), "Landing completed for %s - transitioning to IDLE", drone_id_.c_str());
+      state_machine_->setState(MissionState::IDLE);
+      path_planner_->reset(); // Reset waypoints for next mission
+      landing_start = std::chrono::steady_clock::now(); // Reset for next time
+    }
+  }
+
+  void MissionPlannerNode::hovering() {
+    RCLCPP_DEBUG(this->get_logger(), "Hovering at current position");
+  }
+
+  void MissionPlannerNode::manualControl() {
+    RCLCPP_DEBUG(this->get_logger(), "In manual control mode");
+  }
+
+  void MissionPlannerNode::emergency() {
+    RCLCPP_WARN(this->get_logger(), "Emergency state active - initiating emergency landing");
+    state_machine_->setState(MissionState::LANDING);
+  }
+
+  void MissionPlannerNode::wildFireReaction() {
+    // Send info to gui
+    // Send info to common topic
+    // observe
   }
 
   void MissionPlannerNode::publishMissionCommand() {
@@ -449,6 +499,236 @@ void MissionPlannerNode::loadMissionParams() {
     else if (state_machine_->getCurrentState() == MissionState::HOVERING) {
       RCLCPP_INFO(this->get_logger(), "Switching to waypoint navigation mode");
       state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
+    }
+  }
+
+  // ---------- tiny string/parse helpers (local-only) ----------
+  static inline std::string trimCopy(std::string s) {
+    auto notSpace = [](unsigned char c){ return !std::isspace(c); };
+    s.erase(s.begin(), std::find_if(s.begin(), s.end(), notSpace));
+    s.erase(std::find_if(s.rbegin(), s.rend(), notSpace).base(), s.end());
+    return s;
+  }
+
+  static inline std::vector<std::string> splitCSV(const std::string& s) {
+    std::vector<std::string> out;
+    std::string cur;
+    for (char c : s) {
+      if (c == ',') { out.push_back(cur); cur.clear(); }
+      else { cur.push_back(c); }
+    }
+    out.push_back(cur);
+    return out;
+  }
+
+  static inline bool parseDouble(const std::string& s, double& out) {
+    try {
+      size_t idx = 0;
+      out = std::stod(s, &idx);
+      return idx == s.size() && std::isfinite(out);
+    } catch (...) { return false; }
+  }
+
+  static inline bool parseRespondFlag(const std::string& token, bool& out_flag) {
+    // Accept: respond:1|0|true|false|yes|no (case-insensitive)
+    auto pos = token.find(':');
+    if (pos == std::string::npos) return false;
+    auto key = trimCopy(token.substr(0, pos));
+    auto val = trimCopy(token.substr(pos + 1));
+    std::string v = val;
+    std::transform(v.begin(), v.end(), v.begin(), ::tolower);
+    if (key != "respond") return false;
+    if (v == "1" || v == "true" || v == "yes") { out_flag = true;  return true; }
+    if (v == "0" || v == "false"|| v == "no")  { out_flag = false; return true; }
+    return false;
+  }
+
+  // ---------- mapper ----------
+  Scenario MissionPlannerNode::scenarioFromString(const std::string& s) {
+    // Exact matches published by perception
+    if (s == "STRANDED_HIKER")     return Scenario::STRANDED_HIKER;
+    if (s == "WILDFIRE")           return Scenario::WILDFIRE;
+    if (s == "DEBRIS_OBSTRUCTION") return Scenario::DEBRIS_OBSTRUCTION;
+
+    return Scenario::UNKNOWN;
+  }
+
+  MissionState MissionPlannerNode::targetStateForScenario(Scenario s) {
+    switch (s) {
+      case Scenario::STRANDED_HIKER:
+        // Navigate to the reported location to assist / inspect
+        return MissionState::WAYPOINT_NAVIGATION;
+      case Scenario::WILDFIRE:
+        // Hold position and observe / report
+        return MissionState::HOVERING;
+      case Scenario::DEBRIS_OBSTRUCTION:
+        // Navigate to inspect / clear obstruction
+        return MissionState::WAYPOINT_NAVIGATION;
+      case Scenario::UNKNOWN:
+      default:
+        // Unknown scenarios: remain idle / do not autonomously act
+        return MissionState::IDLE;
+    }
+  }
+
+  // ---------- parser ----------
+  std::optional<ScenarioEvent> MissionPlannerNode::parseScenarioDetection(const std_msgs::msg::String& msg) {
+    // Expected: "SCENARIO_NAME,x,y,z,heading,respond:1"
+    const std::string data = trimCopy(msg.data);
+    auto tokens = splitCSV(data);
+    for (auto& t : tokens) t = trimCopy(t);
+
+    // Shape check
+    if (tokens.size() < 6) {
+      RCLCPP_WARN(this->get_logger(),
+                  "Scenario parse failed (fields=%zu < 6): '%s'", tokens.size(), data.c_str());
+      return std::nullopt;
+    }
+
+    // 1) Scenario type
+    const std::string scenario_name = tokens[0];
+    Scenario scenario = scenarioFromString(scenario_name);
+    if (scenario == Scenario::UNKNOWN) {
+      RCLCPP_WARN(this->get_logger(),
+                  "Unknown scenario name '%s' in message '%s'", scenario_name.c_str(), data.c_str());
+      return std::nullopt;
+    }
+
+    // 2–4) Target position x,y,z
+    double x{}, y{}, z{};
+    if (!parseDouble(tokens[1], x) ||
+        !parseDouble(tokens[2], y) ||
+        !parseDouble(tokens[3], z)) {
+      RCLCPP_WARN(this->get_logger(), "Scenario position parse failed in '%s'", data.c_str());
+      return std::nullopt;
+    }
+
+    // 5) Heading (radians)
+    double heading{};
+    if (!parseDouble(tokens[4], heading)) {
+      RCLCPP_WARN(this->get_logger(), "Scenario heading parse failed in '%s'", data.c_str());
+      return std::nullopt;
+    }
+
+    // 6) respond flag
+    bool can_respond = false;
+    if (!parseRespondFlag(tokens[5], can_respond)) {
+      RCLCPP_WARN(this->get_logger(), "Scenario respond flag parse failed in '%s'", data.c_str());
+      return std::nullopt;
+    }
+
+    ScenarioEvent ev;
+    ev.type = scenario;
+    ev.target.x = x; ev.target.y = y; ev.target.z = z;
+    ev.heading = heading;            // radians, as published
+    ev.can_respond = can_respond;
+    ev.stamp = this->now();          // when we received it
+    ev.raw = data;
+
+    return ev;
+  }
+
+  // ---------- subscriber callback ----------
+  void MissionPlannerNode::scenarioDetectionCallback(const std_msgs::msg::String::SharedPtr msg) {
+    auto ev = parseScenarioDetection(*msg);
+    if (!ev) {
+      return;
+    }
+
+    alertIncidentGui(ev);
+
+    MissionState desired = targetStateForScenario(ev->type);
+
+    // Transition to the next state if possible
+    if (state_machine_->canTransition(desired)) {
+      state_machine_->setState(desired);
+    }
+    
+    // Publish the new state (you already do this in your timer, but it’s helpful to publish immediately, too)
+    std_msgs::msg::String state_msg;
+    state_msg.data = state_machine_->getStateString();
+    mission_state_pub_->publish(state_msg);
+
+    // For now: just log the decoded event. Routing/policy can be added later.
+    const char* name = evTypeToString(ev->type);
+
+    RCLCPP_INFO(this->get_logger(),
+                "Decoded scenario '%s' at [%.2f, %.2f, %.2f], heading=%.3f rad, can_respond=%s",
+                name, ev->target.x, ev->target.y, ev->target.z, ev->heading,
+                ev->can_respond ? "true" : "false");
+  }
+
+  // --- Minimal CSV helpers ---
+  static inline std::string csv_escape(std::string s) {
+    if (s.find_first_of(",\"\n") != std::string::npos) {
+      for (size_t p = 0; (p = s.find('"', p)) != std::string::npos; p += 2) s.insert(p, 1, '"');
+      return "\"" + s + "\"";
+    }
+    return s;
+  }
+
+  // Build exactly: drone_id,incident_id,title,severity,iso_time,x,y,z,description
+  static inline std::string make_incident_csv(
+      int drone_id, const std::string& incident_id,
+      const std::string& title, int severity,
+      const std::string& iso_time,
+      double x, double y, double z,
+      const std::string& description) {
+
+    std::ostringstream ss;
+    ss << std::fixed << std::setprecision(1);
+    ss << drone_id << ","
+      << incident_id << ","
+      << csv_escape(title) << ","
+      << std::max(1, std::min(3, severity)) << ","
+      << iso_time << ","
+      << x << "," << y << "," << z << ","
+      << csv_escape(description);
+    return ss.str();
+  }
+
+  void MissionPlannerNode::alertIncidentGui(const std::optional<ScenarioEvent>& ev) {
+    if (!ev) return;
+    const ScenarioEvent& e = *ev;
+
+    // Make ISO8601 (simple, thread-safe)
+    auto to_iso_utc = [&](const rclcpp::Time& t) {
+      using namespace std::chrono;
+      auto ns = nanoseconds(t.nanoseconds());
+      auto tp = time_point<std::chrono::system_clock>(duration_cast<std::chrono::system_clock::duration>(ns));
+      std::time_t tt = std::chrono::system_clock::to_time_t(tp);
+      char buf[32]{0};
+  #if defined(_WIN32)
+      std::tm g{}; gmtime_s(&g, &tt);
+      std::strftime(buf, sizeof(buf), "%FT%TZ", &g);
+  #else
+      std::tm g{}; gmtime_r(&tt, &g);
+      std::strftime(buf, sizeof(buf), "%FT%TZ", &g);
+  #endif
+      return std::string(buf[0] ? buf : "1970-01-01T00:00:00Z");
+    };
+
+    const int drone_num = drone_numeric_id_;              // MUST be numeric (see fix below)
+    const std::string id = "INC-" + std::to_string(++incident_counter_);
+    const std::string title = evTypeToString(e.type);     // see fix below
+    const int severity = 1;                                // keep simple for now
+    const std::string iso = to_iso_utc(e.stamp);
+
+    std_msgs::msg::String msg;
+    msg.data = make_incident_csv(
+        drone_num, id, title, severity, iso,
+        e.target.x, e.target.y, e.target.z,
+        ""  // description (optional)
+    );
+    if (incident_pub_) incident_pub_->publish(msg);
+  }
+
+  const char* MissionPlannerNode::evTypeToString(Scenario s) const {
+    switch (s) {
+      case Scenario::STRANDED_HIKER:     return "STRANDED_HIKER";
+      case Scenario::WILDFIRE:           return "WILDFIRE";
+      case Scenario::DEBRIS_OBSTRUCTION: return "DEBRIS_OBSTRUCTION";
+      default:                           return "UNKNOWN";
     }
   }
 

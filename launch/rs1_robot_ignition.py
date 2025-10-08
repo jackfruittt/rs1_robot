@@ -35,7 +35,7 @@ def generate_launch_description():
 
     world_launch_arg = DeclareLaunchArgument(
         'world',
-        default_value='world_1.sdf',
+        default_value='mountain_forest.sdf',
         description='Which world to load'
     )
     ld.add_action(world_launch_arg)
