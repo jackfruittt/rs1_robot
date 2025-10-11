@@ -1,4 +1,5 @@
 #include "mission/state_machine.h"
+#include "rclcpp/rclcpp.hpp"  
 
 namespace drone_swarm
 {
@@ -11,8 +12,14 @@ namespace drone_swarm
   void StateMachine::setState(MissionState new_state) {
     // Update state only if it's different, reset entry time for new state
     if (current_state_ != new_state) {
+      std::string old_state = getStateString();          // capture before change
       current_state_ = new_state;
       state_entry_time_ = std::chrono::steady_clock::now();
+      std::string new_state_str = getStateString();     // after change
+
+      RCLCPP_DEBUG(rclcpp::get_logger("StateMachine"),
+                   "state switched from %s to %s",
+                   old_state.c_str(), new_state_str.c_str());
     }
   }
 

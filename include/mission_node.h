@@ -2,6 +2,7 @@
  * @file mission_node.h
  * @brief Mission planning and coordination node for autonomous drone operations
  * @author Jackson Russell
+ * @author Matthew Chua
  * ADD OTHER AUTHORS ADD HERE AND BELOW
  * @date Aug-2025
  */
@@ -13,6 +14,18 @@
 #include <string>
 #include <vector>
 #include <chrono>
+#include <algorithm>
+#include <cctype>
+#include <cmath>
+#include <sstream>
+#include <iomanip>
+#include <ctime>
+#include <regex>   
+#include <set>     
+#include <mutex>   
+#include <unordered_map>
+#include <optional>
+#include <limits>
 
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
@@ -20,7 +33,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_srvs/srv/trigger.hpp"
-
+#include <std_msgs/msg/empty.hpp>
 
 #include "mission/state_machine.h"
 #include "mission/path_planner.h"
@@ -35,6 +48,31 @@ enum class Scenario {
   STRANDED_HIKER,
   WILDFIRE,
   DEBRIS_OBSTRUCTION
+};
+
+enum class ReactionPhase { 
+  NONE, 
+  INIT, 
+  COLLECT_INFO, 
+  ASSIGN_PEER, 
+  SELF_ORBIT, 
+  COMPLETE 
+};
+
+enum class FetchRtPhase { 
+  NONE, 
+  TO_DEPOT, 
+  LANDING, 
+  WAITING, 
+  RE_TAKEOFF 
+};
+
+// Info known about a peer (extensible)
+struct PeerInfo {
+  double battery{0.0};
+  MissionState state{MissionState::IDLE};
+  geometry_msgs::msg::PoseStamped pose{};
+  rclcpp::Time stamp{};
 };
 
 // Event decoded from the CSV payload
@@ -151,6 +189,7 @@ private:
 
   void scenarioDetectionCallback(const std_msgs::msg::String::SharedPtr msg);
 
+  // Missions
   void takeoff(void);
   void waypointNavigation(void);
   void hovering(void);
@@ -158,9 +197,28 @@ private:
   void manualControl(void);
   void emergency(void); 
   void wildFireReaction(void);
+  void debrisReaction(void);
+  void strandedHikerReaction(void);
+  void orbitIncident(void);
 
   void alertIncidentGui(const std::optional<ScenarioEvent>& ev);
   const char* evTypeToString(Scenario s) const ;
+
+  void discoverPeerDrones(void);                  // scans get_topic_names_and_types(), extracts numeric ids, adds/removes peers
+  void createPeerSubscriptionForId(int id);       // create odom subscription + cached assignment publisher for drone id
+  void removePeerSubscriptionForId(int id);       // tear down subscription/publisher and cached state
+  void infoRequestPingCallback(const std_msgs::msg::Empty::SharedPtr msg);  // Will send a csv of required drone information back to the management drone
+  std::string buildInfoManifestCsv(void);         // Helper for infoRequestPingCallback
+  int findClosestPeerToOrigin(void) const;
+  void assignmentCallback(const std_msgs::msg::String::SharedPtr msg);
+  void infoManifestCallback(int peer_id, const std_msgs::msg::String::SharedPtr& msg);
+  static bool parseKeyVal(const std::string& tok, std::string& key, std::string& val);
+  static MissionState stateFromString(const std::string& s);
+
+  bool in_fetch_rt_{false};
+  bool fetch_landed_{false};
+  rclcpp::Time fetch_land_stamp_;
+  geometry_msgs::msg::Point fetch_fire_target_{};
 
   // Parser: turns CSV string into a typed ScenarioEvent
   std::optional<ScenarioEvent> parseScenarioDetection(const std_msgs::msg::String& msg);
@@ -169,33 +227,54 @@ private:
   static Scenario scenarioFromString(const std::string& s);
 
   // Determine target mission state for a detected scenario
-  MissionState targetStateForScenario(Scenario s);
-
-  // ROS 2 communication interfaces
+  MissionState targetStateForScenario(Scenario s);  
+  
+  //--- ROS 2 communication interfaces ---///
+  // SUBS
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;              ///< Odometry subscription
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_sub_;        ///< Velocity subscription (unused)
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr waypoint_sub_;  ///< Waypoint command subscription
-  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr scenario_sub_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr scenario_sub_;            ///< For perception to send scenario
+  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr info_request_sub_;         ///< For management drones to contact other drones
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr assignment_subs_;         ///< Allows management drones to set the state of other drones
+  std::unordered_map<int, rclcpp::Subscription<std_msgs::msg::String>::SharedPtr> info_manifest_subs_;
   
+  // PUBS
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;            ///< Velocity command publisher
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr target_pose_pub_;  ///< Target pose publisher
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr mission_state_pub_;          ///< Mission state publisher
-  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr incident_pub_;               ///< Incident publisher
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr incident_pub_;               ///< Incident publisher (GUI)
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr info_manifest_pub_;          ///< Info manifest publisher for updating management drones
+  rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr info_request_pub_;            ///< Info request for management drones to ping
+  std::unordered_map<int, rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr> info_request_pubs_;
   
+  // SRV
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_mission_service_;       ///< Start mission service
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_mission_service_;        ///< Stop mission service
   
+  // TIM
   rclcpp::TimerBase::SharedPtr mission_timer_;                                     ///< Periodic mission timer
 
   // Mission management components
-  std::unique_ptr<StateMachine> state_machine_;      ///< Mission state machine
-  std::unique_ptr<PathPlanner> path_planner_;        ///< Waypoint path planner
+  std::unique_ptr<StateMachine> state_machine_;       ///< Mission state machine
+  std::unique_ptr<PathPlanner> path_planner_;         ///< Waypoint path planner
   std::unique_ptr<MissionExecutor> mission_executor_; ///< Advanced mission executor (placeholder)
 
   // Current state variables
   geometry_msgs::msg::PoseStamped current_pose_;  ///< Current drone pose from odometry
   geometry_msgs::msg::Twist current_velocity_;    ///< Current velocity (currently unused)
+
+  // Variables for drone management and collaboration
+  mutable std::mutex peers_mutex_;
+  std::unordered_map<int, rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr> peer_odom_subs_;
+  std::unordered_map<int, geometry_msgs::msg::PoseStamped> peer_poses_;
+  std::unordered_map<int, rclcpp::Publisher<std_msgs::msg::String>::SharedPtr> assignment_pubs_;
+  std::unordered_map<int, PeerInfo> peer_info_;
+  rclcpp::TimerBase::SharedPtr discovery_timer_;
+  mutable std::mutex incident_mutex_;
+  std::optional<ScenarioEvent> active_incident_event_;
   
+    
   // Configuration parameters
   std::string drone_namespace_;   ///< ROS namespace for this drone
   std::string drone_id_;          ///< Unique drone identifier
@@ -203,6 +282,15 @@ private:
   double waypoint_tolerance_;     ///< Waypoint arrival tolerance in metres
   int incident_counter_;
   int drone_numeric_id_;
+
+  ReactionPhase wildfire_phase_{ReactionPhase::NONE};
+  rclcpp::Time   wildfire_phase_start_;
+  std::optional<int> assigned_peer_id_;
+  std::chrono::steady_clock::time_point fetch_land_steady_{};
+
+  double battery_level_{0.8};                 // our own (stubbed via param)
+  int    collect_window_ms_{400};             // reply window
+  geometry_msgs::msg::Point depot_xyz_{};     // retardant depot (defaults to 0,0,2)   
 };
 
 }  // namespace drone_swarm

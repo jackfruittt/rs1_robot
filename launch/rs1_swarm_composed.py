@@ -424,7 +424,7 @@ def generate_launch_description():
     # Perception launch argument
     use_perception_launch_arg = DeclareLaunchArgument(
         'use_perception',
-        default_value='false',
+        default_value='true',
         description='Flag to enable perception nodes for AprilTag detection'
     )
     ld.add_action(use_perception_launch_arg)
