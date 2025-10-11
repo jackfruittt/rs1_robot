@@ -2,6 +2,7 @@
  * @file mission_state.h
  * @brief Mission state enumeration for drone swarm mission management
  * @author Jackson Russell
+ * @author Matthew Chua
  * OTHER AUTHORS ADD HERE AND BELOW
  * @date August-2025
  */
@@ -28,7 +29,7 @@ enum class MissionState
   LANDING,                      ///< Descending to ground
   MANUAL_CONTROL,               ///< External manual control mode
   WILDFIRE_REACTION,            ///< Respond to fire accordingly
-  ORBIT_INCIDENT,                      ///< Hovers around a focal point to keep an eye on an incident
+  ORBIT_INCIDENT,               ///< Hovers around a focal point to keep an eye on an incident
   STRANDED_HIKER_REACTION,      ///< Respond to hiker accordingly
   DEBRIS_OBSTRUCTION_REACTION,  ///< Respond to debris accordingly
   EMERGENCY                     ///< Emergency state requiring immediate attention
