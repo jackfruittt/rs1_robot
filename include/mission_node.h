@@ -18,13 +18,16 @@
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/twist.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "nav_msgs/msg/path.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_srvs/srv/trigger.hpp"
 
-
 #include "mission/state_machine.h"
 #include "mission/path_planner.h"
-#include "mission/mission_executor.h"
+#include "mission/mission_state.h"
+#include "mission/mission_executor.h" 
+#include "theta_star_path_planner.h"
 
 namespace drone_swarm
 {
@@ -65,6 +68,12 @@ private:
    * @param msg Waypoint pose command for navigation
    */
   void waypointCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
+  
+  /**
+   * @brief Process LiDAR scan updates for A* path planning
+   * @param msg LiDAR scan data for obstacle detection
+   */
+  void lidarCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
   
   /**
    * @brief Main mission timer callback for periodic execution
@@ -134,10 +143,12 @@ private:
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;              ///< Odometry subscription
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_sub_;        ///< Velocity subscription (unused)
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr waypoint_sub_;  ///< Waypoint command subscription
+  rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_sub_;         ///< LiDAR subscription for A* planning
   
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;            ///< Velocity command publisher
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr target_pose_pub_;  ///< Target pose publisher
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr mission_state_pub_;          ///< Mission state publisher
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;                     ///< A* path visualization publisher
   
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_mission_service_;       ///< Start mission service
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_mission_service_;        ///< Stop mission service
@@ -148,6 +159,7 @@ private:
   std::unique_ptr<StateMachine> state_machine_;      ///< Mission state machine
   std::unique_ptr<PathPlanner> path_planner_;        ///< Waypoint path planner
   std::unique_ptr<MissionExecutor> mission_executor_; ///< Advanced mission executor (placeholder)
+  std::unique_ptr<drone_navigation::ThetaStarPathPlanner> theta_star_planner_; ///< Theta* path planner for optimal obstacle-free pathfinding
 
   // Current state variables
   geometry_msgs::msg::PoseStamped current_pose_;  ///< Current drone pose from odometry
@@ -158,6 +170,13 @@ private:
   std::string drone_id_;          ///< Unique drone identifier
   double mission_update_rate_;    ///< Mission timer frequency in Hz
   double waypoint_tolerance_;     ///< Waypoint arrival tolerance in metres
+  bool use_astar_planning_;       ///< Enable A* path planning for obstacle avoidance
+  
+  // A* planning state
+  geometry_msgs::msg::PoseStamped pending_goal_;     ///< Goal waiting for A* path planning
+  bool has_pending_goal_;                            ///< Flag for goal waiting to be planned
+  nav_msgs::msg::Path current_astar_path_;           ///< Current A* planned path
+  size_t current_path_index_;                        ///< Index of current waypoint in A* path
 };
 
 }  // namespace drone_swarm

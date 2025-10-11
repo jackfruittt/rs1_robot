@@ -24,6 +24,13 @@ find_package(tf2_geometry_msgs REQUIRED)
 find_package(grid_map_ros REQUIRED)
 find_package(grid_map_msgs REQUIRED)
 
+# Find testing dependencies
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
 # Include directories
 include_directories(include)
 
@@ -83,6 +90,18 @@ ament_target_dependencies(mission_executor
   geometry_msgs
 )
 
+# Add Theta* path planner library
+add_library(theta_star_path_planner SHARED
+  src/theta_star_path_planner.cpp
+)
+
+ament_target_dependencies(theta_star_path_planner
+  rclcpp
+  sensor_msgs
+  nav_msgs
+  geometry_msgs
+)
+
 # Create mission planner component library
 add_library(mission_planner_component SHARED
   src/mission_node.cpp
@@ -93,6 +112,7 @@ target_link_libraries(mission_planner_component
   state_machine
   path_planner
   mission_executor
+  theta_star_path_planner
 )
 
 # Create enhanced drone controller component with mission planning
@@ -142,6 +162,7 @@ install(TARGETS
     state_machine
     path_planner
     mission_executor
+    theta_star_path_planner
     mission_planner_component
     drone_controller_enhanced_component
     DESTINATION lib/${PROJECT_NAME}
@@ -184,7 +205,7 @@ ament_export_dependencies(
     grid_map_ros
 )
 
-# NEW: Export mission planning components
+#Export mission planning components
 ament_export_targets(export_mission_components)
 install(TARGETS mission_planner_component
         drone_controller_enhanced_component
@@ -193,10 +214,23 @@ install(TARGETS mission_planner_component
         state_machine
         path_planner
         mission_executor
+        theta_star_path_planner
         EXPORT export_mission_components
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin
 )
+
+# Add tests
+if(BUILD_TESTING)
+  ament_add_gtest(test_theta_star_path_planner test/test_theta_star_path_planner.cpp)
+  target_link_libraries(test_theta_star_path_planner theta_star_path_planner)
+  ament_target_dependencies(test_theta_star_path_planner
+    rclcpp
+    sensor_msgs
+    nav_msgs
+    geometry_msgs
+  )
+endif()
 
 ament_package()

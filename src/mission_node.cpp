@@ -10,18 +10,30 @@ namespace drone_swarm
     this->declare_parameter("drone_namespace", std::string("rs1_drone"));
     this->declare_parameter<double>("mission_update_rate", 5.0);
     this->declare_parameter<double>("waypoint_tolerance", 0.5);
+    this->declare_parameter<bool>("use_astar_planning", false);
 
     drone_namespace_ = this->get_parameter("drone_namespace").as_string();
     mission_update_rate_ = this->get_parameter("mission_update_rate").as_double();
     waypoint_tolerance_ = this->get_parameter("waypoint_tolerance").as_double();
+    use_astar_planning_ = this->get_parameter("use_astar_planning").as_bool();
 
     // Initialise mission management components
     state_machine_ = std::make_unique<StateMachine>();
     path_planner_ = std::make_unique<PathPlanner>();
     mission_executor_ = std::make_unique<MissionExecutor>();
 
+    // Initialize Theta* path planner if enabled
+    if (use_astar_planning_) {
+      theta_star_planner_ = std::make_unique<drone_navigation::ThetaStarPathPlanner>();
+      RCLCPP_INFO(this->get_logger(), "Theta* path planning enabled for %s", drone_namespace_.c_str());
+    }
+
     // Set drone identifier from namespace
     drone_id_ = drone_namespace_;
+
+    // Initialize A* planning state
+    has_pending_goal_ = false;
+    current_path_index_ = 0;
 
     // Load waypoints from YAML parameters
     loadWaypointsFromParams();
@@ -42,6 +54,13 @@ namespace drone_swarm
       "/" + drone_namespace_ + "/waypoint_command", 10,
       std::bind(&MissionPlannerNode::waypointCallback, this, std::placeholders::_1));
 
+    // Subscribe to LiDAR if A* planning is enabled
+    if (use_astar_planning_) {
+      lidar_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
+        "/" + drone_namespace_ + "/lidar", 10,
+        std::bind(&MissionPlannerNode::lidarCallback, this, std::placeholders::_1));
+    }
+
     // Create publishers  
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
       "/" + drone_namespace_ + "/cmd_vel", 10);
@@ -51,6 +70,12 @@ namespace drone_swarm
 
     mission_state_pub_ = this->create_publisher<std_msgs::msg::String>(
       "/" + drone_namespace_ + "/mission_state", 10);
+
+    // Create path visualization publisher if A* is enabled
+    if (use_astar_planning_) {
+      path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
+        "/" + drone_namespace_ + "/planned_path", 10);
+    }
 
     // Create services
     start_mission_service_ = this->create_service<std_srvs::srv::Trigger>(
@@ -436,9 +461,16 @@ void MissionPlannerNode::loadMissionParams() {
     RCLCPP_INFO(this->get_logger(), "Received waypoint command for %s: [%.2f, %.2f, %.2f]", 
                 drone_id_.c_str(), msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
     
-    // Add waypoint to path planner
-    std::vector<geometry_msgs::msg::PoseStamped> new_waypoint = {*msg};
-    path_planner_->setWaypoints(new_waypoint);
+    if (use_astar_planning_) {
+      // Store goal for A* planning
+      pending_goal_ = *msg;
+      has_pending_goal_ = true;
+      RCLCPP_INFO(this->get_logger(), "Goal stored for A* planning");
+    } else {
+      // Use basic waypoint following
+      std::vector<geometry_msgs::msg::PoseStamped> new_waypoint = {*msg};
+      path_planner_->setWaypoints(new_waypoint);
+    }
     
     // If drone is idle, start mission automatically
     if (state_machine_->getCurrentState() == MissionState::IDLE) {
@@ -449,6 +481,43 @@ void MissionPlannerNode::loadMissionParams() {
     else if (state_machine_->getCurrentState() == MissionState::HOVERING) {
       RCLCPP_INFO(this->get_logger(), "Switching to waypoint navigation mode");
       state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
+    }
+  }
+
+  void MissionPlannerNode::lidarCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
+    if (!use_astar_planning_ || !theta_star_planner_) {
+      return;
+    }
+
+    // Update occupancy grid with current LiDAR data
+    theta_star_planner_->updateOccupancyGrid(msg, current_pose_.pose.position.x, current_pose_.pose.position.y);
+
+    // Plan path to pending goal if we have one
+    if (has_pending_goal_) {
+      auto waypoints = theta_star_planner_->planPath(
+        current_pose_.pose.position.x, current_pose_.pose.position.y,
+        pending_goal_.pose.position.x, pending_goal_.pose.position.y);
+
+      if (!waypoints.empty()) {
+        // Convert waypoints to ROS path and publish for visualization
+        current_astar_path_ = theta_star_planner_->waypointsToPath(waypoints, "map");
+        current_astar_path_.header.stamp = this->get_clock()->now();
+        path_pub_->publish(current_astar_path_);
+
+        // Convert to basic waypoint format for existing path planner
+        std::vector<geometry_msgs::msg::PoseStamped> ros_waypoints;
+        for (const auto& pose : current_astar_path_.poses) {
+          ros_waypoints.push_back(pose);
+        }
+        path_planner_->setWaypoints(ros_waypoints);
+        
+        current_path_index_ = 0;
+        has_pending_goal_ = false;
+
+        RCLCPP_INFO(this->get_logger(), "A* planned path with %lu waypoints", waypoints.size());
+      } else {
+        RCLCPP_WARN(this->get_logger(), "A* failed to find path to goal");
+      }
     }
   }
 

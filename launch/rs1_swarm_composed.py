@@ -77,6 +77,7 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
     use_sim_time = LaunchConfiguration('use_sim_time')
     use_composition = context.launch_configurations['use_composition']
     use_perception = context.launch_configurations['use_perception']
+    use_astar_planning = LaunchConfiguration('use_astar_planning')
     
     print(f"Spawning {num_drones} drones with composed controllers (composition: {use_composition}, perception: {use_perception})")
     
@@ -90,7 +91,7 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
     # Generate bridge config for multiple drones
     try:
         script_path = str(Path.home() / 'Software' / 'rs1_robot' / 'scripts' / 'generate_dynamic_bridge.py')
-        result = subprocess.run(['python3', script_path, str(num_drones), '-o', '/tmp/rs1_dynamic_bridge.yaml'], 
+        result = subprocess.run(['python3', script_path, str(num_drones)], 
                               capture_output=True, text=True, check=True)
         print(f"Bridge config generated for {num_drones} drones")
     except Exception as e:
@@ -100,11 +101,12 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
     nodes = []
     
     # Create bridge node
+    bridge_config_path = str(Path.home() / 'rs1_ws' / 'temp' / 'rs1_dynamic_bridge.yaml')
     gazebo_bridge = Node(
         package='ros_ign_bridge',
         executable='parameter_bridge',
         parameters=[{
-            'config_file': '/tmp/rs1_dynamic_bridge.yaml',
+            'config_file': bridge_config_path,
             'use_sim_time': use_sim_time
         }],
         output='screen'
@@ -124,6 +126,7 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
             'drone_namespace': drone_name,
             'mission_update_rate': 10.0,
             'waypoint_tolerance': 0.5,
+            'use_astar_planning': use_astar_planning,
             # Add the loaded waypoint parameters
             **waypoint_params,
         }
@@ -427,6 +430,14 @@ def generate_launch_description():
         description='Flag to enable perception nodes for AprilTag detection'
     )
     ld.add_action(use_perception_launch_arg)
+    
+    # A* planning launch argument
+    use_astar_planning_arg = DeclareLaunchArgument(
+        'use_astar_planning',
+        default_value='false',
+        description='Flag to enable A* path planning with obstacle avoidance'
+    )
+    ld.add_action(use_astar_planning_arg)
     
     # Gazebo launch arguments
     gazebo_arg = DeclareLaunchArgument(
