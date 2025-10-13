@@ -406,6 +406,41 @@ void MissionPlannerNode::loadMissionParams() {
     }
   }
 
+  std::vector<OrbitPoint> orbitTrajectory(float x, float y, float z,
+                                          float radius, int pointCount)
+  {
+    const int N = std::max(1, pointCount);
+    const float R = std::fabs(radius);
+
+    std::vector<OrbitPoint> pts;
+    pts.reserve(N);
+
+    if (R == 0.0f)
+    {
+      for (int i = 0; i < N; ++i)
+        pts.push_back({x, y, z, 0.0f});
+      return pts;
+    }
+
+    constexpr float PI = 3.14159265358979323846f;
+    const float step = 2.0f * PI / static_cast<float>(N);
+
+    for (int i = 0; i < N; ++i)
+    {
+      const float theta = step * static_cast<float>(i);
+
+      const float px = x + R * std::cos(theta);
+      const float py = y + R * std::sin(theta);
+
+      float yaw = std::atan2(y - py, x - px); // point back to center
+      yaw = normalizeAngle(yaw);
+
+      pts.push_back({px, py, z, yaw});
+    }
+
+    return pts;
+  }
+
   void MissionPlannerNode::takeoff() {
     static auto takeoff_start = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::steady_clock::now() - takeoff_start;
