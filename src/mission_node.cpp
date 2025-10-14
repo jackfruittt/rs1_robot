@@ -1,15 +1,16 @@
 #include "mission_node.h"
-
+#include <thread>
 
 namespace drone_swarm
 {
-
 
 // --- FORWARD DECLARATIONS for helper functions ---
 static inline std::string trimCopy(std::string s);
 static inline std::vector<std::string> splitCSV(const std::string& s);
 static inline bool parseDouble(const std::string& s, double& out);
 ScenarioData parseScenarioMessage(const std::string& message_data);
+static std::string missionStateToString(MissionState state);  // ADD THIS LINE
+
 // --- END FORWARD DECLARATIONS ---
 
   MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
@@ -98,9 +99,9 @@ ScenarioData parseScenarioMessage(const std::string& message_data);
       const std::vector<int>& drone_ids, int timeout_ms) {
     
     std::map<int, DroneInfo> results;
-    std::mutex response_mutex;
     auto reliable_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
 
+    // Separate self from peers
     std::vector<int> peers_to_ping;
     for (int id : drone_ids) {
       if (id == drone_numeric_id_) {
@@ -117,81 +118,104 @@ ScenarioData parseScenarioMessage(const std::string& message_data);
       return results;
     }
     
+    // Ensure peer wiring exists before pinging (idempotent & cheap)
+    for (int id : peers_to_ping) {
+      // Make sure we have the critical subscription on /rs1_drone_<id>/info_manifest
+      createPeerSubscriptionForId(id);
+    }
+
     RCLCPP_INFO(this->get_logger(), "Pinging %zu peers...", peers_to_ping.size());
     
-    // ✅ Use a shared atomic map that persistent callbacks can update
-    std::map<int, std::shared_ptr<DroneInfo>> shared_results;
-    for (int id : peers_to_ping) {
-      shared_results[id] = std::make_shared<DroneInfo>(results[id]);
+    // Record when we sent pings - only accept responses after this
+    auto ping_start_time = this->now();
+  
+
+    // Mark existing peer_info as stale so we only accept fresh responses
+    {
+      std::lock_guard<std::mutex> lock(peers_mutex_);
+      for (int id : peers_to_ping) {
+        auto it = peer_info_.find(id);
+        if (it != peer_info_.end()) {
+          it->second.stamp = rclcpp::Time(0);  // Mark as stale
+        }
+      }
     }
     
-    // ✅ Create lambda callbacks that update the shared results
-    std::map<int, rclcpp::Subscription<std_msgs::msg::String>::SharedPtr> temp_subs;
-    
-    for (int drone_id : peers_to_ping) {
-      std::string info_topic = "/rs1_drone_" + std::to_string(drone_id) + "/info_manifest";
-      auto info_sub = this->create_subscription<std_msgs::msg::String>(
-        info_topic, reliable_qos,
-        [this, drone_id, &shared_results, &response_mutex](const std_msgs::msg::String::SharedPtr msg) {
-          DroneInfo info = parseInfoManifest(msg->data);
-          if (info.valid) {
-            std::lock_guard<std::mutex> lock(response_mutex);
-            *shared_results[drone_id] = info;
-          }
-        });
-      temp_subs[drone_id] = info_sub;
-    }
-    
-    // ✅ Give subscriptions time to connect
-    rclcpp::sleep_for(std::chrono::milliseconds(200));
-    
-    // ✅ Send pings using persistent publishers (or create JIT)
+    // Send pings using persistent publishers
     {
       std::lock_guard<std::mutex> lock(peers_mutex_);
       for (int drone_id : peers_to_ping) {
         auto it = info_request_pubs_.find(drone_id);
         if (it == info_request_pubs_.end() || !it->second) {
-          // Create JIT publisher if missing
+          // Create JIT publisher if discovery hasn't run yet
           std::string topic = "/rs1_drone_" + std::to_string(drone_id) + "/info_request";
           info_request_pubs_[drone_id] = this->create_publisher<std_msgs::msg::Empty>(topic, reliable_qos);
+          RCLCPP_WARN(this->get_logger(), "Created JIT publisher for drone %d", drone_id);
         }
         info_request_pubs_[drone_id]->publish(std_msgs::msg::Empty());
       }
     }
     
-    // ✅ Wait passively - the container's executor will process callbacks
-    auto end_time = this->now() + rclcpp::Duration(std::chrono::milliseconds(timeout_ms));
+    // Wait for responses to arrive via persistent subscriptions
+    auto end_time = ping_start_time + rclcpp::Duration(std::chrono::milliseconds(timeout_ms));
+    
     while (this->now() < end_time) {
+      // Let any pending subscription callbacks run (unblocks the executor)
       bool all_received = true;
+      
       {
-        std::lock_guard<std::mutex> lock(response_mutex);
+        std::lock_guard<std::mutex> lock(peers_mutex_);
         for (int id : peers_to_ping) {
-          if (!shared_results[id]->valid) {
+          auto it = peer_info_.find(id);
+          
+          // Check if we have a fresh response (received after ping was sent)
+          if (it == peer_info_.end() || it->second.stamp <= ping_start_time) {
             all_received = false;
-            break;
+            continue;
+          }
+          
+          // We have fresh data - convert PeerInfo to DroneInfo
+          if (!results[id].valid) {  // Only convert once
+            DroneInfo info;
+            info.drone_id = id;
+            info.battery_level = it->second.battery;
+            info.mission_state = missionStateToString(it->second.state);
+            info.x = it->second.pose.pose.position.x;
+            info.y = it->second.pose.pose.position.y;
+            info.z = it->second.pose.pose.position.z;
+            info.timestamp = it->second.stamp;
+            info.valid = true;
+            results[id] = info;
           }
         }
       }
-      if (all_received) break;
-      rclcpp::sleep_for(std::chrono::milliseconds(50)); // Just wait, don't spin
+      
+      if (all_received) {
+        RCLCPP_INFO(this->get_logger(), "All responses received early!");
+        break;
+      }
+      
+      rclcpp::sleep_for(std::chrono::milliseconds(50));
     }
     
-    // ✅ Copy results back
-    {
-      std::lock_guard<std::mutex> lock(response_mutex);
-      for (int id : peers_to_ping) {
-        results[id] = *shared_results[id];
+    // Log results
+    int valid_count = 0;
+    for (const auto& [id, info] : results) {
+      if (info.valid) {
+        valid_count++;
+        RCLCPP_DEBUG(this->get_logger(), "Drone %d: Valid response (battery=%.0f%%, state=%s)", 
+                    id, info.battery_level * 100.0, info.mission_state.c_str());
+      } else {
+        RCLCPP_WARN(this->get_logger(), "Drone %d: No response received", id);
       }
     }
-    
-    int valid_count = 0;
-    for (const auto& [id, info] : results) if (info.valid) valid_count++;
     
     RCLCPP_INFO(this->get_logger(), "Ping complete: %d/%zu responses", 
                 valid_count, drone_ids.size());
     
     return results;
   }
+
 
   void MissionPlannerNode::missionTimerCallback() {
     executeMission();
@@ -362,9 +386,6 @@ ScenarioData parseScenarioMessage(const std::string& message_data);
     }
   }
 
-
-
-  // In mission_node.cpp
   void MissionPlannerNode::sendMissionToLowestDrone(const ScenarioData& scenario) {
     RCLCPP_INFO(this->get_logger(), "Coordinating response for %s", scenario.scenario_name.c_str());
     
@@ -447,18 +468,67 @@ ScenarioData parseScenarioMessage(const std::string& message_data);
     }
   }
 
-
-  bool MissionPlannerNode::canStateTransitionTo(MissionState current, MissionState target) {
-    switch (current) {
+  bool MissionPlannerNode::canStateTransitionTo(MissionState current_state, MissionState target_state) {
+    switch (current_state) {
       case MissionState::IDLE:
-        return target == MissionState::TAKEOFF || 
-              target == MissionState::MANUAL_CONTROL ||
-              target == MissionState::WAYPOINT_NAVIGATION; // <-- ADD THIS
-      // ... other cases
-      default:
-        return true;
+        return  target_state == MissionState::TAKEOFF || 
+                target_state == MissionState::MANUAL_CONTROL;
+        // If you want your newer behavior, also allow:
+        // || target_state == MissionState::WAYPOINT_NAVIGATION;
+
+      case MissionState::TAKEOFF:
+        return  target_state == MissionState::WAYPOINT_NAVIGATION || 
+                target_state == MissionState::HOVERING ||
+                target_state == MissionState::EMERGENCY;
+
+      case MissionState::WAYPOINT_NAVIGATION:
+        return  target_state == MissionState::HOVERING || 
+                target_state == MissionState::LANDING ||
+                target_state == MissionState::EMERGENCY || 
+                target_state == MissionState::WILDFIRE_REACTION ||
+                target_state == MissionState::ORBIT_INCIDENT || 
+                target_state == MissionState::STRANDED_HIKER_REACTION ||
+                target_state == MissionState::DEBRIS_OBSTRUCTION_REACTION;
+
+      case MissionState::HOVERING:
+        return  target_state == MissionState::WAYPOINT_NAVIGATION || 
+                target_state == MissionState::LANDING ||
+                target_state == MissionState::EMERGENCY || 
+                target_state == MissionState::WILDFIRE_REACTION ||
+                target_state == MissionState::ORBIT_INCIDENT || 
+                target_state == MissionState::STRANDED_HIKER_REACTION ||
+                target_state == MissionState::DEBRIS_OBSTRUCTION_REACTION;
+
+      case MissionState::LANDING:
+        return  target_state == MissionState::IDLE || 
+                target_state == MissionState::EMERGENCY;
+
+      case MissionState::MANUAL_CONTROL:
+        return  target_state == MissionState::IDLE || 
+                target_state == MissionState::EMERGENCY;
+
+      case MissionState::EMERGENCY:
+        return  target_state == MissionState::IDLE;
+
+      case MissionState::ORBIT_INCIDENT:
+      case MissionState::STRANDED_HIKER_REACTION:
+      case MissionState::DEBRIS_OBSTRUCTION_REACTION:
+      case MissionState::WILDFIRE_REACTION:
+        return  target_state == MissionState::IDLE ||
+                target_state == MissionState::TAKEOFF ||
+                target_state == MissionState::WAYPOINT_NAVIGATION ||
+                target_state == MissionState::HOVERING ||
+                target_state == MissionState::LANDING ||
+                target_state == MissionState::MANUAL_CONTROL ||
+                target_state == MissionState::WILDFIRE_REACTION ||
+                target_state == MissionState::ORBIT_INCIDENT ||
+                target_state == MissionState::STRANDED_HIKER_REACTION ||
+                target_state == MissionState::DEBRIS_OBSTRUCTION_REACTION ||
+                target_state == MissionState::EMERGENCY;
     }
+    return false;
   }
+
 
   void MissionPlannerNode::loadWaypointsFromParams() {
     RCLCPP_INFO(this->get_logger(), "Loading waypoints from flattened parameters for %s", drone_id_.c_str());
@@ -1055,28 +1125,25 @@ void MissionPlannerNode::loadMissionParams() {
   void MissionPlannerNode::scenarioDetectionCallback(const std_msgs::msg::String::SharedPtr msg) {
     // Parse the incoming message
     ScenarioData scenario = parseScenarioMessage(msg->data);
-    
-    // Check if parsing was successful
     if (!scenario.valid) {
       RCLCPP_WARN(this->get_logger(), "Received invalid scenario message");
       return;
     }
-    
-    RCLCPP_INFO(this->get_logger(), 
+
+    RCLCPP_INFO(this->get_logger(),
                 "Scenario detected: %s at [%.2f, %.2f, %.2f]",
                 scenario.scenario_name.c_str(), scenario.x, scenario.y, scenario.z);
-    
-    // Handle based on scenario type
-    if (scenario.scenario_name == "STRANDED_HIKER") {
-      sendMissionToLowestDrone(scenario);
-    }
-    else if (scenario.scenario_name == "WILDFIRE") {
-      sendMissionToLowestDrone(scenario);
-    }
-    else if (scenario.scenario_name == "DEBRIS_OBSTRUCTION") {
-      RCLCPP_INFO(this->get_logger(), "Debris detected - notifying GUI only");
-      // Just alert, don't send mission
-    }
+
+    // Hand off the (potentially blocking) coordination work to a background thread
+    // so the container’s executor stays free to run subscription callbacks.
+    std::thread([this, scenario]() {
+      if (scenario.scenario_name == "STRANDED_HIKER" ||
+          scenario.scenario_name == "WILDFIRE") {
+        sendMissionToLowestDrone(scenario);
+      } else if (scenario.scenario_name == "DEBRIS_OBSTRUCTION") {
+        RCLCPP_INFO(this->get_logger(), "Debris detected - notifying GUI only");
+      }
+    }).detach();
   }
 
 
@@ -1119,8 +1186,13 @@ void MissionPlannerNode::loadMissionParams() {
                 "Selecting best responder for state: %s",
                 missionStateToString(required_state).c_str());
     
-    auto drone_data = pingDronesForInfo(all_drone_ids, 500);
+    auto drone_data = pingDronesForInfo(all_drone_ids, 5000);
+    // auto fut = std::async(std::launch::async, [this, &all_drone_ids](){
+    //   return pingDronesForInfo(all_drone_ids, 5000);
+    // });
     
+    // auto drone_data = fut.get(); 
+
     struct Candidate { int id; double distance; double battery; std::string state; };
     std::vector<Candidate> candidates;
     
@@ -1170,14 +1242,20 @@ void MissionPlannerNode::loadMissionParams() {
   }
 
   void MissionPlannerNode::createPeerSubscriptionForId(int peer_id) {
+    const std::string ns = "/rs1_drone_" + std::to_string(peer_id);
+
+    // If we already wired the critical subscription for this peer, we're done.
     {
       std::lock_guard<std::mutex> lock(peers_mutex_);
-      if (peer_odom_subs_.count(peer_id)) return;
+      if (info_manifest_subs_.count(peer_id)) {
+        return;
+      }
     }
 
-    const std::string ns = "/rs1_drone_" + std::to_string(peer_id);
-    auto reliable_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
+    // QoS (match peers): reliable + volatile, keep_last(10)
+    auto reliable_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable().durability_volatile();
 
+    // Create handles first (outside the lock)
     auto odom_sub = this->create_subscription<nav_msgs::msg::Odometry>(
         ns + "/odom", 10,
         [this, peer_id](const nav_msgs::msg::Odometry::SharedPtr msg) {
@@ -1186,22 +1264,37 @@ void MissionPlannerNode::loadMissionParams() {
           peer_poses_[peer_id].pose   = msg->pose.pose;
         });
 
-    auto assignment_pub = this->create_publisher<std_msgs::msg::String>(ns + "/mission_assignment", reliable_qos);
-    auto info_req_pub   = this->create_publisher<std_msgs::msg::Empty>(ns + "/info_request", reliable_qos);
-    auto info_sub       = this->create_subscription<std_msgs::msg::String>(
-        ns + "/info_manifest", reliable_qos,
-        [this, peer_id](const std_msgs::msg::String::SharedPtr msg) { infoManifestCallback(peer_id, msg); });
+    auto assignment_pub = this->create_publisher<std_msgs::msg::String>(
+        ns + "/mission_assignment", reliable_qos);
 
+    auto info_req_pub = this->create_publisher<std_msgs::msg::Empty>(
+        ns + "/info_request", reliable_qos);
+
+    auto info_sub = this->create_subscription<std_msgs::msg::String>(
+        ns + "/info_manifest", reliable_qos,
+        [this, peer_id](const std_msgs::msg::String::SharedPtr msg) {
+          infoManifestCallback(peer_id, msg);
+        });
+
+    // Atomically install all endpoints (single lock)
     {
       std::lock_guard<std::mutex> lock(peers_mutex_);
-      if (peer_odom_subs_.count(peer_id)) return;
-      peer_odom_subs_[peer_id] = std::move(odom_sub);
-      assignment_pubs_[peer_id] = std::move(assignment_pub);
-      info_request_pubs_[peer_id] = std::move(info_req_pub);
-      info_manifest_subs_[peer_id] = std::move(info_sub);
-    }
 
-    RCLCPP_INFO(this->get_logger(), "Discovered peer %d (topics configured with reliable QoS)", peer_id);
+      // Another thread may have finished wiring while we were creating handles.
+      if (!info_manifest_subs_.count(peer_id)) {
+        peer_odom_subs_[peer_id]     = std::move(odom_sub);
+        assignment_pubs_[peer_id]    = std::move(assignment_pub);
+        info_request_pubs_[peer_id]  = std::move(info_req_pub);
+        info_manifest_subs_[peer_id] = std::move(info_sub);
+
+        RCLCPP_INFO(this->get_logger(),
+          "Peer %d wired: SUB<- %s, PUB-> %s & %s",
+          peer_id,
+          (ns + "/info_manifest").c_str(),
+          (ns + "/mission_assignment").c_str(),
+          (ns + "/info_request").c_str());
+      }
+    }
   }
 
   // --- Minimal CSV helpers ---
@@ -1318,14 +1411,10 @@ void MissionPlannerNode::loadMissionParams() {
   }
 
   void MissionPlannerNode::infoRequestPingCallback(const std_msgs::msg::Empty::SharedPtr) {
-    RCLCPP_ERROR(this->get_logger(), "🔔🔔🔔 INFO REQUEST CALLBACK FIRED 🔔🔔🔔");
-
     std_msgs::msg::String out;
     out.data = buildInfoManifestCsv();
-    RCLCPP_ERROR(this->get_logger(), "📤 Publishing manifest: %s", out.data.c_str());
-
     info_manifest_pub_->publish(out);
-    RCLCPP_ERROR(this->get_logger(), "✅ Manifest published successfully");
+    RCLCPP_DEBUG(this->get_logger(), "Published info manifest in response to ping");
   }
   
   std::string MissionPlannerNode::buildInfoManifestCsv() {
@@ -1343,11 +1432,36 @@ void MissionPlannerNode::loadMissionParams() {
   }
 
   
+  // void MissionPlannerNode::infoManifestCallback(int peer_id, const std_msgs::msg::String::SharedPtr& msg) {
+  //   RCLCPP_INFO(this->get_logger(), "🔵 CB fired: peer=%d msg=%s", peer_id, msg->data.c_str());
+  //   // Expect: id:N,battery:0.80,state:STATE,x:..,y:..,z:..,t:..
+  //   auto toks = splitCSV(msg->data);
+  //   int id_from_msg = -1;
+  //   PeerInfo pi;
+  //   for (auto& t : toks) {
+  //     std::string k, v;
+  //     if (!parseKeyVal(trimCopy(t), k, v)) continue;
+  //     if (k == "id")        { try { id_from_msg = std::stoi(v); } catch (...) {} }
+  //     else if (k == "battery") { parseDouble(v, pi.battery); }
+  //     else if (k == "state")   { pi.state = stateFromString(v); }
+  //     else if (k == "x")       { pi.pose.pose.position.x = std::stod(v); }
+  //     else if (k == "y")       { pi.pose.pose.position.y = std::stod(v); }
+  //     else if (k == "z")       { pi.pose.pose.position.z = std::stod(v); }
+  //   }
+  //   pi.stamp = this->now();
+  //   if (id_from_msg > 0 && id_from_msg == peer_id) {
+  //     std::lock_guard<std::mutex> lock(peers_mutex_);
+  //     peer_info_[peer_id] = pi;
+  //   }
+  // }
+
   void MissionPlannerNode::infoManifestCallback(int peer_id, const std_msgs::msg::String::SharedPtr& msg) {
-    // Expect: id:N,battery:0.80,state:STATE,x:..,y:..,z:..,t:..
+    RCLCPP_INFO(this->get_logger(), "🔵 CB fired: peer=%d msg=%s", peer_id, msg->data.c_str());  // <— add
+
     auto toks = splitCSV(msg->data);
     int id_from_msg = -1;
     PeerInfo pi;
+
     for (auto& t : toks) {
       std::string k, v;
       if (!parseKeyVal(trimCopy(t), k, v)) continue;
@@ -1358,10 +1472,21 @@ void MissionPlannerNode::loadMissionParams() {
       else if (k == "y")       { pi.pose.pose.position.y = std::stod(v); }
       else if (k == "z")       { pi.pose.pose.position.z = std::stod(v); }
     }
+
     pi.stamp = this->now();
-    if (id_from_msg > 0 && id_from_msg == peer_id) {
-      std::lock_guard<std::mutex> lock(peers_mutex_);
-      peer_info_[peer_id] = pi;
+    
+
+    // 🔧 TEMP: trust the subscription wiring (peer_id) over the self-reported id
+    // If you keep the guard, at least log mismatches.
+    if (id_from_msg > 0 && id_from_msg != peer_id) {
+      RCLCPP_WARN(this->get_logger(), "Manifest id mismatch: msg_id=%d sub_peer=%d", id_from_msg, peer_id);
     }
+
+    {
+      std::lock_guard<std::mutex> lock(peers_mutex_);
+      peer_info_[peer_id] = pi;  // <— don’t block on id match for now
+    }
+
+    RCLCPP_INFO(this->get_logger(), "✅ Stored peer_info[%d] stamp=%ld", peer_id, pi.stamp.nanoseconds());
   }
 }  // namespace drone_swarm
