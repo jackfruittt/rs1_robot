@@ -107,4 +107,8 @@ mission_params:
   waypoint_tolerance: 0.8
   max_velocity: 3.0
   loop_missions: true
+  helipad_location:
+    x: 0.0
+    y: 0.0
+    z: 0.0
   # fire_bag_location: {0, 0}

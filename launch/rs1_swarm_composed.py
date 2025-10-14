@@ -263,7 +263,8 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
             mission_planner = Node(
                 package='rs1_robot',
                 executable='mission_planner_node',
-                name=f'mission_planner_{i}',
+                name='mission_planner',          # <--- Simplified base name
+                namespace=drone_name,           # <--- THE FIX: Add namespace
                 output='screen',
                 parameters=[mission_planner_params],
                 arguments=['--ros-args', '--log-level', 'info']
@@ -273,7 +274,8 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
             drone_controller = Node(
                 package='rs1_robot',
                 executable='drone_controller',
-                name=f'drone_controller_{i}',
+                name='drone_controller',         # <--- Simplified base name
+                namespace=drone_name,           # <--- THE FIX: Add namespace
                 output='screen',
                 parameters=[drone_controller_params],
                 arguments=['--ros-args', '--log-level', 'info']
@@ -283,7 +285,8 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
             sensor_processor = Node(
                 package='rs1_robot',
                 executable='sensor_node',
-                name=f'sensor_processor_{i}',
+                name='sensor_processor',         # <--- Simplified base name
+                namespace=drone_name,           # <--- THE FIX: Add namespace
                 output='screen',
                 parameters=[{
                     'use_sim_time': use_sim_time,
@@ -293,26 +296,14 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
             )
             nodes.append(sensor_processor)
             
-            # Add perception node if enabled (separate process, not composed)
+            # Add perception node if enabled (this was already correct!)
             if use_perception == 'true':
                 perception_node = Node(
                     package='rs1_perception',
                     executable='perception_node',
                     name=f'perception_node_{i}',
                     namespace=drone_name,
-                    output='screen',
-                    parameters=[{
-                        'use_sim_time': use_sim_time,
-                        'drone_namespace': drone_name,
-                        'detector_type': 'umich',
-                        'tag_family': 'tf36h11',
-                        'image_transport': 'raw',
-                        'front_camera_focal_length': 185.7,
-                        'april_tag_size': 1.0,
-                        'position_tolerance': 0.5,
-                        'image_qos_profile': 'default'
-                    }],
-                    arguments=['--ros-args', '--log-level', 'info']
+                    # ...
                 )
                 nodes.append(perception_node)
     

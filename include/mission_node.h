@@ -67,6 +67,32 @@ enum class FetchRtPhase {
   RE_TAKEOFF 
 };
 
+struct DroneInfo {
+  int drone_id;
+  double x, y, z;
+  double battery_level;
+  std::string mission_state;
+  rclcpp::Time timestamp;
+  bool valid;
+};
+
+/**
+ * @brief Simple data structure to hold parsed scenario information
+ * 
+ * Contains all the information from a scenario detection message
+ * in an easy-to-use format.
+ */
+struct ScenarioData {
+  std::string scenario_name;  // e.g., "STRANDED_HIKER", "WILDFIRE", "DEBRIS_OBSTRUCTION"
+  int severity;               // Severity level (1-10)
+  double x;                   // X position in world coordinates (meters)
+  double y;                   // Y position in world coordinates (meters)
+  double z;                   // Z position (altitude) in meters
+  double yaw;                 // Heading in radians
+  bool can_respond;           // Whether drone should respond to this scenario
+  bool valid;                 // Whether parsing was successful
+};
+
 // Info known about a peer (extensible)
 struct PeerInfo {
   double battery{0.0};
@@ -215,10 +241,26 @@ private:
   static bool parseKeyVal(const std::string& tok, std::string& key, std::string& val);
   static MissionState stateFromString(const std::string& s);
 
+
+
   bool in_fetch_rt_{false};
   bool fetch_landed_{false};
   rclcpp::Time fetch_land_stamp_;
   geometry_msgs::msg::Point fetch_fire_target_{};
+
+  bool in_hiker_rescue_{false};
+  bool medkit_collected_{false};
+  bool in_hiker_rescue_awaiting_takeoff_{false}; // Prevents state machine loop
+  rclcpp::Time medkit_collect_stamp_;
+  geometry_msgs::msg::Point hiker_target_xyz_{};
+  geometry_msgs::msg::Point medkit_depot_xyz_{};
+
+
+  DroneInfo parseInfoManifest(const std::string& manifest_data);
+  std::map<int, DroneInfo> pingDronesForInfo(const std::vector<int>& drone_ids, int timeout_ms = 500);
+  int selectLowestDronId();
+  void sendMissionToLowestDrone(const ScenarioData& scenario);
+
 
   // Parser: turns CSV string into a typed ScenarioEvent
   std::optional<ScenarioEvent> parseScenarioDetection(const std_msgs::msg::String& msg);
@@ -291,6 +333,20 @@ private:
   double battery_level_{0.8};                 // our own (stubbed via param)
   int    collect_window_ms_{400};             // reply window
   geometry_msgs::msg::Point depot_xyz_{};     // retardant depot (defaults to 0,0,2)   
+
+  // 14 OCT
+  geometry_msgs::msg::Point helipad_location_;
+  // Intelligent drone selection
+  int selectBestResponderDrone(const std::vector<int>& all_drone_ids, 
+                                MissionState required_state);
+
+  /**
+   * @brief Check if a drone can transition between states
+   * @param current Current mission state
+   * @param target Target mission state
+   * @return true if transition is valid
+   */
+  bool canStateTransitionTo(MissionState current, MissionState target);
 };
 
 }  // namespace drone_swarm
