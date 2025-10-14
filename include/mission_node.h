@@ -236,24 +236,25 @@ private:
   void infoRequestPingCallback(const std_msgs::msg::Empty::SharedPtr msg);  // Will send a csv of required drone information back to the management drone
   std::string buildInfoManifestCsv(void);         // Helper for infoRequestPingCallback
   int findClosestPeerToOrigin(void) const;
+  // Callback for receiving mission assignments from other drones
   void assignmentCallback(const std_msgs::msg::String::SharedPtr msg);
-  void infoManifestCallback(int peer_id, const std_msgs::msg::String::SharedPtr& msg);
-  static bool parseKeyVal(const std::string& tok, std::string& key, std::string& val);
-  static MissionState stateFromString(const std::string& s);
 
-
-
+  // --- Mission Assignment State Flags ---
+  // For WILDFIRE fetch-and-deliver
   bool in_fetch_rt_{false};
   bool fetch_landed_{false};
   rclcpp::Time fetch_land_stamp_;
   geometry_msgs::msg::Point fetch_fire_target_{};
 
+  // For STRANDED_HIKER fetch-and-deliver
   bool in_hiker_rescue_{false};
   bool medkit_collected_{false};
   bool in_hiker_rescue_awaiting_takeoff_{false}; // Prevents state machine loop
   rclcpp::Time medkit_collect_stamp_;
   geometry_msgs::msg::Point hiker_target_xyz_{};
-  geometry_msgs::msg::Point medkit_depot_xyz_{};
+  geometry_msgs::msg::Point medkit_depot_xyz_{}; // Loaded from params  void infoManifestCallback(int peer_id, const std_msgs::msg::String::SharedPtr& msg);
+  static bool parseKeyVal(const std::string& tok, std::string& key, std::string& val);
+  static MissionState stateFromString(const std::string& s);
 
 
   DroneInfo parseInfoManifest(const std::string& manifest_data);
@@ -347,7 +348,10 @@ private:
    * @return true if transition is valid
    */
   bool canStateTransitionTo(MissionState current, MissionState target);
+
+  void infoManifestCallback(int peer_id, const std_msgs::msg::String::SharedPtr& msg);
 };
+
 
 }  // namespace drone_swarm
 
