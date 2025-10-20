@@ -57,9 +57,9 @@ def spawn_multiple_drones(context, *args, **kwargs):
         drone_name = f'rs1_drone_{i}'
         
         # Position drones in a line (same spacing as before) - Edited to spawn on World 1 Helipad Center
-        x_pos = (i - 10.43)  * 3.0  # Start at 0, then 3, 6, 9...
-        y_pos = 14.0
-        z_pos = 13.1
+        x_pos = (i - 14.4849)  * 3.0  # Start at 0, then 3, 6, 9...
+        y_pos = 20.02
+        z_pos = 18.7
         
         print(f"Creating drone {i}: {drone_name} at ({x_pos}, {y_pos}, {z_pos})")
         
