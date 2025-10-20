@@ -257,7 +257,7 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
     publishMissionCommand();
   }
 
-    void MissionPlannerNode::waypointNavigation() {
+  void MissionPlannerNode::waypointNavigation() {
     if (!path_planner_->hasNextWaypoint()) { 
       state_machine_->setState(MissionState::HOVERING);
       return;
@@ -383,6 +383,42 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
       if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::WAYPOINT_NAVIGATION)) {
         state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
       }
+    }
+    else if (tokens[1] == "ROUTE") {
+      // Expected format: ASSIGN,ROUTE,x1,y1,z1,x2,y2,z2,...
+      // Number of tokens must be 2 (ASSIGN,ROUTE) + a multiple of 3 (x,y,z)
+      if (tokens.size() < 5 || (tokens.size() - 2) % 3 != 0) {
+        RCLCPP_WARN(this->get_logger(), "ROUTE command requires tokens in multiples of 3 for coordinates.");
+        return;
+      }
+
+      std::vector<geometry_msgs::msg::PoseStamped> new_waypoints;
+      RCLCPP_INFO(this->get_logger(), "ROUTE mission assigned with %zu waypoints.", (tokens.size() - 2) / 3);
+
+      // Loop through the coordinate triples
+      for (size_t i = 2; i < tokens.size(); i += 3) {
+        double target_x, target_y, target_z;
+        if (!parseDouble(tokens[i], target_x) || !parseDouble(tokens[i+1], target_y) || !parseDouble(tokens[i+2], target_z)) {
+          RCLCPP_ERROR(this->get_logger(), "Failed to parse coordinates for ROUTE command at index %zu.", i);
+          return; // Abort if any coordinate is invalid
+        }
+
+        geometry_msgs::msg::PoseStamped waypoint;
+        waypoint.header.frame_id = "map";
+        waypoint.pose.position.x = target_x;
+        waypoint.pose.position.y = target_y;
+        waypoint.pose.position.z = target_z;
+        waypoint.pose.orientation.w = 1.0;
+        
+        new_waypoints.push_back(waypoint);
+      }
+
+      // Set the full list of waypoints in the planner
+      path_planner_->setWaypoints(new_waypoints);
+      
+      // FORCE the drone to start navigating the new route
+      state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
+
     }
   }
 
@@ -632,6 +668,7 @@ void MissionPlannerNode::loadMissionParams() {
     }
 }
 
+
   // Fallback function in case YAML loading fails:
   void MissionPlannerNode::loadFallbackWaypoints() {
       std::vector<geometry_msgs::msg::PoseStamped> waypoints;
@@ -643,9 +680,9 @@ void MissionPlannerNode::loadMissionParams() {
       waypoint.pose.orientation.w = 1.0;
       
       if (drone_id_ == "rs1_drone_1") {
-          waypoint.pose.position.x = 5.0;
-          waypoint.pose.position.y = 5.0;
-          waypoint.pose.position.z = 15.0;
+          waypoint.pose.position.x = 4.0;
+          waypoint.pose.position.y = 16.0;
+          waypoint.pose.position.z = 19.0;
       } else if (drone_id_ == "rs1_drone_2") {
           waypoint.pose.position.x = -5.0;
           waypoint.pose.position.y = 5.0;
@@ -826,7 +863,9 @@ void MissionPlannerNode::loadMissionParams() {
 
   void MissionPlannerNode::debrisReaction() {}
   void MissionPlannerNode::strandedHikerReaction() {}
-  void MissionPlannerNode::orbitIncident() {}
+  void MissionPlannerNode::orbitIncident() {
+    hovering(); // stub for now
+  }
 
   void MissionPlannerNode::publishMissionCommand() {
     if (state_machine_->getCurrentState() == MissionState::WAYPOINT_NAVIGATION && 
