@@ -72,7 +72,6 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
       "/" + drone_namespace_ + "/mission_assignment", reliable_qos, 
       std::bind(&MissionPlannerNode::assignmentCallback, this, std::placeholders::_1));
 
-      
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/" + drone_namespace_ + "/cmd_vel", 10);
     target_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/" + drone_namespace_ + "/target_pose", 10);
     mission_state_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/mission_state", reliable_qos);
@@ -130,13 +129,12 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
     auto ping_start_time = this->now();
   
 
-    // Mark existing peer_info as stale so we only accept fresh responses
     {
       std::lock_guard<std::mutex> lock(peers_mutex_);
       for (int id : peers_to_ping) {
         auto it = peer_info_.find(id);
         if (it != peer_info_.end()) {
-          it->second.stamp = rclcpp::Time(0);  // Mark as stale
+          it->second.stamp = rclcpp::Time(0L, this->get_clock()->get_clock_type());
         }
       }
     }
@@ -423,6 +421,13 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
   }
 
   void MissionPlannerNode::sendMissionToLowestDrone(const ScenarioData& scenario) {
+    if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::HOVERING)) {
+      RCLCPP_INFO(this->get_logger(), "Coordination complete - hovering at detection location");
+      state_machine_->setState(MissionState::HOVERING);
+      path_planner_->reset();  // Clear waypoints so we stay hovering
+    }
+
+    RCLCPP_INFO(this->get_logger(), "I am drone %d and am hovering", drone_numeric_id_);
     RCLCPP_INFO(this->get_logger(), "Coordinating response for %s", scenario.scenario_name.c_str());
     
     MissionState required_state = targetStateForScenario(scenarioFromString(scenario.scenario_name));
@@ -1103,10 +1108,10 @@ void MissionPlannerNode::loadMissionParams() {
     }
     parts.push_back(current_part);  // Add the last part
     
-    // Check we have exactly 7 parts
-    if (parts.size() != 7) {
+    // Check we have exactly 6 parts (updated from 7)
+    if (parts.size() != 6) {
       RCLCPP_WARN(rclcpp::get_logger("scenario_parser"),
-                  "Expected 7 fields, got %zu in message: '%s'",
+                  "Expected 6 fields, got %zu in message: '%s'",
                   parts.size(), message_data.c_str());
       return result;
     }
@@ -1116,23 +1121,20 @@ void MissionPlannerNode::loadMissionParams() {
       // Field 0: Scenario name (string)
       result.scenario_name = parts[0];
       
-      // Field 1: Severity (integer)
-      result.severity = std::stoi(parts[1]);
+      // Field 1: X position (double) - MOVED FROM INDEX 2
+      result.x = std::stod(parts[1]);
       
-      // Field 2: X position (double)
-      result.x = std::stod(parts[2]);
+      // Field 2: Y position (double) - MOVED FROM INDEX 3
+      result.y = std::stod(parts[2]);
       
-      // Field 3: Y position (double)
-      result.y = std::stod(parts[3]);
+      // Field 3: Z position (double) - MOVED FROM INDEX 4
+      result.z = std::stod(parts[3]);
       
-      // Field 4: Z position (double)
-      result.z = std::stod(parts[4]);
+      // Field 4: Yaw angle (double, in radians) - MOVED FROM INDEX 5
+      result.yaw = std::stod(parts[4]);
       
-      // Field 5: Yaw angle (double, in radians)
-      result.yaw = std::stod(parts[5]);
-      
-      // Field 6: Respond flag (format: "respond:1" or "respond:0")
-      std::string respond_field = parts[6];
+      // Field 5: Respond flag - MOVED FROM INDEX 6
+      std::string respond_field = parts[5];
       if (respond_field.find("respond:") == 0) {
         std::string value = respond_field.substr(8);  // Skip "respond:"
         result.can_respond = (value == "1" || value == "true");
@@ -1142,13 +1144,16 @@ void MissionPlannerNode::loadMissionParams() {
         return result;
       }
       
+      // Set severity to a default value since it's not provided
+      result.severity = 1;  // Default severity
+      
       // If we made it here, parsing succeeded
       result.valid = true;
       
       RCLCPP_INFO(rclcpp::get_logger("scenario_parser"),
-                  "Parsed scenario: %s at [%.2f, %.2f, %.2f], severity=%d, respond=%s",
+                  "Parsed scenario: %s at [%.2f, %.2f, %.2f], yaw=%.2f, respond=%s",
                   result.scenario_name.c_str(), result.x, result.y, result.z,
-                  result.severity, result.can_respond ? "yes" : "no");
+                  result.yaw, result.can_respond ? "yes" : "no");
       
     } catch (const std::exception& e) {
       RCLCPP_ERROR(rclcpp::get_logger("scenario_parser"),
@@ -1158,6 +1163,8 @@ void MissionPlannerNode::loadMissionParams() {
     
     return result;
   }
+
+
 
 
   // ---------- subscriber callback ----------
