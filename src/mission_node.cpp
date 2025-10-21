@@ -416,9 +416,9 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
       // Set the full list of waypoints in the planner
       path_planner_->setWaypoints(new_waypoints);
       
-      // FORCE the drone to start navigating the new route
-      state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
-
+      if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::WAYPOINT_NAVIGATION)) {
+        state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
+      }
     }
   }
 
