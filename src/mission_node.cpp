@@ -3,22 +3,19 @@
 
 namespace drone_swarm
 {
-
-// --- FORWARD DECLARATIONS for helper functions ---
-static inline std::string trimCopy(std::string s);
-static inline std::vector<std::string> splitCSV(const std::string& s);
-static inline bool parseDouble(const std::string& s, double& out);
-ScenarioData parseScenarioMessage(const std::string& message_data);
-static std::string missionStateToString(MissionState state);  // ADD THIS LINE
-
-// --- END FORWARD DECLARATIONS ---
+  //--- FORWARD DECLARATIONS for helper functions ---///
+  static inline std::string trimCopy(std::string s);
+  static inline std::vector<std::string> splitCSV(const std::string& s);
+  static inline bool parseDouble(const std::string& s, double& out);
+  ScenarioData parseScenarioMessage(const std::string& message_data);
+  static std::string missionStateToString(MissionState state);
 
   MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
     : Node("mission_planner", options)
   {
     auto reliable_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
 
-    // --- Parameter Loading (unchanged, all correct) ---
+    //--- Parameter Loading ---//
     this->declare_parameter("drone_namespace", std::string("rs1_drone"));
     this->declare_parameter<double>("mission_update_rate", 5.0);
     this->declare_parameter<double>("waypoint_tolerance", 0.5);
@@ -47,10 +44,9 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
     medkit_depot_xyz_.y = this->get_parameter("medkit_depot.y").as_double();
     medkit_depot_xyz_.z = this->get_parameter("medkit_depot.z").as_double();
 
-    // --- Component Initialization ---
+    //--- Component Initialization ---///
     state_machine_ = std::make_unique<StateMachine>();
     path_planner_ = std::make_unique<PathPlanner>();
-    
     drone_id_ = drone_namespace_;
     try {
         std::string num_part = drone_id_.substr(drone_id_.find_last_of('_') + 1);
@@ -59,9 +55,10 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
         RCLCPP_FATAL(this->get_logger(), "FATAL: Could not parse numeric ID from namespace: %s", drone_id_.c_str());
     }
 
+    //--- Load custom waypoints for surveillance ---//
     loadWaypointsFromParams();
     
-    // --- Subscriptions & Publishers (with corrected absolute paths) ---
+    //--- Subs ---///
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
       "/" + drone_namespace_ + "/odom", 10, std::bind(&MissionPlannerNode::odomCallback, this, std::placeholders::_1));
     scenario_sub_ = this->create_subscription<std_msgs::msg::String>(
@@ -72,25 +69,26 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
       "/" + drone_namespace_ + "/mission_assignment", reliable_qos, 
       std::bind(&MissionPlannerNode::assignmentCallback, this, std::placeholders::_1));
 
+    //--- Pubs ---//
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/" + drone_namespace_ + "/cmd_vel", 10);
     target_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/" + drone_namespace_ + "/target_pose", 10);
     mission_state_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/mission_state", reliable_qos);
     info_manifest_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/info_manifest", reliable_qos);
       
-    // --- Services (with corrected absolute paths) ---
+    //--- Srvs ---//
     start_mission_service_ = this->create_service<std_srvs::srv::Trigger>(
       "/" + drone_namespace_ + "/start_mission", std::bind(&MissionPlannerNode::startMissionCallback, this, std::placeholders::_1, std::placeholders::_2));
     stop_mission_service_ = this->create_service<std_srvs::srv::Trigger>(
       "/" + drone_namespace_ + "/stop_mission", std::bind(&MissionPlannerNode::stopMissionCallback, this, std::placeholders::_1, std::placeholders::_2));
 
-    // --- Timers ---
+    //--- Tims ---//
     auto mission_timer_period = std::chrono::milliseconds(static_cast<int>(1000.0 / mission_update_rate_));
     mission_timer_ = this->create_wall_timer(mission_timer_period, std::bind(&MissionPlannerNode::missionTimerCallback, this));
-    
     discovery_timer_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&MissionPlannerNode::discoverPeerDrones, this));
 
     RCLCPP_INFO(this->get_logger(), "Mission Planner Node initialised for %s", drone_id_.c_str());
 
+    //--- Finds drones that exist ---//
     discoverPeerDrones();
   }
 
@@ -108,7 +106,7 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
         results[id] = self_info;
       } else {
         peers_to_ping.push_back(id);
-        results[id] = {id, 0,0,0,0.0,"",this->now(),false}; // pre-fill with invalid
+        results[id] = {id, 0,0,0,0.0,"",this->now(),false}; // pre-fill results with invalid data
       }
     }
 
@@ -117,18 +115,16 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
       return results;
     }
     
-    // Ensure peer wiring exists before pinging (idempotent & cheap)
+    // Ensure peer wiring exists before pinging
     for (int id : peers_to_ping) {
-      // Make sure we have the critical subscription on /rs1_drone_<id>/info_manifest
+      // Ensure subscription to /rs1_drone_<id>/info_manifest which allows manager drones to then receive data from all drones
       createPeerSubscriptionForId(id);
     }
 
     RCLCPP_INFO(this->get_logger(), "Pinging %zu peers...", peers_to_ping.size());
     
-    // Record when we sent pings - only accept responses after this
+    // Record when we sent pings so we only accept responses after this
     auto ping_start_time = this->now();
-  
-
     {
       std::lock_guard<std::mutex> lock(peers_mutex_);
       for (int id : peers_to_ping) {
@@ -145,7 +141,7 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
       for (int drone_id : peers_to_ping) {
         auto it = info_request_pubs_.find(drone_id);
         if (it == info_request_pubs_.end() || !it->second) {
-          // Create JIT publisher if discovery hasn't run yet
+          // Create a publisher if discovery hasn't run yet
           std::string topic = "/rs1_drone_" + std::to_string(drone_id) + "/info_request";
           info_request_pubs_[drone_id] = this->create_publisher<std_msgs::msg::Empty>(topic, reliable_qos);
           RCLCPP_WARN(this->get_logger(), "Created JIT publisher for drone %d", drone_id);
@@ -158,21 +154,20 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
     auto end_time = ping_start_time + rclcpp::Duration(std::chrono::milliseconds(timeout_ms));
     
     while (this->now() < end_time) {
-      // Let any pending subscription callbacks run (unblocks the executor)
+      // Let any pending subscription callbacks run
       bool all_received = true;
-      
       {
         std::lock_guard<std::mutex> lock(peers_mutex_);
         for (int id : peers_to_ping) {
           auto it = peer_info_.find(id);
           
-          // Check if we have a fresh response (received after ping was sent)
+          // Check if response was sent after ping
           if (it == peer_info_.end() || it->second.stamp <= ping_start_time) {
             all_received = false;
             continue;
           }
           
-          // We have fresh data - convert PeerInfo to DroneInfo
+          // There's fresh data, so PeerInfo is converted to DroneInfo
           if (!results[id].valid) {  // Only convert once
             DroneInfo info;
             info.drone_id = id;
@@ -192,7 +187,6 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
         RCLCPP_INFO(this->get_logger(), "All responses received early!");
         break;
       }
-      
       rclcpp::sleep_for(std::chrono::milliseconds(50));
     }
     
@@ -216,9 +210,11 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
 
 
   void MissionPlannerNode::missionTimerCallback() {
+    //--- Main mission executor ---///
     executeMission();
 
-    // --- NEW LOGIC FOR POST-LANDING PAUSE ---
+    //--- Mission & state specific reactions ---///
+    // Note, maybe a more robust method is to make drones respond to a csv format of instructions instead of waypoints
     if (in_hiker_rescue_ && medkit_collected_) {
         // Wait 2 seconds to simulate collection
         if (this->get_clock()->now() - medkit_collect_stamp_ > rclcpp::Duration::from_seconds(2.0)) {
@@ -247,12 +243,11 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
         fetch_landed_ = false; // Prevent this block from running again
       }
     }
-    // --- END NEW LOGIC ---
 
     std_msgs::msg::String state_msg;
     state_msg.data = state_machine_->getStateString();
     mission_state_pub_->publish(state_msg);
-    publishMissionCommand();
+    publishMissionCommand(); // Sends a cmd_vel to the drone based on everything in this wall timer
   }
 
   void MissionPlannerNode::waypointNavigation() {
@@ -262,7 +257,6 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
     }
     if (!isWaypointReached()) return;
 
-    // --- NEW LOGIC ---
     if (in_hiker_rescue_ && !medkit_collected_ && !in_hiker_rescue_awaiting_takeoff_) {
       RCLCPP_INFO(this->get_logger(), "Arrived at medkit depot. Landing to collect.");
       state_machine_->setState(MissionState::LANDING);
@@ -274,12 +268,12 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
       state_machine_->setState(MissionState::LANDING);
       return; 
     }
-    // --- END NEW LOGIC ---
 
-    (void)path_planner_->getNextWaypoint();
+    (void)path_planner_->getNextWaypoint(); // Void so that we advance to next waypoint, even if there isn't one
     if (!path_planner_->hasNextWaypoint()) {
       RCLCPP_INFO(get_logger(), "Final waypoint reached. Mission complete. Hovering.");
       state_machine_->setState(MissionState::HOVERING);
+
       // Reset flags
       in_fetch_rt_ = false;
       in_hiker_rescue_ = false;
@@ -289,7 +283,6 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
     }
   }
 
-  // 2. Modify landing() to know it's just a pause, not the end of the mission
   void MissionPlannerNode::landing() {
     static std::map<std::string, std::chrono::steady_clock::time_point> landing_timers;
     if (landing_timers.find(drone_id_) == landing_timers.end()) {
@@ -309,10 +302,10 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
         RCLCPP_INFO(this->get_logger(), "Landed at retardant depot. Pausing for collection.");
         // Stay in LANDING state.
       } else {
-        // This is a normal, mission-ending landing.
+        // mission-ending landing.
         state_machine_->setState(MissionState::IDLE);
         path_planner_->reset();
-        // Reset flags just in case
+        // Reset flags
         in_fetch_rt_ = false;
         in_hiker_rescue_ = false;
         in_hiker_rescue_awaiting_takeoff_ = false;
@@ -321,15 +314,18 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
     }
   }
 
-  // In mission_node.cpp, add this new function
   void MissionPlannerNode::assignmentCallback(const std_msgs::msg::String::SharedPtr msg) {
+    //--- Decode data ---///
     const std::string payload = trimCopy(msg->data);
-    auto tokens = splitCSV(payload);
+    auto tokens = splitCSV(payload); 
+
+    //--- Manage data (set wp, states, etc) ---///
     if (tokens.size() < 2 || tokens[0] != "ASSIGN") return;
 
     if (tokens[1] == "HIKER_RESCUE") {
       if (tokens.size() < 8) return; // Need 8 tokens
       double dx, dy, dz, hx, hy, hz;
+
       if (!parseDouble(tokens[2], dx) || !parseDouble(tokens[3], dy) || !parseDouble(tokens[4], dz) ||
           !parseDouble(tokens[5], hx) || !parseDouble(tokens[6], hy) || !parseDouble(tokens[7], hz)) {
         return;
@@ -355,6 +351,7 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
         state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
       }
     }
+
     else if (tokens[1] == "FETCH_RT") {
       if (tokens.size() < 8) return;
       double dx, dy, dz, fx, fy, fz;
@@ -382,6 +379,7 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
         state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
       }
     }
+
     else if (tokens[1] == "ROUTE") {
       // Expected format: ASSIGN,ROUTE,x1,y1,z1,x2,y2,z2,...
       // Number of tokens must be 2 (ASSIGN,ROUTE) + a multiple of 3 (x,y,z)
@@ -427,13 +425,36 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
       path_planner_->reset();  // Clear waypoints so we stay hovering
     }
 
-    RCLCPP_INFO(this->get_logger(), "I am drone %d and am hovering", drone_numeric_id_);
+    RCLCPP_INFO(this->get_logger(), "Drone %d hovering", drone_numeric_id_);
     RCLCPP_INFO(this->get_logger(), "Coordinating response for %s", scenario.scenario_name.c_str());
     
     MissionState required_state = targetStateForScenario(scenarioFromString(scenario.scenario_name));
     
     // Assuming a fixed number of drones for now
-    std::vector<int> all_drones = {1, 2, 3, 4}; 
+    std::vector<int> all_drones = {1, 2, 3, 4};
+    //--- CAN PROBABLY DO THIS INSTEAD, BUT WILL IMPLEMENT LATER ---///
+    /*
+      std::vector<int> MissionPlannerNode::getKnownDroneIds() {
+        std::vector<int> ids;
+        {
+          std::lock_guard<std::mutex> lock(peers_mutex_);
+          ids.reserve(info_manifest_subs_.size() + 1);
+          for (const auto& kv : info_manifest_subs_) {
+            ids.push_back(kv.first);        // discovered peer ids
+          }
+        }
+        ids.push_back(drone_numeric_id_);   // include self
+        std::sort(ids.begin(), ids.end());
+        ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+        return ids;
+      }
+
+      // Make sure we’ve done a recent discovery pass
+      discoverPeerDrones();
+
+      auto all_drones = getKnownDroneIds();        // dynamic list
+      int responder_id = selectBestResponderDrone(all_drones, required_state);
+    */
     int responder_id = selectBestResponderDrone(all_drones, required_state);
     
     if (responder_id < 0) {
@@ -444,7 +465,7 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
     if (drone_numeric_id_ == responder_id) {
       RCLCPP_INFO(this->get_logger(), "I am drone %d - I will respond to this scenario myself.", responder_id);
       
-      // --- SELF-ASSIGNMENT LOGIC ---
+      //--- SELF-ASSIGNMENT LOGIC ---//
       if (scenario.scenario_name == "STRANDED_HIKER") {
         in_hiker_rescue_ = true;
         medkit_collected_ = false;
@@ -480,7 +501,7 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
       }
     }
     else {
-      RCLCPP_INFO(this->get_logger(), "I am drone %d - sending mission to drone %d", drone_numeric_id_, responder_id);
+      RCLCPP_INFO(this->get_logger(), "Manager drone %d, sending mission to drone %d", drone_numeric_id_, responder_id);
       
       std::ostringstream ss;
       
@@ -509,13 +530,12 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
     }
   }
 
+  // For manager drones to determine whether a fleet member's current state can switch to the target state
   bool MissionPlannerNode::canStateTransitionTo(MissionState current_state, MissionState target_state) {
     switch (current_state) {
-      case MissionState::IDLE:
+      case MissionState::IDLE: // NOTE: IF THERE ARE BUGS, MAY NEED TO ADD -> target_state == MissionState::WAYPOINT_NAVIGATION || 
         return  target_state == MissionState::TAKEOFF || 
                 target_state == MissionState::MANUAL_CONTROL;
-        // If you want your newer behavior, also allow:
-        // || target_state == MissionState::WAYPOINT_NAVIGATION;
 
       case MissionState::TAKEOFF:
         return  target_state == MissionState::WAYPOINT_NAVIGATION || 
@@ -570,7 +590,7 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
     return false;
   }
 
-
+  // NOTE, AM UNSURE IF THIS WORKS OR NOT. HAVEN'T GOT IT TO WORK YET
   void MissionPlannerNode::loadWaypointsFromParams() {
     RCLCPP_INFO(this->get_logger(), "Loading waypoints from flattened parameters for %s", drone_id_.c_str());
     
@@ -635,46 +655,45 @@ static std::string missionStateToString(MissionState state);  // ADD THIS LINE
     }
 }
 
-// Load mission parameters
-void MissionPlannerNode::loadMissionParams() {
-    try {
-        // Load mission parameters if they exist
-        if (this->has_parameter("mission_params.takeoff_altitude")) {
-            double takeoff_altitude = this->get_parameter("mission_params.takeoff_altitude").as_double();
-            RCLCPP_INFO(this->get_logger(), "Takeoff altitude: %.2f", takeoff_altitude);
-            // Store or use this parameter as needed
-        }
-        
-        if (this->has_parameter("mission_params.landing_speed")) {
-            double landing_speed = this->get_parameter("mission_params.landing_speed").as_double();
-            RCLCPP_INFO(this->get_logger(), "Landing speed: %.2f", landing_speed);
-        }
-        
-        if (this->has_parameter("mission_params.waypoint_tolerance")) {
-            double yaml_tolerance = this->get_parameter("mission_params.waypoint_tolerance").as_double();
-            // Override the default tolerance with YAML value
-            waypoint_tolerance_ = yaml_tolerance;
-            RCLCPP_INFO(this->get_logger(), "Updated waypoint tolerance to: %.2f", waypoint_tolerance_);
-        }
-        
-        if (this->has_parameter("mission_params.max_velocity")) {
-            double max_velocity = this->get_parameter("mission_params.max_velocity").as_double();
-            RCLCPP_INFO(this->get_logger(), "Max velocity: %.2f", max_velocity);
-        }
-        
-        if (this->has_parameter("mission_params.loop_missions")) {
-            bool loop_missions = this->get_parameter("mission_params.loop_missions").as_bool();
-            RCLCPP_INFO(this->get_logger(), "Loop missions: %s", loop_missions ? "true" : "false");
-            // @TODO store this in a member variable for use in mission execution
-        }
-        
-    } catch (const std::exception& e) {
-        RCLCPP_WARN(this->get_logger(), "Error loading mission parameters: %s", e.what());
-    }
-}
+  // Load mission parameters
+  void MissionPlannerNode::loadMissionParams() {
+      try {
+          // Load mission parameters if they exist
+          if (this->has_parameter("mission_params.takeoff_altitude")) {
+              double takeoff_altitude = this->get_parameter("mission_params.takeoff_altitude").as_double();
+              RCLCPP_INFO(this->get_logger(), "Takeoff altitude: %.2f", takeoff_altitude);
+              // Store or use this parameter as needed
+          }
+          
+          if (this->has_parameter("mission_params.landing_speed")) {
+              double landing_speed = this->get_parameter("mission_params.landing_speed").as_double();
+              RCLCPP_INFO(this->get_logger(), "Landing speed: %.2f", landing_speed);
+          }
+          
+          if (this->has_parameter("mission_params.waypoint_tolerance")) {
+              double yaml_tolerance = this->get_parameter("mission_params.waypoint_tolerance").as_double();
+              // Override the default tolerance with YAML value
+              waypoint_tolerance_ = yaml_tolerance;
+              RCLCPP_INFO(this->get_logger(), "Updated waypoint tolerance to: %.2f", waypoint_tolerance_);
+          }
+          
+          if (this->has_parameter("mission_params.max_velocity")) {
+              double max_velocity = this->get_parameter("mission_params.max_velocity").as_double();
+              RCLCPP_INFO(this->get_logger(), "Max velocity: %.2f", max_velocity);
+          }
+          
+          if (this->has_parameter("mission_params.loop_missions")) {
+              bool loop_missions = this->get_parameter("mission_params.loop_missions").as_bool();
+              RCLCPP_INFO(this->get_logger(), "Loop missions: %s", loop_missions ? "true" : "false");
+              // @TODO store this in a member variable for use in mission execution
+          }
+          
+      } catch (const std::exception& e) {
+          RCLCPP_WARN(this->get_logger(), "Error loading mission parameters: %s", e.what());
+      }
+  }
 
-
-  // Fallback function in case YAML loading fails:
+  // Fallback function in case YAML loading fails
   void MissionPlannerNode::loadFallbackWaypoints() {
       std::vector<geometry_msgs::msg::PoseStamped> waypoints;
       
@@ -745,7 +764,7 @@ void MissionPlannerNode::loadMissionParams() {
   void MissionPlannerNode::stopMissionCallback(
       const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
       std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
-    (void)request;  // Suppress unused parameter warning
+    (void)request;  // Suppress unused parameter warning 
     
     RCLCPP_INFO(this->get_logger(), "Stop mission service called for %s", drone_id_.c_str());
     
@@ -771,7 +790,6 @@ void MissionPlannerNode::loadMissionParams() {
     
     RCLCPP_INFO(this->get_logger(), "Mission stopped for %s - transitioning to LANDING", drone_id_.c_str());
   }
-
 
   // Mission execution logic
   void MissionPlannerNode::executeMission() {
@@ -849,7 +867,6 @@ void MissionPlannerNode::loadMissionParams() {
     }   
   }
 
-
   void MissionPlannerNode::hovering() {
     RCLCPP_DEBUG(this->get_logger(), "Hovering at current position");
   }
@@ -863,9 +880,8 @@ void MissionPlannerNode::loadMissionParams() {
     state_machine_->setState(MissionState::LANDING);
   }
 
-  void MissionPlannerNode::wildFireReaction() {
-  }
-
+  //--- Use later to refactor code ---//
+  void MissionPlannerNode::wildFireReaction() {}
   void MissionPlannerNode::debrisReaction() {}
   void MissionPlannerNode::strandedHikerReaction() {}
   void MissionPlannerNode::orbitIncident() {
@@ -969,7 +985,7 @@ void MissionPlannerNode::loadMissionParams() {
     }
   }
 
-  // ---------- tiny string/parse helpers (local-only) ----------
+  //--- tiny string/parse helpers (local-only) ---//
   static inline std::string trimCopy(std::string s) {
     auto notSpace = [](unsigned char c){ return !std::isspace(c); };
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), notSpace));
@@ -1034,16 +1050,6 @@ void MissionPlannerNode::loadMissionParams() {
     return false;
   }
 
-  // ---------- mapper ----------
-  Scenario MissionPlannerNode::scenarioFromString(const std::string& s) {
-    // Exact matches published by perception
-    if (s == "STRANDED_HIKER")     return Scenario::STRANDED_HIKER;
-    if (s == "WILDFIRE")           return Scenario::WILDFIRE;
-    if (s == "DEBRIS_OBSTRUCTION") return Scenario::DEBRIS_OBSTRUCTION;
-
-    return Scenario::UNKNOWN;
-  }
-
   static std::string missionStateToString(MissionState state) {
       switch (state) {
           case MissionState::IDLE: return "IDLE";
@@ -1059,24 +1065,6 @@ void MissionPlannerNode::loadMissionParams() {
           case MissionState::DEBRIS_OBSTRUCTION_REACTION: return "DEBRIS_OBSTRUCTION_REACTION";
           default: return "UNKNOWN";
       }
-  }
-
-  MissionState MissionPlannerNode::targetStateForScenario(Scenario scenario) {
-    switch (scenario) {
-      case Scenario::STRANDED_HIKER:
-        // Navigate to the reported location to assist / inspect
-        return MissionState::STRANDED_HIKER_REACTION;
-      case Scenario::WILDFIRE:
-        // Hold position and observe / report
-        return MissionState::WILDFIRE_REACTION; // This could be changed later on.
-      case Scenario::DEBRIS_OBSTRUCTION:
-        // Navigate to inspect / clear obstruction
-        return MissionState::DEBRIS_OBSTRUCTION_REACTION;
-      case Scenario::UNKNOWN:
-      default:
-        // Unknown scenarios: remain idle / do not autonomously act
-        return MissionState::IDLE;
-    }
   }
 
   /**
@@ -1164,10 +1152,34 @@ void MissionPlannerNode::loadMissionParams() {
     return result;
   }
 
+  //--- mapper ---//
+  Scenario MissionPlannerNode::scenarioFromString(const std::string& s) {
+    // Exact matches published by perception
+    if (s == "STRANDED_HIKER")     return Scenario::STRANDED_HIKER;
+    if (s == "WILDFIRE")           return Scenario::WILDFIRE;
+    if (s == "DEBRIS_OBSTRUCTION") return Scenario::DEBRIS_OBSTRUCTION;
 
+    return Scenario::UNKNOWN;
+  }
 
+  MissionState MissionPlannerNode::targetStateForScenario(Scenario scenario) {
+    switch (scenario) {
+      case Scenario::STRANDED_HIKER:
+        // Navigate to the reported location to assist / inspect
+        return MissionState::STRANDED_HIKER_REACTION;
+      case Scenario::WILDFIRE:
+        // Hold position and observe / report
+        return MissionState::WILDFIRE_REACTION; // This could be changed later on.
+      case Scenario::DEBRIS_OBSTRUCTION:
+        // Navigate to inspect / clear obstruction
+        return MissionState::DEBRIS_OBSTRUCTION_REACTION;
+      case Scenario::UNKNOWN:
+      default:
+        // Unknown scenarios: remain idle / do not autonomously act
+        return MissionState::IDLE;
+    }
+  }
 
-  // ---------- subscriber callback ----------
   void MissionPlannerNode::scenarioDetectionCallback(const std_msgs::msg::String::SharedPtr msg) {
     // Parse the incoming message
     ScenarioData scenario = parseScenarioMessage(msg->data);
@@ -1177,7 +1189,7 @@ void MissionPlannerNode::loadMissionParams() {
     }
 
     RCLCPP_INFO(this->get_logger(),
-                "Scenario detected: %s at [%.2f, %.2f, %.2f]",
+                "Drone %d detected: %s at [%.2f, %.2f, %.2f]", drone_numeric_id_,
                 scenario.scenario_name.c_str(), scenario.x, scenario.y, scenario.z);
 
     // Hand off the (potentially blocking) coordination work to a background thread
@@ -1191,7 +1203,6 @@ void MissionPlannerNode::loadMissionParams() {
       }
     }).detach();
   }
-
 
   DroneInfo MissionPlannerNode::parseInfoManifest(const std::string& manifest_data) {
     DroneInfo result;
@@ -1233,11 +1244,6 @@ void MissionPlannerNode::loadMissionParams() {
                 missionStateToString(required_state).c_str());
     
     auto drone_data = pingDronesForInfo(all_drone_ids, 5000);
-    // auto fut = std::async(std::launch::async, [this, &all_drone_ids](){
-    //   return pingDronesForInfo(all_drone_ids, 5000);
-    // });
-    
-    // auto drone_data = fut.get(); 
 
     struct Candidate { int id; double distance; double battery; std::string state; };
     std::vector<Candidate> candidates;
@@ -1477,33 +1483,7 @@ void MissionPlannerNode::loadMissionParams() {
     return ss.str();
   }
 
-  
-  // void MissionPlannerNode::infoManifestCallback(int peer_id, const std_msgs::msg::String::SharedPtr& msg) {
-  //   RCLCPP_INFO(this->get_logger(), "🔵 CB fired: peer=%d msg=%s", peer_id, msg->data.c_str());
-  //   // Expect: id:N,battery:0.80,state:STATE,x:..,y:..,z:..,t:..
-  //   auto toks = splitCSV(msg->data);
-  //   int id_from_msg = -1;
-  //   PeerInfo pi;
-  //   for (auto& t : toks) {
-  //     std::string k, v;
-  //     if (!parseKeyVal(trimCopy(t), k, v)) continue;
-  //     if (k == "id")        { try { id_from_msg = std::stoi(v); } catch (...) {} }
-  //     else if (k == "battery") { parseDouble(v, pi.battery); }
-  //     else if (k == "state")   { pi.state = stateFromString(v); }
-  //     else if (k == "x")       { pi.pose.pose.position.x = std::stod(v); }
-  //     else if (k == "y")       { pi.pose.pose.position.y = std::stod(v); }
-  //     else if (k == "z")       { pi.pose.pose.position.z = std::stod(v); }
-  //   }
-  //   pi.stamp = this->now();
-  //   if (id_from_msg > 0 && id_from_msg == peer_id) {
-  //     std::lock_guard<std::mutex> lock(peers_mutex_);
-  //     peer_info_[peer_id] = pi;
-  //   }
-  // }
-
   void MissionPlannerNode::infoManifestCallback(int peer_id, const std_msgs::msg::String::SharedPtr& msg) {
-    RCLCPP_INFO(this->get_logger(), "🔵 CB fired: peer=%d msg=%s", peer_id, msg->data.c_str());  // <— add
-
     auto toks = splitCSV(msg->data);
     int id_from_msg = -1;
     PeerInfo pi;
@@ -1521,7 +1501,6 @@ void MissionPlannerNode::loadMissionParams() {
 
     pi.stamp = this->now();
     
-
     // 🔧 TEMP: trust the subscription wiring (peer_id) over the self-reported id
     // If you keep the guard, at least log mismatches.
     if (id_from_msg > 0 && id_from_msg != peer_id) {
@@ -1532,7 +1511,5 @@ void MissionPlannerNode::loadMissionParams() {
       std::lock_guard<std::mutex> lock(peers_mutex_);
       peer_info_[peer_id] = pi;  // <— don’t block on id match for now
     }
-
-    RCLCPP_INFO(this->get_logger(), "✅ Stored peer_info[%d] stamp=%ld", peer_id, pi.stamp.nanoseconds());
   }
 }  // namespace drone_swarm
