@@ -199,4 +199,11 @@ install(TARGETS mission_planner_component
         RUNTIME DESTINATION bin
 )
 
+install(
+  PROGRAMS
+  "scripts/generate_dynamic_bridge.py"
+  "scripts/swarm_status_checker.py"
+  DESTINATION lib/${PROJECT_NAME}
+)
+
 ament_package()
