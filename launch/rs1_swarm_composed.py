@@ -160,15 +160,15 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
                     ComposableNode(
                         package='rs1_robot',
                         plugin='drone_swarm::MissionPlannerNode',
-                        name=f'mission_planner_{i}',  # ← FIX: Unique name per drone
-                        namespace=drone_name,           # ← Ensure namespace is set
+                        name=f'mission_planner_{i}',  
+                        namespace=drone_name,           
                         parameters=[mission_planner_params],
                         extra_arguments=[{'use_intra_process_comms': True}],
                     ),
                     ComposableNode(
                         package='rs1_robot',
                         plugin='drone_swarm::DroneControllerNode', 
-                        name=f'drone_controller_{i}',  # ← FIX
+                        name=f'drone_controller_{i}',  
                         namespace=drone_name,
                         parameters=[drone_controller_params],
                         extra_arguments=[{'use_intra_process_comms': True}],
@@ -176,7 +176,7 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
                     ComposableNode(
                         package='rs1_robot',
                         plugin='sensorNodeComponent',
-                        name=f'sensor_processor_{i}',  # ← FIX
+                        name=f'sensor_processor_{i}',  
                         namespace=drone_name,
                         parameters=[{
                             'use_sim_time': use_sim_time,
@@ -266,7 +266,7 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
             mission_planner = Node(
                 package='rs1_robot',
                 executable='mission_planner_node',
-                name=f'mission_planner_{i}',  # <--- FIX: Unique name
+                name=f'mission_planner_{i}',  
                 namespace=drone_name,
                 output='screen',
                 parameters=[mission_planner_params],
@@ -277,7 +277,7 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
             drone_controller = Node(
                 package='rs1_robot',
                 executable='drone_controller',
-                name=f'drone_controller_{i}', # <--- FIX: Unique name
+                name=f'drone_controller_{i}', 
                 namespace=drone_name,
                 output='screen',
                 parameters=[drone_controller_params],
@@ -288,7 +288,7 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
             sensor_processor = Node(
                 package='rs1_robot',
                 executable='sensor_node',
-                name=f'sensor_processor_{i}', # <--- FIX: Unique name
+                name=f'sensor_processor_{i}', 
                 namespace=drone_name,
                 output='screen',
                 parameters=[{
@@ -299,7 +299,6 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
             )
             nodes.append(sensor_processor)
 
-            # Add perception node if enabled (this was already correct!)
             if use_perception == 'true':
                 perception_node = Node(
                     package='rs1_perception',
