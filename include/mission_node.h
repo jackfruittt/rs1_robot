@@ -64,8 +64,11 @@ enum class FetchRtPhase {
   TO_DEPOT, 
   LANDING, 
   WAITING, 
+  TO_FIRE,
+  HOVERING_AT_FIRE,
   RE_TAKEOFF 
 };
+
 
 struct DroneInfo {
   int drone_id;
@@ -260,7 +263,7 @@ private:
   DroneInfo parseInfoManifest(const std::string& manifest_data);
   std::map<int, DroneInfo> pingDronesForInfo(const std::vector<int>& drone_ids, int timeout_ms = 500);
   int selectLowestDronId();
-  void sendMissionToLowestDrone(const ScenarioData& scenario);
+  void performCoordination(const ScenarioData& scenario);
 
 
   // Parser: turns CSV string into a typed ScenarioEvent
@@ -333,7 +336,15 @@ private:
 
   double battery_level_{0.8};                 // our own (stubbed via param)
   int    collect_window_ms_{400};             // reply window
-  geometry_msgs::msg::Point depot_xyz_{};     // retardant depot (defaults to 0,0,2)   
+  geometry_msgs::msg::Point depot_xyz_{};     // retardant depot (defaults to 0,0,2) 
+  
+  bool is_coordinating_ = false;
+  std::optional<ScenarioData> active_coordination_scenario_;
+  std::mutex coordination_mutex_;
+
+  bool fetch_at_fire_ = false;  // Track if drone is at fire location
+  rclcpp::Time fire_hover_stamp_;  // When drone started hovering at fire
+  FetchRtPhase fetch_rt_phase_ = FetchRtPhase::NONE;
 
   // 14 OCT
   geometry_msgs::msg::Point helipad_location_;
@@ -350,6 +361,8 @@ private:
   bool canStateTransitionTo(MissionState current, MissionState target);
 
   void infoManifestCallback(int peer_id, const std_msgs::msg::String::SharedPtr& msg);
+
+
 };
 
 
