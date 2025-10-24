@@ -263,7 +263,7 @@
       <topic>model/${drone_name}/bottom_camera</topic>
       <gz_frame_id>bottom_cam_link</gz_frame_id>
       <camera>
-        <horizontal_fov>1.5</horizontal_fov>
+        <horizontal_fov>2.09</horizontal_fov>
         <image>
           <width>640</width>
           <height>360</height>
