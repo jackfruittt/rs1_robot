@@ -8,7 +8,9 @@
       "includePath": [
         "/opt/ros/humble/include/**",
         "/home/jackfruittt/Software/rs1_robot/include/**",
-        "/usr/include/**"
+        "/usr/include/**",
+        "${workspaceFolder}/include",
+        "home/matthew/rs1_robot/include/**"
       ],
       "name": "ros2",
       "intelliSenseMode": "linux-gcc-x64",

@@ -206,6 +206,29 @@ public:
    */
   double calculateZControl(double target_z, double current_z, double dt);
   
+  /**
+   * @brief Update current yaw angle from IMU data
+   * @param yaw Current yaw angle in radians
+   */
+  void updateCurrentYaw(double yaw);
+  
+  /**
+   * @brief Calculate desired yaw angle towards target
+   * @param current_pos Current position
+   * @param target_pos Target position
+   * @return Desired yaw angle in radians
+   */
+  double calculateYawToTarget(const geometry_msgs::msg::Point& current_pos, const geometry_msgs::msg::Point& target_pos);
+  
+  /**
+   * @brief Calculate yaw control command
+   * @param target_yaw Desired yaw angle
+   * @param current_yaw Current yaw angle
+   * @param dt Time step
+   * @return Angular velocity command
+   */
+  double calculateYawControl(double target_yaw, double current_yaw, double dt);
+  
   // Advanced features (currently commented out for future implementation)
   // /**
   //  * @brief Enable/disable terrain following mode
@@ -229,10 +252,10 @@ private:
   std::unique_ptr<PIDController> pid_y_;
   std::unique_ptr<PIDController> pid_z_;
   
-  // PID controllers for attitude control (currently unused)
+  // PID controllers for attitude control
   // std::unique_ptr<PIDController> pid_roll_;
   // std::unique_ptr<PIDController> pid_pitch_;
-  // std::unique_ptr<PIDController> pid_yaw_;
+  std::unique_ptr<PIDController> pid_yaw_;  ///< Yaw orientation controller
   
   // Velocity PID controllers (for future implementation)
   // std::unique_ptr<PIDController> pid_vel_x_;
@@ -252,6 +275,10 @@ private:
   // Command smoothing
   geometry_msgs::msg::Twist last_cmd_;  ///< Previous command for smoothing
   bool first_command_;                  ///< First command flag
+  
+  // Orientation tracking
+  double current_yaw_;                  ///< Current yaw angle in radians
+  bool imu_data_available_;             ///< Flag indicating IMU data validity
   
   // ROS 2 integration
   rclcpp::Logger logger_;               ///< ROS 2 logger for debugging
@@ -285,6 +312,13 @@ private:
    * @return True if goal reached within tolerance
    */
   bool isGoalReached(const geometry_msgs::msg::Point& current_pos, const geometry_msgs::msg::Pose& goal, bool use_manual_altitude);
+  
+  /**
+   * @brief Normalize angle to [-pi, pi] range
+   * @param angle Angle in radians
+   * @return Normalized angle
+   */
+  double normalizeAngle(double angle);
 };
 
 }  // namespace drone_swarm

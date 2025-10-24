@@ -2,6 +2,7 @@
  * @file state_machine.h
  * @brief Mission state machine for drone flight control
  * @author Jackson Russell
+ * @author Matthew Chua
  * OTHER AUTHORS ADD HERE AND BELOW
  * @date August-2025
  */

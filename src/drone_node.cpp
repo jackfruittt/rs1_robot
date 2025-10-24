@@ -1,5 +1,6 @@
 #include "drone_node.h"
 #include <cmath>
+#define _USE_MATH_DEFINES
 
 namespace drone_swarm
 {
@@ -32,9 +33,9 @@ namespace drone_swarm
         "/" + drone_namespace_ + "/target_pose", 10,
         std::bind(&DroneControllerNode::targetPoseCallback, this, std::placeholders::_1));
 
-    // imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
-    //     "/" + drone_namespace_ + "/imu", 10,
-    //     std::bind(&DroneControllerNode::imuCallback, this, std::placeholders::_1));
+    imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
+        "/" + drone_namespace_ + "/imu", 10,
+        std::bind(&DroneControllerNode::imuCallback, this, std::placeholders::_1));
 
     // gps_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
     //     "/" + drone_namespace_ + "/gps", 10,
@@ -73,14 +74,14 @@ namespace drone_swarm
 
     // Create services
 
+    // Load control parameters
+    loadControlParams();
+
     // Create control timer
     auto timer_period = std::chrono::milliseconds(static_cast<int>(1000.0 / control_frequency_));
     control_timer_ = this->create_wall_timer(
         timer_period,
         std::bind(&DroneControllerNode::controlLoopCallback, this));
-
-    // Load control parameters
-    loadControlParams();
 
     RCLCPP_INFO(this->get_logger(), "Drone Controller Node initialized for %s", drone_namespace_.c_str());
   }
@@ -116,7 +117,7 @@ namespace drone_swarm
 
   void DroneControllerNode::loadControlParams() {
     // Load control parameters from ROS parameters
-    this->declare_parameter("control_frequency", 20.0);
+    this->declare_parameter("control_frequency", 10.0);
     this->declare_parameter("telemetry_frequency", 5.0);
     this->declare_parameter("takeoff_altitude", 2.0);
     this->declare_parameter("landing_speed", 0.5);
@@ -124,6 +125,12 @@ namespace drone_swarm
 
     control_frequency_ = this->get_parameter("control_frequency").as_double();
     telemetry_frequency_ = this->get_parameter("telemetry_frequency").as_double();
+
+    // Validate frequencies
+    if (control_frequency_ <= 0.0) {
+      RCLCPP_WARN(this->get_logger(), "Invalid control frequency %.2f, using default 20.0 Hz", control_frequency_);
+      control_frequency_ = 20.0;
+    }
 
     // Configure drone control system
     drone_control_->setLogger(this->get_logger());
@@ -179,13 +186,23 @@ namespace drone_swarm
                  msg->pose.position.x, msg->pose.position.y, msg->pose.position.z);
   }
 
-  // void DroneControllerNode::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
-  // {
-  //   (void)msg; // Suppress unused parameter warning
-  //   // TODO: Process IMU data for attitude estimation
-  //   // sensor_manager_->updateIMU(msg);
-  //   RCLCPP_DEBUG(this->get_logger(), "IMU data received");
-  // }
+  void DroneControllerNode::imuCallback(const sensor_msgs::msg::Imu::SharedPtr msg)
+  {
+    // Extract yaw angle from quaternion orientation
+    double x = msg->orientation.x;
+    double y = msg->orientation.y;
+    double z = msg->orientation.z;
+    double w = msg->orientation.w;
+    
+    // Convert quaternion to yaw angle (Euler Z rotation)
+    double yaw = std::atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
+    
+    // Update drone control with current yaw
+    drone_control_->updateCurrentYaw(yaw);
+    
+    RCLCPP_DEBUG(this->get_logger(), "IMU data received - Yaw: %.2f rad (%.1f deg)", 
+                 yaw, yaw * 180.0 / M_PI);
+  }
 
   // void DroneControllerNode::gpsCallback(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
   // {

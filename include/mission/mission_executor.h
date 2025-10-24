@@ -3,6 +3,7 @@
  * @brief Mission execution class for simple and complex autonomous operations.
  * @author Jackson Russell
  * OTHER AUTHORS ADD HERE AND BELOW
+ * @author Matthew Chua
  * @date August-2025
  */
 
@@ -12,7 +13,9 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist.hpp>
+
 #include "mission_state.h"
+#include "mission/path_planner.h"
 
 namespace drone_swarm
 {
@@ -72,6 +75,7 @@ public:
   // void setMissionState(MissionState state);
 
 private:
+  void executeMission(void);
   // Future implementation variables (currently commented out)
   // geometry_msgs::msg::PoseStamped target_pose_;  ///< Current mission target
   // bool mission_complete_;                         ///< Mission completion flag
