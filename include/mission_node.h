@@ -79,6 +79,12 @@ struct DroneInfo {
   bool valid;
 };
 
+struct DispatchCooldown {
+  rclcpp::Time until;                 // steady time
+  geometry_msgs::msg::Point target;   // last dispatched target
+  int responder_id{-1};
+};
+
 /**
  * @brief Simple data structure to hold parsed scenario information
  * 
@@ -345,12 +351,27 @@ private:
   bool fetch_at_fire_ = false;  // Track if drone is at fire location
   rclcpp::Time fire_hover_stamp_;  // When drone started hovering at fire
   FetchRtPhase fetch_rt_phase_ = FetchRtPhase::NONE;
+  
+  geometry_msgs::msg::Pose hover_hold_pose_;
+
+
+  mutable std::mutex dispatch_mutex_;
+  std::unordered_map<std::string, DispatchCooldown> dispatch_cooldown_;
+
+  // steady clock just for gating/cooldowns
+  rclcpp::Clock steady_clock_{RCL_STEADY_TIME};
+
+  // tunables (overridden by params below)
+  rclcpp::Duration coordination_cooldown_{std::chrono::seconds(5)};
+  double incident_merge_radius_m_{3.0};
 
   // 14 OCT
   geometry_msgs::msg::Point helipad_location_;
   // Intelligent drone selection
-  int selectBestResponderDrone(const std::vector<int>& all_drone_ids, 
-                                MissionState required_state);
+  int selectBestResponderDrone(const std::vector<int>& all_drone_ids,
+                              MissionState required_state,
+                              const geometry_msgs::msg::Point& incident_xyz);
+
 
   /**
    * @brief Check if a drone can transition between states
@@ -361,7 +382,12 @@ private:
   bool canStateTransitionTo(MissionState current, MissionState target);
 
   void infoManifestCallback(int peer_id, const std_msgs::msg::String::SharedPtr& msg);
-
+  bool waitForPeerMatch(int id, std::chrono::milliseconds max_wait) ;
+  bool waitForPeerPingSubscriber(int peer_id, std::chrono::milliseconds timeout);
+  bool shouldSuppressIncident(const ScenarioData& s);
+  inline bool isBusyWithAssignedMission() const {
+    return in_fetch_rt_ || in_hiker_rescue_;
+  }
 
 };
 
