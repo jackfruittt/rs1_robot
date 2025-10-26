@@ -443,7 +443,7 @@ namespace drone_swarm
       in_hiker_rescue_awaiting_takeoff_ = false;
       hiker_target_xyz_.x = hx;
       hiker_target_xyz_.y = hy;
-      hiker_target_xyz_.z = hz;
+      hiker_target_xyz_.z = hz + 1; // so drones don't crash
 
       geometry_msgs::msg::PoseStamped wp_depot;
       wp_depot.header.frame_id = "map";
@@ -472,7 +472,7 @@ namespace drone_swarm
         fetch_landed_ = false;
         fetch_fire_target_.x = fx;
         fetch_fire_target_.y = fy;
-        fetch_fire_target_.z = fz;
+        fetch_fire_target_.z = fz + 1;
 
         geometry_msgs::msg::PoseStamped wp_depot;
         wp_depot.header.frame_id = "map";
@@ -1394,6 +1394,14 @@ namespace drone_swarm
 
     if (shouldSuppressIncident(scenario)) {
       return;  // no hover/ping/selection
+    }
+
+    if (isBusyWithAssignedMission()) {
+      RCLCPP_DEBUG(this->get_logger(),
+                  "Ignoring scenario while executing assigned mission "
+                  "(in_fetch_rt=%d, in_hiker_rescue=%d)",
+                  in_fetch_rt_, in_hiker_rescue_);
+      return;
     }
 
     // // --- REPLACEMENT DEBOUNCE LOGIC ---

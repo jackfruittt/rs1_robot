@@ -265,10 +265,12 @@ private:
   static bool parseKeyVal(const std::string& tok, std::string& key, std::string& val);
   static MissionState stateFromString(const std::string& s);
 
+
   DroneInfo parseInfoManifest(const std::string& manifest_data);
   std::map<int, DroneInfo> pingDronesForInfo(const std::vector<int>& drone_ids, int timeout_ms = 500);
   int selectLowestDronId();
   void performCoordination(const ScenarioData& scenario);
+
 
   // Parser: turns CSV string into a typed ScenarioEvent
   std::optional<ScenarioEvent> parseScenarioDetection(const std_msgs::msg::String& msg);
@@ -383,6 +385,10 @@ private:
   bool waitForPeerMatch(int id, std::chrono::milliseconds max_wait) ;
   bool waitForPeerPingSubscriber(int peer_id, std::chrono::milliseconds timeout);
   bool shouldSuppressIncident(const ScenarioData& s);
+  inline bool isBusyWithAssignedMission() const {
+    return in_fetch_rt_ || in_hiker_rescue_;
+  }
+
 };
 
 
