@@ -345,6 +345,8 @@ private:
   bool fetch_at_fire_ = false;  // Track if drone is at fire location
   rclcpp::Time fire_hover_stamp_;  // When drone started hovering at fire
   FetchRtPhase fetch_rt_phase_ = FetchRtPhase::NONE;
+  
+  geometry_msgs::msg::Pose hover_hold_pose_;
 
   // 14 OCT
   geometry_msgs::msg::Point helipad_location_;
@@ -361,8 +363,8 @@ private:
   bool canStateTransitionTo(MissionState current, MissionState target);
 
   void infoManifestCallback(int peer_id, const std_msgs::msg::String::SharedPtr& msg);
-
-
+  bool waitForPeerMatch(int id, std::chrono::milliseconds max_wait) ;
+  bool waitForPeerPingSubscriber(int peer_id, std::chrono::milliseconds timeout);
 };
 
 

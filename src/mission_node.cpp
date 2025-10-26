@@ -117,15 +117,35 @@ namespace drone_swarm
     }
     
     // Ensure peer wiring exists before pinging
-    for (int id : peers_to_ping) {
-      // Ensure subscription to /rs1_drone_<id>/info_manifest which allows manager drones to then receive data from all drones
-      createPeerSubscriptionForId(id);
+    for (int drone_id : peers_to_ping) {
+      // ensure wiring exists
+      createPeerSubscriptionForId(drone_id);
+
+      // wait (briefly) for the DDS match so a one-shot ping won’t be dropped
+      if (!waitForPeerPingSubscriber(drone_id, std::chrono::milliseconds(300))) {
+        RCLCPP_WARN(this->get_logger(),
+                    "Peer %d /info_request not matched yet; will send a few spaced pings as fallback.",
+                    drone_id);
+      }
     }
+    // Record when we sent pings so we only accept responses after this
+    auto ping_start_time = this->now();
+
+    auto send_ping = [&](int id){
+      std_msgs::msg::Empty e;
+      auto it = info_request_pubs_.find(id);
+      if (it != info_request_pubs_.end() && it->second) it->second->publish(e);
+    };
+
+    for (int id : peers_to_ping) send_ping(id);
+    rclcpp::sleep_for(std::chrono::milliseconds(120));
+    for (int id : peers_to_ping) send_ping(id);
+    rclcpp::sleep_for(std::chrono::milliseconds(120));
+    for (int id : peers_to_ping) send_ping(id);
 
     RCLCPP_INFO(this->get_logger(), "Pinging %zu peers...", peers_to_ping.size());
     
-    // Record when we sent pings so we only accept responses after this
-    auto ping_start_time = this->now();
+
     {
       std::lock_guard<std::mutex> lock(peers_mutex_);
       for (int id : peers_to_ping) {
@@ -166,7 +186,7 @@ namespace drone_swarm
           auto it = peer_info_.find(id);
           
           // Check if response was sent after ping
-          if (it == peer_info_.end() || it->second.stamp <= ping_start_time) {
+          if (it == peer_info_.end() || it->second.stamp < ping_start_time) {
             all_received = false;
             continue;
           }
@@ -230,29 +250,31 @@ namespace drone_swarm
           }
       }
 
-      // UPDATED: After landing at depot, wait then go to fire
-      if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::LANDING) {
-          // Transition to waiting phase
-          fetch_rt_phase_ = FetchRtPhase::WAITING;
-          fetch_land_stamp_ = this->get_clock()->now();
+      if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::LANDING && fetch_landed_) {
+        fetch_rt_phase_ = FetchRtPhase::WAITING;
+        // fetch_land_stamp_ was set in landing()
       }
 
+      // After 2s ground wait, take off towards fire
       if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::WAITING) {
-          if (this->get_clock()->now() - fetch_land_stamp_ > rclcpp::Duration::from_seconds(2.0)) {
-              RCLCPP_INFO(this->get_logger(), "Retardant collected, proceeding to fire location.");
-              geometry_msgs::msg::PoseStamped wp_fire;
-              wp_fire.header.frame_id = "map";
-              wp_fire.pose.position = fetch_fire_target_;
-              wp_fire.pose.orientation.w = 1.0;
-              path_planner_->setWaypoints({wp_fire});
-              state_machine_->setState(MissionState::TAKEOFF);
-              fetch_rt_phase_ = FetchRtPhase::TO_FIRE;  // <-- GO TO FIRE
-          }
+        if (this->get_clock()->now() - fetch_land_stamp_ > rclcpp::Duration::from_seconds(2.0) &&
+            state_machine_->getCurrentState() == MissionState::IDLE) {
+
+          RCLCPP_INFO(this->get_logger(), "Retardant collected, proceeding to fire location.");
+          geometry_msgs::msg::PoseStamped wp_fire;
+          wp_fire.header.frame_id = "map";
+          wp_fire.pose.position = fetch_fire_target_;
+          wp_fire.pose.orientation.w = 1.0;
+          path_planner_->setWaypoints({wp_fire});
+
+          state_machine_->setState(MissionState::TAKEOFF);   // legal: IDLE -> TAKEOFF
+          fetch_rt_phase_ = FetchRtPhase::TO_FIRE;
+        }
       }
 
       // NEW: After hovering at fire, return to depot
       if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::HOVERING_AT_FIRE) {
-          if (this->get_clock()->now() - fire_hover_stamp_ > rclcpp::Duration::from_seconds(5.0)) {
+          if (this->get_clock()->now() - fire_hover_stamp_ > rclcpp::Duration::from_seconds(2.0)) {
               RCLCPP_INFO(this->get_logger(), "Retardant dropped, returning to depot.");
               geometry_msgs::msg::PoseStamped wp_depot;
               wp_depot.header.frame_id = "map";
@@ -262,6 +284,7 @@ namespace drone_swarm
               wp_depot.pose.orientation.w = 1.0;
               path_planner_->setWaypoints({wp_depot});
               fetch_rt_phase_ = FetchRtPhase::TO_DEPOT;  // <-- RESTART CYCLE
+              fetch_landed_ = false;
           }
       }
 
@@ -334,12 +357,15 @@ namespace drone_swarm
         RCLCPP_INFO(this->get_logger(), "Landed at medkit depot. Pausing for collection.");
         // Stay in LANDING state. The missionTimer will handle the next step.
       } 
-      else if (in_fetch_rt_ && !fetch_landed_) {
+      else if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::LANDING && !fetch_landed_) {
         fetch_landed_ = true;
         fetch_land_stamp_ = this->get_clock()->now();
         RCLCPP_INFO(this->get_logger(), "Landed at retardant depot. Pausing for collection.");
-        // Stay in LANDING state.
-      } else {
+        state_machine_->setState(MissionState::IDLE);   // <-- move to IDLE so TAKEOFF is legal
+        landing_timers.erase(drone_id_);
+        return;
+      }
+      else {
         // mission-ending landing.
         state_machine_->setState(MissionState::IDLE);
         path_planner_->reset();
@@ -734,6 +760,7 @@ namespace drone_swarm
       waypoint.header.stamp = this->get_clock()->now();
       waypoint.pose.orientation.w = 1.0;
       
+      // OG waypoints, but kinda far
       if (drone_id_ == "rs1_drone_1") {
           waypoint.pose.position.x = 4.0;
           waypoint.pose.position.y = 16.0;
@@ -755,6 +782,29 @@ namespace drone_swarm
           waypoint.pose.position.y = -6.0;
           waypoint.pose.position.z = 15.0;
       }
+
+      // Shorter waypoints
+      // if (drone_id_ == "rs1_drone_1") {
+      //     waypoint.pose.position.x = -13.0;
+      //     waypoint.pose.position.y = 18.0;
+      //     waypoint.pose.position.z = 15.0;
+      // } else if (drone_id_ == "rs1_drone_2") {
+      //     waypoint.pose.position.x = -13.0;
+      //     waypoint.pose.position.y = 10.0;
+      //     waypoint.pose.position.z = 15.0;
+      // } else if (drone_id_ == "rs1_drone_3") {
+      //     waypoint.pose.position.x = -13.0;
+      //     waypoint.pose.position.y = 2.0;
+      //     waypoint.pose.position.z = 15.0;
+      // } else if (drone_id_ == "rs1_drone_4") {
+      //     waypoint.pose.position.x = 5-13.0;
+      //     waypoint.pose.position.y = -6.0;
+      //     waypoint.pose.position.z = 15.0;
+      // } else {
+      //     waypoint.pose.position.x = 0.0;
+      //     waypoint.pose.position.y = 0.0;
+      //     waypoint.pose.position.z = 15.0;
+      // }
       
       waypoints.push_back(waypoint);
       path_planner_->setWaypoints(waypoints);
@@ -1211,6 +1261,66 @@ namespace drone_swarm
     }
   }
 
+  // void MissionPlannerNode::scenarioDetectionCallback(const std_msgs::msg::String::SharedPtr msg) {
+  //   ScenarioData scenario = parseScenarioMessage(msg->data);
+  //   if (!scenario.valid) { return; }
+
+  //   // ---- Debounce / re-entrancy guard (RE-ENABLE THIS) ----
+  //   {
+  //     std::lock_guard<std::mutex> lock(coordination_mutex_);
+  //     if (is_coordinating_ &&
+  //         active_coordination_scenario_.has_value() &&
+  //         active_coordination_scenario_->scenario_name == scenario.scenario_name) {
+  //       RCLCPP_INFO(this->get_logger(),
+  //                   "Already coordinating %s - ignoring duplicate detection",
+  //                   scenario.scenario_name.c_str());
+  //       return;
+  //     }
+  //     is_coordinating_ = true;
+  //     active_coordination_scenario_ = scenario;
+  //   }
+  //   // -------------------------------------------------------
+
+  //   // Transition to hovering (stop and coordinate)
+  //   if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::HOVERING)) {
+  //     RCLCPP_INFO(this->get_logger(), "Scenario detected. Stopping to coordinate response.");
+  //     state_machine_->setState(MissionState::HOVERING);
+  //     path_planner_->reset();
+  //     publishMissionCommand();
+  //   } else if (state_machine_->getCurrentState() == MissionState::HOVERING) {
+  //     RCLCPP_INFO(this->get_logger(), "New scenario detected while already hovering/coordinating.");
+  //   } else {
+  //     RCLCPP_WARN(this->get_logger(), "Scenario detected but drone is in non-interruptible state: %s",
+  //                 state_machine_->getStateString().c_str());
+  //     std::lock_guard<std::mutex> lock(coordination_mutex_);
+  //     is_coordinating_ = false;
+  //     active_coordination_scenario_.reset();
+  //     return;
+  //   }
+
+  //   // Optional: only start the 1s “stop” thread if we actually just switched to HOVERING
+
+  //   // Do the heavy work off-thread
+  //   std::thread([this, scenario]() {
+  //     try {
+  //       if (scenario.scenario_name == "STRANDED_HIKER" || scenario.scenario_name == "WILDFIRE") {
+  //         performCoordination(scenario);
+  //       } else {
+  //         RCLCPP_INFO(this->get_logger(), "Debris detected - notifying GUI only");
+  //       }
+  //     } catch (const std::exception& e) {
+  //       RCLCPP_ERROR(this->get_logger(), "Coordination thread exception: %s", e.what());
+  //     }
+
+  //     // Always reset flags
+  //     std::lock_guard<std::mutex> lock(coordination_mutex_);
+  //     is_coordinating_ = false;
+  //     active_coordination_scenario_.reset();
+  //     RCLCPP_INFO(this->get_logger(), "Coordination complete. Ready for new scenarios.");
+  //   }).detach();
+  // }
+
+
   void MissionPlannerNode::scenarioDetectionCallback(const std_msgs::msg::String::SharedPtr msg) {
     // Parse the incoming message
     ScenarioData scenario = parseScenarioMessage(msg->data);
@@ -1220,21 +1330,21 @@ namespace drone_swarm
     }
 
     // // --- REPLACEMENT DEBOUNCE LOGIC ---
-    // {
-    //   std::lock_guard<std::mutex> lock(coordination_mutex_);
-    //   if (is_coordinating_ && 
-    //       active_coordination_scenario_.has_value() && 
-    //       active_coordination_scenario_->scenario_name == scenario.scenario_name) {
-    //       RCLCPP_INFO(this->get_logger(), 
-    //                   "Already coordinating %s - ignoring duplicate detection",
-    //                   scenario.scenario_name.c_str());
-    //       return;
-    //   }
+    {
+      std::lock_guard<std::mutex> lock(coordination_mutex_);
+      if (is_coordinating_ && 
+          active_coordination_scenario_.has_value() && 
+          active_coordination_scenario_->scenario_name == scenario.scenario_name) {
+          RCLCPP_INFO(this->get_logger(), 
+                      "Already coordinating %s - ignoring duplicate detection",
+                      scenario.scenario_name.c_str());
+          return;
+      }
       
-    //   // Set coordination flag
-    //   is_coordinating_ = true;  
-    //   active_coordination_scenario_ = scenario;
-    // }
+      // Set coordination flag
+      is_coordinating_ = true;  
+      active_coordination_scenario_ = scenario;
+    }
     // --- END REPLACEMENT ---
     
     // 1. Immediately transition the *manager* drone to HOVERING.
@@ -1256,6 +1366,19 @@ namespace drone_swarm
       return;
     }
 
+    // 1) Immediately hold at the scenario location (or current pose if you prefer)
+    geometry_msgs::msg::PoseStamped hold;
+    hold.header.frame_id = "map";
+    hold.header.stamp = this->get_clock()->now();
+
+    // Option A: hold exactly at the detected scenario
+    hold.pose.position.x = scenario.x;
+    hold.pose.position.y = scenario.y;
+    hold.pose.position.z = scenario.z;   // or std::max(scenario.z, current_pose_.pose.position.z);
+    hold.pose.orientation.w = 1.0;
+
+    target_pose_pub_->publish(hold);
+
     RCLCPP_INFO(this->get_logger(),
                 "Drone %d detected: %s at [%.2f, %.2f, %.2f]", drone_numeric_id_,
                 scenario.scenario_name.c_str(), scenario.x, scenario.y, scenario.z);
@@ -1274,16 +1397,32 @@ namespace drone_swarm
           RCLCPP_ERROR(this->get_logger(), "Coordination thread exception: %s", e.what());
       }
 
-      // --- THIS IS THE CRITICAL FIX ---
       // After all work is done (or failed), reset the flags.
       std::lock_guard<std::mutex> lock(coordination_mutex_);
       is_coordinating_ = false;
       active_coordination_scenario_.reset();
       RCLCPP_INFO(this->get_logger(), "Coordination complete. Ready for new scenarios.");
-      // --- END CRITICAL FIX ---
-
     }).detach();
   }
+
+  bool MissionPlannerNode::waitForPeerPingSubscriber(int peer_id, std::chrono::milliseconds timeout)
+  {
+    auto deadline = this->now() + rclcpp::Duration(timeout);
+    while (this->now() < deadline) {
+      std::shared_ptr<rclcpp::Publisher<std_msgs::msg::Empty>> pub;
+      {
+        std::lock_guard<std::mutex> lock(peers_mutex_);
+        auto it = info_request_pubs_.find(peer_id);
+        if (it != info_request_pubs_.end()) pub = it->second;
+      }
+      if (pub && pub->get_subscription_count() > 0) {
+        return true; // the peer’s /info_request sub is matched
+      }
+      rclcpp::sleep_for(std::chrono::milliseconds(25));
+    }
+    return false;
+  }
+  
   DroneInfo MissionPlannerNode::parseInfoManifest(const std::string& manifest_data) {
     DroneInfo result;
     result.valid = false;
