@@ -232,6 +232,48 @@ namespace drone_swarm
     return results;
   }
 
+  bool MissionPlannerNode::shouldSuppressIncident(const ScenarioData& s) {
+    const auto now = steady_clock_.now();
+    std::lock_guard<std::mutex> lk(dispatch_mutex_);
+    auto it = dispatch_cooldown_.find(s.scenario_name);
+    if (it == dispatch_cooldown_.end()) return false;
+
+    auto& cd = it->second;
+
+    // Same-incident proximity check first
+    const double dx = cd.target.x - s.x;
+    const double dy = cd.target.y - s.y;
+    const double dz = cd.target.z - s.z;
+    const double d2 = dx*dx + dy*dy + dz*dz;
+    const double r2 = incident_merge_radius_m_ * incident_merge_radius_m_;
+    if (d2 > r2) return false;  // far enough away: treat as new incident
+
+    // If the responder is still non-IDLE, keep suppressing indefinitely (and slide the cooldown)
+    {
+      std::lock_guard<std::mutex> pl(peers_mutex_);
+      auto pit = peer_info_.find(cd.responder_id);
+      if (pit != peer_info_.end() && pit->second.state != MissionState::IDLE) {
+        cd.until = now + coordination_cooldown_;  // slide window forward while busy
+        RCLCPP_INFO(this->get_logger(),
+          "Suppressing duplicate %s (responder=%d still busy) within %.1fm",
+          s.scenario_name.c_str(), cd.responder_id, incident_merge_radius_m_);
+        return true;
+      }
+    }
+
+    // Otherwise fall back to time-based cooldown
+    if (now < cd.until) {
+      RCLCPP_INFO(this->get_logger(),
+        "Suppressing duplicate %s (responder=%d) within %.1fm & cooldown %.1fs remaining",
+        s.scenario_name.c_str(), cd.responder_id, incident_merge_radius_m_,
+        (cd.until - now).seconds());
+      return true;
+    }
+
+    // Cooldown expired AND responder idle -> allow new coordination
+    return false;
+  }
+
   void MissionPlannerNode::missionTimerCallback() {
       executeMission();
 
@@ -512,12 +554,33 @@ namespace drone_swarm
       auto all_drones = getKnownDroneIds();        // dynamic list
       int responder_id = selectBestResponderDrone(all_drones, required_state);
     */
-    int responder_id = selectBestResponderDrone(all_drones, required_state);
-    
+    geometry_msgs::msg::Point incident;
+    incident.x = scenario.x; incident.y = scenario.y; incident.z = scenario.z;
+    std::vector<int> peer_drones = all_drones;
+    peer_drones.erase(std::remove(peer_drones.begin(), peer_drones.end(), drone_numeric_id_),
+                      peer_drones.end());
+
+
+    // First, try to delegate to a peer
+    int responder_id = selectBestResponderDrone(peer_drones, required_state, incident);
+
     if (responder_id < 0) {
       RCLCPP_ERROR(this->get_logger(), "Failed to find suitable responder! No drones available.");
       return;
     }
+
+    // After we've decided on responder_id and (if needed) published the assignment:
+    {
+      std::lock_guard<std::mutex> lk(dispatch_mutex_);
+      DispatchCooldown cd;
+      cd.until        = steady_clock_.now() + coordination_cooldown_;
+      cd.responder_id = responder_id;
+      cd.target.x     = scenario.x;
+      cd.target.y     = scenario.y;
+      cd.target.z     = scenario.z;
+      dispatch_cooldown_[scenario.scenario_name] = cd;
+    }
+
     
     if (drone_numeric_id_ == responder_id) {
       RCLCPP_INFO(this->get_logger(), "Drone %d: responding scenario", responder_id);
@@ -1329,6 +1392,10 @@ namespace drone_swarm
       return;
     }
 
+    if (shouldSuppressIncident(scenario)) {
+      return;  // no hover/ping/selection
+    }
+
     // // --- REPLACEMENT DEBOUNCE LOGIC ---
     {
       std::lock_guard<std::mutex> lock(coordination_mutex_);
@@ -1354,7 +1421,7 @@ namespace drone_swarm
       path_planner_->reset();
       publishMissionCommand(); // Sends a cmd_vel to the drone based on everything in this wall timer
     } else if (state_machine_->getCurrentState() == MissionState::HOVERING) {
-      RCLCPP_INFO(this->get_logger(), "New scenario detected while already hovering/coordinating.");
+      RCLCPP_INFO(this->get_logger(), "Already in HOVERING; evaluating scenario.");
     } else {
       RCLCPP_WARN(this->get_logger(), "Scenario detected but drone is in non-interruptible state: %s",
                   state_machine_->getStateString().c_str());
@@ -1390,6 +1457,7 @@ namespace drone_swarm
         if (scenario.scenario_name == "STRANDED_HIKER" ||
             scenario.scenario_name == "WILDFIRE") {
           performCoordination(scenario);
+
         } else if (scenario.scenario_name == "DEBRIS_OBSTRUCTION") {
           RCLCPP_INFO(this->get_logger(), "Debris detected - notifying GUI only");
         }
@@ -1456,60 +1524,51 @@ namespace drone_swarm
   }
 
   int MissionPlannerNode::selectBestResponderDrone(
-      const std::vector<int>& all_drone_ids, MissionState required_state) {
-    
-    RCLCPP_INFO(this->get_logger(), 
+      const std::vector<int>& all_drone_ids,
+      MissionState required_state,
+      const geometry_msgs::msg::Point& incident_xyz) {
+
+    RCLCPP_INFO(this->get_logger(),
                 "Selecting best responder for state: %s",
                 missionStateToString(required_state).c_str());
-    
+
     auto drone_data = pingDronesForInfo(all_drone_ids, 5000);
 
     struct Candidate { int id; double distance; double battery; std::string state; };
     std::vector<Candidate> candidates;
-    
+
     for (const auto& [drone_id, info] : drone_data) {
-      if (!info.valid) {
-        RCLCPP_DEBUG(this->get_logger(), "Drone %d: No response (skipping)", drone_id);
-        continue;
-      }
-      
-      if (info.battery_level < 0.5) {
-        RCLCPP_DEBUG(this->get_logger(), "Drone %d: Low battery %.0f%% (skipping)", drone_id, info.battery_level * 100.0);
-        continue;
-      }
-      
+      if (!info.valid) continue;
+      if (info.battery_level < 0.5) continue;
+
       MissionState current_state = stateFromString(info.mission_state);
-      if (!canStateTransitionTo(current_state, required_state)) {
-        RCLCPP_DEBUG(this->get_logger(), "Drone %d: Cannot transition from %s to required state (skipping)",
-                    drone_id, info.mission_state.c_str());
-        continue;
-      }
-      
-      double dx = info.x - helipad_location_.x;
-      double dy = info.y - helipad_location_.y;
-      double dz = info.z - helipad_location_.z;
+      if (!canStateTransitionTo(current_state, required_state)) continue;
+
+      // ✅ distance to INCIDENT (not helipad)
+      double dx = info.x - incident_xyz.x;
+      double dy = info.y - incident_xyz.y;
+      double dz = info.z - incident_xyz.z;
       double distance = std::sqrt(dx*dx + dy*dy + dz*dz);
-      
+
       candidates.push_back({drone_id, distance, info.battery_level, info.mission_state});
-      
-      RCLCPP_INFO(this->get_logger(), "Drone %d: CANDIDATE - battery=%.0f%%, state=%s, dist_to_helipad=%.2fm",
+      RCLCPP_INFO(this->get_logger(),
+                  "Drone %d: CANDIDATE - battery=%.0f%%, state=%s, dist_to_incident=%.2fm",
                   drone_id, info.battery_level * 100.0, info.mission_state.c_str(), distance);
     }
-    
+
     if (candidates.empty()) {
       RCLCPP_WARN(this->get_logger(), "No suitable drones found! (all failed battery/state checks)");
       return -1;
     }
-    
+
     std::sort(candidates.begin(), candidates.end(),
-              [](const Candidate& a, const Candidate& b) { return a.distance < b.distance; });
-    
-    int best_drone_id = candidates[0].id;
-    
-    RCLCPP_INFO(this->get_logger(), "✓ Selected drone %d: battery=%.0f%%, dist=%.2fm, state=%s",
-                best_drone_id, candidates[0].battery * 100.0, candidates[0].distance, candidates[0].state.c_str());
-    
-    return best_drone_id;
+              [](const Candidate& a, const Candidate& b){ return a.distance < b.distance; });
+
+    const auto& best = candidates.front();
+    RCLCPP_INFO(this->get_logger(),
+                "✓ Selected drone %d: battery=%.0f%%, dist_to_incident=%.2fm, state=%s",
+                best.id, best.battery * 100.0, best.distance, best.state.c_str());
+    return best.id;
   }
 
   void MissionPlannerNode::createPeerSubscriptionForId(int peer_id) {

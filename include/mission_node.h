@@ -79,6 +79,12 @@ struct DroneInfo {
   bool valid;
 };
 
+struct DispatchCooldown {
+  rclcpp::Time until;                 // steady time
+  geometry_msgs::msg::Point target;   // last dispatched target
+  int responder_id{-1};
+};
+
 /**
  * @brief Simple data structure to hold parsed scenario information
  * 
@@ -259,12 +265,10 @@ private:
   static bool parseKeyVal(const std::string& tok, std::string& key, std::string& val);
   static MissionState stateFromString(const std::string& s);
 
-
   DroneInfo parseInfoManifest(const std::string& manifest_data);
   std::map<int, DroneInfo> pingDronesForInfo(const std::vector<int>& drone_ids, int timeout_ms = 500);
   int selectLowestDronId();
   void performCoordination(const ScenarioData& scenario);
-
 
   // Parser: turns CSV string into a typed ScenarioEvent
   std::optional<ScenarioEvent> parseScenarioDetection(const std_msgs::msg::String& msg);
@@ -348,11 +352,24 @@ private:
   
   geometry_msgs::msg::Pose hover_hold_pose_;
 
+
+  mutable std::mutex dispatch_mutex_;
+  std::unordered_map<std::string, DispatchCooldown> dispatch_cooldown_;
+
+  // steady clock just for gating/cooldowns
+  rclcpp::Clock steady_clock_{RCL_STEADY_TIME};
+
+  // tunables (overridden by params below)
+  rclcpp::Duration coordination_cooldown_{std::chrono::seconds(5)};
+  double incident_merge_radius_m_{3.0};
+
   // 14 OCT
   geometry_msgs::msg::Point helipad_location_;
   // Intelligent drone selection
-  int selectBestResponderDrone(const std::vector<int>& all_drone_ids, 
-                                MissionState required_state);
+  int selectBestResponderDrone(const std::vector<int>& all_drone_ids,
+                              MissionState required_state,
+                              const geometry_msgs::msg::Point& incident_xyz);
+
 
   /**
    * @brief Check if a drone can transition between states
@@ -365,6 +382,7 @@ private:
   void infoManifestCallback(int peer_id, const std_msgs::msg::String::SharedPtr& msg);
   bool waitForPeerMatch(int id, std::chrono::milliseconds max_wait) ;
   bool waitForPeerPingSubscriber(int peer_id, std::chrono::milliseconds timeout);
+  bool shouldSuppressIncident(const ScenarioData& s);
 };
 
 
