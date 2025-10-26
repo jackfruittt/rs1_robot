@@ -294,7 +294,6 @@ namespace drone_swarm
 
       if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::LANDING && fetch_landed_) {
         fetch_rt_phase_ = FetchRtPhase::WAITING;
-        // fetch_land_stamp_ was set in landing()
       }
 
       // After 2s ground wait, take off towards fire
@@ -316,18 +315,22 @@ namespace drone_swarm
 
       // NEW: After hovering at fire, return to depot
       if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::HOVERING_AT_FIRE) {
-          if (this->get_clock()->now() - fire_hover_stamp_ > rclcpp::Duration::from_seconds(2.0)) {
-              RCLCPP_INFO(this->get_logger(), "Retardant dropped, returning to depot.");
-              geometry_msgs::msg::PoseStamped wp_depot;
-              wp_depot.header.frame_id = "map";
-              wp_depot.pose.position.x = depot_xyz_.x;
-              wp_depot.pose.position.y = depot_xyz_.y;
-              wp_depot.pose.position.z = depot_xyz_.z;
-              wp_depot.pose.orientation.w = 1.0;
-              path_planner_->setWaypoints({wp_depot});
-              fetch_rt_phase_ = FetchRtPhase::TO_DEPOT;  // <-- RESTART CYCLE
-              fetch_landed_ = false;
-          }
+        if (this->get_clock()->now() - fire_hover_stamp_ > rclcpp::Duration::from_seconds(2.0)) {
+          RCLCPP_INFO(this->get_logger(), "Retardant dropped, returning to depot.");
+          geometry_msgs::msg::PoseStamped wp_depot;
+          wp_depot.header.frame_id = "map";
+          wp_depot.pose.position.x = depot_xyz_.x;
+          wp_depot.pose.position.y = depot_xyz_.y;
+          wp_depot.pose.position.z = depot_xyz_.z;
+          wp_depot.pose.orientation.w = 1.0;
+          path_planner_->setWaypoints({wp_depot});
+
+          fetch_rt_phase_ = FetchRtPhase::TO_DEPOT;   // keep the loop going
+          fetch_landed_   = false;
+
+          // 🔧 make sure the controller re-engages NAV immediately
+          state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
+        }
       }
 
       std_msgs::msg::String state_msg;
@@ -337,53 +340,52 @@ namespace drone_swarm
   }
 
   void MissionPlannerNode::waypointNavigation() {
-      if (!path_planner_->hasNextWaypoint()) { 
-        state_machine_->setState(MissionState::HOVERING);
+    if (!path_planner_->hasNextWaypoint()) { 
+      state_machine_->setState(MissionState::HOVERING);
+      return;
+    }
+    if (!isWaypointReached()) return;
+
+    if (in_hiker_rescue_ && !medkit_collected_ && !in_hiker_rescue_awaiting_takeoff_) {
+      RCLCPP_INFO(this->get_logger(), "Arrived at medkit depot. Landing to collect.");
+      state_machine_->setState(MissionState::LANDING);
+      return; 
+    }
+
+    // UPDATED: Only land when specifically going to depot
+    if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::TO_DEPOT) {
+      RCLCPP_INFO(this->get_logger(), "Arrived at retardant depot. Landing to collect.");
+      fetch_rt_phase_ = FetchRtPhase::LANDING;
+      state_machine_->setState(MissionState::LANDING);
+      return; 
+    }
+
+    // NEW: Handle arrival at fire location
+    if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::TO_FIRE) {
+      RCLCPP_INFO(this->get_logger(), "Arrived at fire location. Hovering to drop retardant.");
+      fetch_rt_phase_ = FetchRtPhase::HOVERING_AT_FIRE;
+      fire_hover_stamp_ = this->get_clock()->now();
+      return;
+    }
+
+    // NEW: Don't advance waypoints while hovering at fire - timer callback handles the cycle
+    if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::HOVERING_AT_FIRE) {
+      // Timer callback will handle transitioning back to depot after 5 seconds
+      return;
+    }
+
+    (void)path_planner_->getNextWaypoint();
+    if (!path_planner_->hasNextWaypoint()) {
+      if (in_fetch_rt_ || in_hiker_rescue_) {
+        // We're in a managed multi-phase mission; phase logic/timers will advance us.
         return;
       }
-      if (!isWaypointReached()) return;
-
-      if (in_hiker_rescue_ && !medkit_collected_ && !in_hiker_rescue_awaiting_takeoff_) {
-        RCLCPP_INFO(this->get_logger(), "Arrived at medkit depot. Landing to collect.");
-        state_machine_->setState(MissionState::LANDING);
-        return; 
-      }
-
-      // UPDATED: Only land when specifically going to depot
-      if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::TO_DEPOT) {
-        RCLCPP_INFO(this->get_logger(), "Arrived at retardant depot. Landing to collect.");
-        fetch_rt_phase_ = FetchRtPhase::LANDING;
-        state_machine_->setState(MissionState::LANDING);
-        return; 
-      }
-
-      // NEW: Handle arrival at fire location
-      if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::TO_FIRE) {
-        RCLCPP_INFO(this->get_logger(), "Arrived at fire location. Hovering to drop retardant.");
-        fetch_rt_phase_ = FetchRtPhase::HOVERING_AT_FIRE;
-        fire_hover_stamp_ = this->get_clock()->now();
-        return;
-      }
-
-      // NEW: Don't advance waypoints while hovering at fire - timer callback handles the cycle
-      if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::HOVERING_AT_FIRE) {
-        // Timer callback will handle transitioning back to depot after 5 seconds
-        return;
-      }
-
-      (void)path_planner_->getNextWaypoint();
-      if (!path_planner_->hasNextWaypoint()) {
-        RCLCPP_INFO(get_logger(), "Final waypoint reached. Mission complete. Hovering.");
-        state_machine_->setState(MissionState::HOVERING);
-
-        // Reset flags
-        in_fetch_rt_ = false;
-        fetch_rt_phase_ = FetchRtPhase::NONE;
-        in_hiker_rescue_ = false;
-        in_hiker_rescue_awaiting_takeoff_ = false;
-      } else {
-        RCLCPP_INFO(get_logger(), "Waypoint reached - moving to next waypoint");
-      }
+      RCLCPP_INFO(get_logger(), "Final waypoint reached. Mission complete. Hovering.");
+      state_machine_->setState(MissionState::HOVERING);
+      // (Do not clear in_fetch_rt_ here; leave that to mission logic)
+    } else {
+      RCLCPP_INFO(get_logger(), "Waypoint reached - moving to next waypoint");
+    }
   }
 
   void MissionPlannerNode::landing() {
