@@ -75,6 +75,7 @@ namespace drone_swarm
     target_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/" + drone_namespace_ + "/target_pose", 10);
     mission_state_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/mission_state", reliable_qos);
     info_manifest_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/info_manifest", reliable_qos);
+    incident_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/incident", 10);
       
     //--- Srvs ---//
     start_mission_service_ = this->create_service<std_srvs::srv::Trigger>(
@@ -274,7 +275,6 @@ namespace drone_swarm
   void MissionPlannerNode::missionTimerCallback() {
       executeMission();
 
-
       // Hiker rescue
       if (in_hiker_rescue_ && medkit_collected_) {
           if (this->get_clock()->now() - medkit_collect_stamp_ > rclcpp::Duration::from_seconds(2.0)) {
@@ -375,6 +375,11 @@ namespace drone_swarm
     if (!path_planner_->hasNextWaypoint()) {
       if (in_fetch_rt_ || in_hiker_rescue_) {
         // We're in a managed multi-phase mission; phase logic/timers will advance us.
+        return;
+      }
+      if (repeatWaypointPath == true) {
+        path_planner_->reset();
+        RCLCPP_INFO(get_logger(), "Final waypoint reached. Travelling back to first waypoint.");
         return;
       }
       RCLCPP_INFO(get_logger(), "Final waypoint reached. Mission complete. Hovering.");
@@ -493,6 +498,16 @@ namespace drone_swarm
         return;
       }
 
+      if (tokens.size() == 5) {
+        // set a repeat waypoint variable to false
+        RCLCPP_INFO(get_logger(), "Single waypoint set, repeatWaypointPath false");
+        repeatWaypointPath = false;
+      } else {
+        // set a repeat waypoint variable to true
+        RCLCPP_INFO(get_logger(), "Multiple waypoints set, repeatWaypointPath true");
+        repeatWaypointPath = true;
+      }
+
       std::vector<geometry_msgs::msg::PoseStamped> new_waypoints;
       RCLCPP_INFO(this->get_logger(), "ROUTE mission assigned with %zu waypoints.", (tokens.size() - 2) / 3);
 
@@ -568,9 +583,12 @@ namespace drone_swarm
       DispatchCooldown cd; 
       cd.until        = steady_clock_.now() + coordination_cooldown_;
       cd.responder_id = responder_id;
-      cd.target.x     = scenario.x;
-      cd.target.y     = scenario.y;
-      cd.target.z     = scenario.z;
+      // cd.target.x     = scenario.x;
+      // cd.target.y     = scenario.y;
+      // cd.target.z     = scenario.z;
+      cd.target.x     = current_pose_.pose.position.x;
+      cd.target.y     = current_pose_.pose.position.y;
+      cd.target.z     = current_pose_.pose.position.z;
       dispatch_cooldown_[scenario.scenario_name] = cd;
     }
 
@@ -1353,7 +1371,26 @@ namespace drone_swarm
       active_coordination_scenario_ = scenario;
     }
     
+    // NOTIFY GUI
+    alertIncidentGui(this->parseScenarioDetection(*msg));
+
     // 1. Immediately transition the *manager* drone to HOVERING.
+    // 1) Immediately hold at the scenario location (or current pose if you prefer)
+    geometry_msgs::msg::PoseStamped hold;
+    hold.header.frame_id = "map";
+    hold.header.stamp = this->get_clock()->now();
+
+    // Hold exactly at the detected scenario
+    // hold.pose.position.x = scenario.x;
+    // hold.pose.position.y = scenario.y;
+    // hold.pose.position.z = current_pose_.pose.position.z;   // or std::max(scenario.z, current_pose_.pose.position.z);
+    hold.pose.position.x = current_pose_.pose.position.x;
+    hold.pose.position.y = current_pose_.pose.position.y;
+    hold.pose.position.z = current_pose_.pose.position.z;   // or std::max(scenario.z, current_pose_.pose.position.z);
+    hold.pose.orientation.w = 1.0;
+
+    target_pose_pub_->publish(hold);
+
     if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::HOVERING)) {
       RCLCPP_INFO(this->get_logger(), "Scenario detected. Stopping to coordinate response.");
       state_machine_->setState(MissionState::HOVERING);
@@ -1372,19 +1409,6 @@ namespace drone_swarm
       return;
     }
 
-    // 1) Immediately hold at the scenario location (or current pose if you prefer)
-    geometry_msgs::msg::PoseStamped hold;
-    hold.header.frame_id = "map";
-    hold.header.stamp = this->get_clock()->now();
-
-    // Hold exactly at the detected scenario
-    hold.pose.position.x = scenario.x;
-    hold.pose.position.y = scenario.y;
-    hold.pose.position.z = scenario.z;   // or std::max(scenario.z, current_pose_.pose.position.z);
-    hold.pose.orientation.w = 1.0;
-
-    target_pose_pub_->publish(hold);
-
     RCLCPP_INFO(this->get_logger(),
                 "Drone %d detected: %s at [%.2f, %.2f, %.2f]", drone_numeric_id_,
                 scenario.scenario_name.c_str(), scenario.x, scenario.y, scenario.z);
@@ -1396,7 +1420,6 @@ namespace drone_swarm
         if (scenario.scenario_name == "STRANDED_HIKER" ||
             scenario.scenario_name == "WILDFIRE") {
           performCoordination(scenario);
-
         } else if (scenario.scenario_name == "DEBRIS_OBSTRUCTION") {
           RCLCPP_INFO(this->get_logger(), "Debris detected - notifying GUI only");
         }
@@ -1410,6 +1433,62 @@ namespace drone_swarm
       active_coordination_scenario_.reset();
       RCLCPP_INFO(this->get_logger(), "Coordination complete. Ready for new scenarios.");
     }).detach();
+  }
+
+  std::optional<ScenarioEvent> MissionPlannerNode::parseScenarioDetection(const std_msgs::msg::String& msg) {
+    // Expected: "SCENARIO_NAME,x,y,z,heading,respond:1"
+    const std::string data = trimCopy(msg.data);
+    auto tokens = splitCSV(data);
+    for (auto& t : tokens) t = trimCopy(t);
+
+    // Shape check
+    if (tokens.size() < 6) {
+      RCLCPP_WARN(this->get_logger(),
+                  "Scenario parse failed (fields=%zu < 6): '%s'", tokens.size(), data.c_str());
+      return std::nullopt;
+    }
+
+    // 1) Scenario type
+    const std::string scenario_name = tokens[0];
+    Scenario scenario = scenarioFromString(scenario_name);
+    if (scenario == Scenario::UNKNOWN) {
+      RCLCPP_WARN(this->get_logger(),
+                  "Unknown scenario name '%s' in message '%s'", scenario_name.c_str(), data.c_str());
+      return std::nullopt;
+    }
+
+    // 2–4) Target position x,y,z
+    double x{}, y{}, z{};
+    if (!parseDouble(tokens[1], x) ||
+        !parseDouble(tokens[2], y) ||
+        !parseDouble(tokens[3], z)) {
+      RCLCPP_WARN(this->get_logger(), "Scenario position parse failed in '%s'", data.c_str());
+      return std::nullopt;
+    }
+
+    // 5) Heading (radians)
+    double heading{};
+    if (!parseDouble(tokens[4], heading)) {
+      RCLCPP_WARN(this->get_logger(), "Scenario heading parse failed in '%s'", data.c_str());
+      return std::nullopt;
+    }
+
+    // 6) respond flag
+    bool can_respond = false;
+    if (!parseRespondFlag(tokens[5], can_respond)) {
+      RCLCPP_WARN(this->get_logger(), "Scenario respond flag parse failed in '%s'", data.c_str());
+      return std::nullopt;
+    }
+
+    ScenarioEvent ev;
+    ev.type = scenario;
+    ev.target.x = x; ev.target.y = y; ev.target.z = z;
+    ev.heading = heading;            // radians, as published
+    ev.can_respond = can_respond;
+    ev.stamp = this->now();          // when we received it
+    ev.raw = data;
+
+    return ev;
   }
 
   bool MissionPlannerNode::waitForPeerPingSubscriber(int peer_id, std::chrono::milliseconds timeout)
