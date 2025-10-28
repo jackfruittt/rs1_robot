@@ -354,6 +354,8 @@ private:
   
   geometry_msgs::msg::Pose hover_hold_pose_;
 
+  bool repeatWaypointPath = false; // to determine whether a drone is stationary or starts waypoints over again
+
 
   mutable std::mutex dispatch_mutex_;
   std::unordered_map<std::string, DispatchCooldown> dispatch_cooldown_;

@@ -274,7 +274,6 @@ namespace drone_swarm
   void MissionPlannerNode::missionTimerCallback() {
       executeMission();
 
-
       // Hiker rescue
       if (in_hiker_rescue_ && medkit_collected_) {
           if (this->get_clock()->now() - medkit_collect_stamp_ > rclcpp::Duration::from_seconds(2.0)) {
@@ -375,6 +374,11 @@ namespace drone_swarm
     if (!path_planner_->hasNextWaypoint()) {
       if (in_fetch_rt_ || in_hiker_rescue_) {
         // We're in a managed multi-phase mission; phase logic/timers will advance us.
+        return;
+      }
+      if (repeatWaypointPath == true) {
+        path_planner_->reset();
+        RCLCPP_INFO(get_logger(), "Final waypoint reached. Travelling back to first waypoint.");
         return;
       }
       RCLCPP_INFO(get_logger(), "Final waypoint reached. Mission complete. Hovering.");
@@ -491,6 +495,16 @@ namespace drone_swarm
       if (tokens.size() < 5 || (tokens.size() - 2) % 3 != 0) {
         RCLCPP_WARN(this->get_logger(), "ROUTE command requires tokens in multiples of 3 for coordinates.");
         return;
+      }
+
+      if (tokens.size() == 5) {
+        // set a repeat waypoint variable to false
+        RCLCPP_INFO(get_logger(), "Single waypoint set, repeatWaypointPath false");
+        repeatWaypointPath = false;
+      } else {
+        // set a repeat waypoint variable to true
+        RCLCPP_INFO(get_logger(), "Multiple waypoints set, repeatWaypointPath true");
+        repeatWaypointPath = true;
       }
 
       std::vector<geometry_msgs::msg::PoseStamped> new_waypoints;
