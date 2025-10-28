@@ -75,6 +75,7 @@ namespace drone_swarm
     target_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/" + drone_namespace_ + "/target_pose", 10);
     mission_state_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/mission_state", reliable_qos);
     info_manifest_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/info_manifest", reliable_qos);
+    incident_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/incident", 10);
       
     //--- Srvs ---//
     start_mission_service_ = this->create_service<std_srvs::srv::Trigger>(
@@ -1367,6 +1368,9 @@ namespace drone_swarm
       active_coordination_scenario_ = scenario;
     }
     
+    // NOTIFY GUI
+    alertIncidentGui(this->parseScenarioDetection(*msg));
+
     // 1. Immediately transition the *manager* drone to HOVERING.
     if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::HOVERING)) {
       RCLCPP_INFO(this->get_logger(), "Scenario detected. Stopping to coordinate response.");
@@ -1410,7 +1414,6 @@ namespace drone_swarm
         if (scenario.scenario_name == "STRANDED_HIKER" ||
             scenario.scenario_name == "WILDFIRE") {
           performCoordination(scenario);
-
         } else if (scenario.scenario_name == "DEBRIS_OBSTRUCTION") {
           RCLCPP_INFO(this->get_logger(), "Debris detected - notifying GUI only");
         }
@@ -1424,6 +1427,62 @@ namespace drone_swarm
       active_coordination_scenario_.reset();
       RCLCPP_INFO(this->get_logger(), "Coordination complete. Ready for new scenarios.");
     }).detach();
+  }
+
+  std::optional<ScenarioEvent> MissionPlannerNode::parseScenarioDetection(const std_msgs::msg::String& msg) {
+    // Expected: "SCENARIO_NAME,x,y,z,heading,respond:1"
+    const std::string data = trimCopy(msg.data);
+    auto tokens = splitCSV(data);
+    for (auto& t : tokens) t = trimCopy(t);
+
+    // Shape check
+    if (tokens.size() < 6) {
+      RCLCPP_WARN(this->get_logger(),
+                  "Scenario parse failed (fields=%zu < 6): '%s'", tokens.size(), data.c_str());
+      return std::nullopt;
+    }
+
+    // 1) Scenario type
+    const std::string scenario_name = tokens[0];
+    Scenario scenario = scenarioFromString(scenario_name);
+    if (scenario == Scenario::UNKNOWN) {
+      RCLCPP_WARN(this->get_logger(),
+                  "Unknown scenario name '%s' in message '%s'", scenario_name.c_str(), data.c_str());
+      return std::nullopt;
+    }
+
+    // 2–4) Target position x,y,z
+    double x{}, y{}, z{};
+    if (!parseDouble(tokens[1], x) ||
+        !parseDouble(tokens[2], y) ||
+        !parseDouble(tokens[3], z)) {
+      RCLCPP_WARN(this->get_logger(), "Scenario position parse failed in '%s'", data.c_str());
+      return std::nullopt;
+    }
+
+    // 5) Heading (radians)
+    double heading{};
+    if (!parseDouble(tokens[4], heading)) {
+      RCLCPP_WARN(this->get_logger(), "Scenario heading parse failed in '%s'", data.c_str());
+      return std::nullopt;
+    }
+
+    // 6) respond flag
+    bool can_respond = false;
+    if (!parseRespondFlag(tokens[5], can_respond)) {
+      RCLCPP_WARN(this->get_logger(), "Scenario respond flag parse failed in '%s'", data.c_str());
+      return std::nullopt;
+    }
+
+    ScenarioEvent ev;
+    ev.type = scenario;
+    ev.target.x = x; ev.target.y = y; ev.target.z = z;
+    ev.heading = heading;            // radians, as published
+    ev.can_respond = can_respond;
+    ev.stamp = this->now();          // when we received it
+    ev.raw = data;
+
+    return ev;
   }
 
   bool MissionPlannerNode::waitForPeerPingSubscriber(int peer_id, std::chrono::milliseconds timeout)
