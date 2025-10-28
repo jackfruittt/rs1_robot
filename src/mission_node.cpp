@@ -13,10 +13,10 @@ namespace drone_swarm
   MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
     : Node("mission_planner", options)
   {
-    auto reliable_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
+    auto reliable_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable(); // QoS (Quality of Service) to tell ROS2 to keep a 10 message buffer and re-send dropped messages so they always arrive
 
     //--- Parameter Loading ---//
-    this->declare_parameter("drone_namespace", std::string("rs1_drone"));
+    this->declare_parameter("drone_namespace", std::string("rs1_drone")); // Runtime ROS parameters
     this->declare_parameter<double>("mission_update_rate", 5.0);
     this->declare_parameter<double>("waypoint_tolerance", 0.5);
     this->declare_parameter<double>("helipad_location.x", 0.0);
@@ -46,12 +46,12 @@ namespace drone_swarm
     // fetch_rt_phase_ = FetchRtPhase::NONE
 
     //--- Component Initialization ---///
-    state_machine_ = std::make_unique<StateMachine>();
+    state_machine_ = std::make_unique<StateMachine>(); 
     path_planner_ = std::make_unique<PathPlanner>();
     drone_id_ = drone_namespace_;
     try {
         std::string num_part = drone_id_.substr(drone_id_.find_last_of('_') + 1);
-        drone_numeric_id_ = std::stoi(num_part);
+        drone_numeric_id_ = std::stoi(num_part); // string to int
     } catch (const std::exception& e) {
         RCLCPP_FATAL(this->get_logger(), "FATAL: Could not parse numeric ID from namespace: %s", drone_id_.c_str());
     }
@@ -68,7 +68,7 @@ namespace drone_swarm
         "/" + drone_namespace_ + "/info_request", reliable_qos, std::bind(&MissionPlannerNode::infoRequestPingCallback, this, std::placeholders::_1));
     assignment_subs_ = this->create_subscription<std_msgs::msg::String>(
       "/" + drone_namespace_ + "/mission_assignment", reliable_qos, 
-      std::bind(&MissionPlannerNode::assignmentCallback, this, std::placeholders::_1));
+      std::bind(&MissionPlannerNode::assignmentCallback, this, std::placeholders::_1)); 
 
     //--- Pubs ---//
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/" + drone_namespace_ + "/cmd_vel", 10);
@@ -78,7 +78,7 @@ namespace drone_swarm
       
     //--- Srvs ---//
     start_mission_service_ = this->create_service<std_srvs::srv::Trigger>(
-      "/" + drone_namespace_ + "/start_mission", std::bind(&MissionPlannerNode::startMissionCallback, this, std::placeholders::_1, std::placeholders::_2));
+      "/" + drone_namespace_ + "/start_mission", std::bind(&MissionPlannerNode::startMissionCallback, this, std::placeholders::_1, std::placeholders::_2)); // Tiny service: empty request, and response {bool success, string message}
     stop_mission_service_ = this->create_service<std_srvs::srv::Trigger>(
       "/" + drone_namespace_ + "/stop_mission", std::bind(&MissionPlannerNode::stopMissionCallback, this, std::placeholders::_1, std::placeholders::_2));
 
@@ -87,7 +87,7 @@ namespace drone_swarm
     mission_timer_ = this->create_wall_timer(mission_timer_period, std::bind(&MissionPlannerNode::missionTimerCallback, this));
     discovery_timer_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&MissionPlannerNode::discoverPeerDrones, this));
 
-    RCLCPP_INFO(this->get_logger(), "Mission Planner Node initialised for %s", drone_id_.c_str());
+    RCLCPP_INFO(this->get_logger(), "Mission Planner Node initialised for %s", drone_id_.c_str()); 
 
     //--- Finds drones that exist ---//
     discoverPeerDrones();
@@ -97,8 +97,6 @@ namespace drone_swarm
       const std::vector<int>& drone_ids, int timeout_ms) {
     
     std::map<int, DroneInfo> results;
-    auto reliable_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable();
-
     // Separate self from peers
     std::vector<int> peers_to_ping;
     for (int id : drone_ids) {
@@ -121,7 +119,7 @@ namespace drone_swarm
       // ensure wiring exists
       createPeerSubscriptionForId(drone_id);
 
-      // wait (briefly) for the DDS match so a one-shot ping won’t be dropped
+      // wait (briefly) for the DDS (Data Distribution Service, the pub/sub middleware under ROS 2) match so a one-shot ping won’t be dropped
       if (!waitForPeerPingSubscriber(drone_id, std::chrono::milliseconds(300))) {
         RCLCPP_WARN(this->get_logger(),
                     "Peer %d /info_request not matched yet; will send a few spaced pings as fallback.",
@@ -138,18 +136,17 @@ namespace drone_swarm
     };
 
     for (int id : peers_to_ping) send_ping(id);
-    rclcpp::sleep_for(std::chrono::milliseconds(120));
-    for (int id : peers_to_ping) send_ping(id);
-    rclcpp::sleep_for(std::chrono::milliseconds(120));
-    for (int id : peers_to_ping) send_ping(id);
+    // rclcpp::sleep_for(std::chrono::milliseconds(120)); // NEED TO TEST IF NECESSARY OR NOT
+    // for (int id : peers_to_ping) send_ping(id);
+    // rclcpp::sleep_for(std::chrono::milliseconds(120));  
+    // for (int id : peers_to_ping) send_ping(id);
 
-    RCLCPP_INFO(this->get_logger(), "Pinging %zu peers...", peers_to_ping.size());
+    RCLCPP_INFO(this->get_logger(), "Pinging %zu peers...", peers_to_ping.size()); 
     
-
     {
       std::lock_guard<std::mutex> lock(peers_mutex_);
       for (int id : peers_to_ping) {
-        auto it = peer_info_.find(id);
+        auto it = peer_info_.find(id);  // iterator
         if (it != peer_info_.end()) {
           it->second.stamp = rclcpp::Time(0L, this->get_clock()->get_clock_type());
         }
@@ -179,7 +176,7 @@ namespace drone_swarm
     
     while (this->now() < end_time) {
       // Let any pending subscription callbacks run
-      bool all_received = true;
+      bool all_received = true; 
       {
         std::lock_guard<std::mutex> lock(peers_mutex_);
         for (int id : peers_to_ping) {
@@ -211,7 +208,7 @@ namespace drone_swarm
         RCLCPP_INFO(this->get_logger(), "All responses received early!");
         break;
       }
-      rclcpp::sleep_for(std::chrono::milliseconds(50));
+      rclcpp::sleep_for(std::chrono::milliseconds(50)); // Sleep to allow space for other callbacks to send/process data
     }
     
     // Log results
@@ -250,8 +247,8 @@ namespace drone_swarm
 
     // If the responder is still non-IDLE, keep suppressing indefinitely (and slide the cooldown)
     {
-      std::lock_guard<std::mutex> pl(peers_mutex_);
-      auto pit = peer_info_.find(cd.responder_id);
+      std::lock_guard<std::mutex> pl(peers_mutex_); // peer lock
+      auto pit = peer_info_.find(cd.responder_id); // peer iterator
       if (pit != peer_info_.end() && pit->second.state != MissionState::IDLE) {
         cd.until = now + coordination_cooldown_;  // slide window forward while busy
         RCLCPP_INFO(this->get_logger(),
@@ -277,7 +274,8 @@ namespace drone_swarm
   void MissionPlannerNode::missionTimerCallback() {
       executeMission();
 
-      // Hiker rescue (unchanged)
+
+      // Hiker rescue
       if (in_hiker_rescue_ && medkit_collected_) {
           if (this->get_clock()->now() - medkit_collect_stamp_ > rclcpp::Duration::from_seconds(2.0)) {
               RCLCPP_INFO(this->get_logger(), "Medkit collected, proceeding to hiker location.");
@@ -328,7 +326,6 @@ namespace drone_swarm
           fetch_rt_phase_ = FetchRtPhase::TO_DEPOT;   // keep the loop going
           fetch_landed_   = false;
 
-          // 🔧 make sure the controller re-engages NAV immediately
           state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
         }
       }
@@ -401,7 +398,7 @@ namespace drone_swarm
         RCLCPP_INFO(this->get_logger(), "Landed at medkit depot. Pausing for collection.");
         // Stay in LANDING state. The missionTimer will handle the next step.
       } 
-      else if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::LANDING && !fetch_landed_) {
+      else if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::LANDING && !fetch_landed_) { // fetch fire retardant and in fire retardant phase if not landed then land 
         fetch_landed_ = true;
         fetch_land_stamp_ = this->get_clock()->now();
         RCLCPP_INFO(this->get_logger(), "Landed at retardant depot. Pausing for collection.");
@@ -470,7 +467,7 @@ namespace drone_swarm
 
         RCLCPP_INFO(this->get_logger(), "FETCH_RT mission assigned.");
         in_fetch_rt_ = true;
-        fetch_rt_phase_ = FetchRtPhase::TO_DEPOT;  // <-- SET INITIAL PHASE
+        fetch_rt_phase_ = FetchRtPhase::TO_DEPOT; 
         fetch_landed_ = false;
         fetch_fire_target_.x = fx;
         fetch_fire_target_.y = fy;
@@ -525,47 +522,41 @@ namespace drone_swarm
       }
     }
   }
+  
+  std::vector<int> MissionPlannerNode::getKnownDroneIds() {
+    std::vector<int> ids;
+    {
+      std::lock_guard<std::mutex> lock(peers_mutex_);
+      ids.reserve(info_manifest_subs_.size() + 1);
+      for (const auto& kv : info_manifest_subs_) {
+        ids.push_back(kv.first);        // discovered peer ids
+      }
+    }
+    ids.push_back(drone_numeric_id_);   // include self
+    std::sort(ids.begin(), ids.end());
+    ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
+    return ids;
+  }
 
   void MissionPlannerNode::performCoordination(const ScenarioData& scenario) {
     RCLCPP_INFO(this->get_logger(), "Coordinating response for %s", scenario.scenario_name.c_str());
     
     MissionState required_state = targetStateForScenario(scenarioFromString(scenario.scenario_name));
+
+    // Make sure we’ve done a recent discovery pass
+    discoverPeerDrones();
+
+    auto all_drones = getKnownDroneIds();        // dynamic list
     
-    // Assuming a fixed number of drones for now
-    std::vector<int> all_drones = {1, 2, 3, 4};
-    //--- CAN PROBABLY DO THIS INSTEAD, BUT WILL IMPLEMENT LATER ---///
-    /*
-      std::vector<int> MissionPlannerNode::getKnownDroneIds() {
-        std::vector<int> ids;
-        {
-          std::lock_guard<std::mutex> lock(peers_mutex_);
-          ids.reserve(info_manifest_subs_.size() + 1);
-          for (const auto& kv : info_manifest_subs_) {
-            ids.push_back(kv.first);        // discovered peer ids
-          }
-        }
-        ids.push_back(drone_numeric_id_);   // include self
-        std::sort(ids.begin(), ids.end());
-        ids.erase(std::unique(ids.begin(), ids.end()), ids.end());
-        return ids;
-      }
-
-      // Make sure we’ve done a recent discovery pass
-      discoverPeerDrones();
-
-      auto all_drones = getKnownDroneIds();        // dynamic list
-      int responder_id = selectBestResponderDrone(all_drones, required_state);
-    */
+    
     geometry_msgs::msg::Point incident;
     incident.x = scenario.x; incident.y = scenario.y; incident.z = scenario.z;
     std::vector<int> peer_drones = all_drones;
     peer_drones.erase(std::remove(peer_drones.begin(), peer_drones.end(), drone_numeric_id_),
                       peer_drones.end());
 
-
     // First, try to delegate to a peer
     int responder_id = selectBestResponderDrone(peer_drones, required_state, incident);
-
     if (responder_id < 0) {
       RCLCPP_ERROR(this->get_logger(), "Failed to find suitable responder! No drones available.");
       return;
@@ -574,7 +565,7 @@ namespace drone_swarm
     // After we've decided on responder_id and (if needed) published the assignment:
     {
       std::lock_guard<std::mutex> lk(dispatch_mutex_);
-      DispatchCooldown cd;
+      DispatchCooldown cd; 
       cd.until        = steady_clock_.now() + coordination_cooldown_;
       cd.responder_id = responder_id;
       cd.target.x     = scenario.x;
@@ -583,7 +574,6 @@ namespace drone_swarm
       dispatch_cooldown_[scenario.scenario_name] = cd;
     }
 
-    
     if (drone_numeric_id_ == responder_id) {
       RCLCPP_INFO(this->get_logger(), "Drone %d: responding scenario", responder_id);
       
@@ -625,7 +615,7 @@ namespace drone_swarm
     else {
       RCLCPP_INFO(this->get_logger(), "Manager drone %d, sending mission to drone %d", drone_numeric_id_, responder_id);
       
-      std::ostringstream ss;
+      std::ostringstream ss; 
       
       if (scenario.scenario_name == "STRANDED_HIKER") {
         // Format: ASSIGN,HIKER_RESCUE,depot_x,y,z,hiker_x,y,z
@@ -1132,7 +1122,8 @@ namespace drone_swarm
   }
 
   //--- tiny string/parse helpers (local-only) ---//
-  static inline std::string trimCopy(std::string s) {
+  // Parses a key:value token, trims both sides, returns false if no colon or empty key.
+  static inline std::string trimCopy(std::string s) { 
     auto notSpace = [](unsigned char c){ return !std::isspace(c); };
     s.erase(s.begin(), std::find_if(s.begin(), s.end(), notSpace));
     s.erase(std::find_if(s.rbegin(), s.rend(), notSpace).base(), s.end());
@@ -1142,7 +1133,7 @@ namespace drone_swarm
   bool MissionPlannerNode::parseKeyVal(const std::string& tok, std::string& key, std::string& val) {
     auto p = tok.find(':');
     if (p == std::string::npos) return false;
-    key = trimCopy(tok.substr(0, p));
+    key = trimCopy(tok.substr(0, p)); 
     val = trimCopy(tok.substr(p + 1));
     return !key.empty();
   }
@@ -1184,7 +1175,7 @@ namespace drone_swarm
 
   static inline bool parseRespondFlag(const std::string& token, bool& out_flag) {
     // Accept: respond:1|0|true|false|yes|no (case-insensitive)
-    auto pos = token.find(':');
+    auto pos = token.find(':'); 
     if (pos == std::string::npos) return false;
     auto key = trimCopy(token.substr(0, pos));
     auto val = trimCopy(token.substr(pos + 1));
@@ -1326,66 +1317,6 @@ namespace drone_swarm
     }
   }
 
-  // void MissionPlannerNode::scenarioDetectionCallback(const std_msgs::msg::String::SharedPtr msg) {
-  //   ScenarioData scenario = parseScenarioMessage(msg->data);
-  //   if (!scenario.valid) { return; }
-
-  //   // ---- Debounce / re-entrancy guard (RE-ENABLE THIS) ----
-  //   {
-  //     std::lock_guard<std::mutex> lock(coordination_mutex_);
-  //     if (is_coordinating_ &&
-  //         active_coordination_scenario_.has_value() &&
-  //         active_coordination_scenario_->scenario_name == scenario.scenario_name) {
-  //       RCLCPP_INFO(this->get_logger(),
-  //                   "Already coordinating %s - ignoring duplicate detection",
-  //                   scenario.scenario_name.c_str());
-  //       return;
-  //     }
-  //     is_coordinating_ = true;
-  //     active_coordination_scenario_ = scenario;
-  //   }
-  //   // -------------------------------------------------------
-
-  //   // Transition to hovering (stop and coordinate)
-  //   if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::HOVERING)) {
-  //     RCLCPP_INFO(this->get_logger(), "Scenario detected. Stopping to coordinate response.");
-  //     state_machine_->setState(MissionState::HOVERING);
-  //     path_planner_->reset();
-  //     publishMissionCommand();
-  //   } else if (state_machine_->getCurrentState() == MissionState::HOVERING) {
-  //     RCLCPP_INFO(this->get_logger(), "New scenario detected while already hovering/coordinating.");
-  //   } else {
-  //     RCLCPP_WARN(this->get_logger(), "Scenario detected but drone is in non-interruptible state: %s",
-  //                 state_machine_->getStateString().c_str());
-  //     std::lock_guard<std::mutex> lock(coordination_mutex_);
-  //     is_coordinating_ = false;
-  //     active_coordination_scenario_.reset();
-  //     return;
-  //   }
-
-  //   // Optional: only start the 1s “stop” thread if we actually just switched to HOVERING
-
-  //   // Do the heavy work off-thread
-  //   std::thread([this, scenario]() {
-  //     try {
-  //       if (scenario.scenario_name == "STRANDED_HIKER" || scenario.scenario_name == "WILDFIRE") {
-  //         performCoordination(scenario);
-  //       } else {
-  //         RCLCPP_INFO(this->get_logger(), "Debris detected - notifying GUI only");
-  //       }
-  //     } catch (const std::exception& e) {
-  //       RCLCPP_ERROR(this->get_logger(), "Coordination thread exception: %s", e.what());
-  //     }
-
-  //     // Always reset flags
-  //     std::lock_guard<std::mutex> lock(coordination_mutex_);
-  //     is_coordinating_ = false;
-  //     active_coordination_scenario_.reset();
-  //     RCLCPP_INFO(this->get_logger(), "Coordination complete. Ready for new scenarios.");
-  //   }).detach();
-  // }
-
-
   void MissionPlannerNode::scenarioDetectionCallback(const std_msgs::msg::String::SharedPtr msg) {
     // Parse the incoming message
     ScenarioData scenario = parseScenarioMessage(msg->data);
@@ -1406,7 +1337,6 @@ namespace drone_swarm
       return;
     }
 
-    // // --- REPLACEMENT DEBOUNCE LOGIC ---
     {
       std::lock_guard<std::mutex> lock(coordination_mutex_);
       if (is_coordinating_ && 
@@ -1422,7 +1352,6 @@ namespace drone_swarm
       is_coordinating_ = true;  
       active_coordination_scenario_ = scenario;
     }
-    // --- END REPLACEMENT ---
     
     // 1. Immediately transition the *manager* drone to HOVERING.
     if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::HOVERING)) {
@@ -1448,7 +1377,7 @@ namespace drone_swarm
     hold.header.frame_id = "map";
     hold.header.stamp = this->get_clock()->now();
 
-    // Option A: hold exactly at the detected scenario
+    // Hold exactly at the detected scenario
     hold.pose.position.x = scenario.x;
     hold.pose.position.y = scenario.y;
     hold.pose.position.z = scenario.z;   // or std::max(scenario.z, current_pose_.pose.position.z);
@@ -1510,7 +1439,7 @@ namespace drone_swarm
     auto toks = splitCSV(manifest_data);
     
     try {
-      for (auto& t : toks) {
+      for (auto& t : toks) { // for token in tokens
         std::string k, v;
         if (!parseKeyVal(trimCopy(t), k, v)) continue;
         
@@ -1554,7 +1483,6 @@ namespace drone_swarm
       MissionState current_state = stateFromString(info.mission_state);
       if (!canStateTransitionTo(current_state, required_state)) continue;
 
-      // ✅ distance to INCIDENT (not helipad)
       double dx = info.x - incident_xyz.x;
       double dy = info.y - incident_xyz.y;
       double dz = info.z - incident_xyz.z;
@@ -1677,7 +1605,7 @@ namespace drone_swarm
       auto tp = time_point<std::chrono::system_clock>(duration_cast<std::chrono::system_clock::duration>(ns));
       std::time_t tt = std::chrono::system_clock::to_time_t(tp);
       char buf[32]{0};
-  #if defined(_WIN32)
+  #if defined(_WIN32) 
       std::tm g{}; gmtime_s(&g, &tt);
       std::strftime(buf, sizeof(buf), "%FT%TZ", &g);
   #else
@@ -1789,8 +1717,8 @@ namespace drone_swarm
 
     pi.stamp = this->now();
     
-    // 🔧 TEMP: trust the subscription wiring (peer_id) over the self-reported id
     // If you keep the guard, at least log mismatches.
+    
     if (id_from_msg > 0 && id_from_msg != peer_id) {
       RCLCPP_WARN(this->get_logger(), "Manifest id mismatch: msg_id=%d sub_peer=%d", id_from_msg, peer_id);
     }
