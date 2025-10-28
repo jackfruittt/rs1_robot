@@ -583,9 +583,12 @@ namespace drone_swarm
       DispatchCooldown cd; 
       cd.until        = steady_clock_.now() + coordination_cooldown_;
       cd.responder_id = responder_id;
-      cd.target.x     = scenario.x;
-      cd.target.y     = scenario.y;
-      cd.target.z     = scenario.z;
+      // cd.target.x     = scenario.x;
+      // cd.target.y     = scenario.y;
+      // cd.target.z     = scenario.z;
+      cd.target.x     = current_pose_.pose.position.x;
+      cd.target.y     = current_pose_.pose.position.y;
+      cd.target.z     = current_pose_.pose.position.z;
       dispatch_cooldown_[scenario.scenario_name] = cd;
     }
 
@@ -1372,6 +1375,22 @@ namespace drone_swarm
     alertIncidentGui(this->parseScenarioDetection(*msg));
 
     // 1. Immediately transition the *manager* drone to HOVERING.
+    // 1) Immediately hold at the scenario location (or current pose if you prefer)
+    geometry_msgs::msg::PoseStamped hold;
+    hold.header.frame_id = "map";
+    hold.header.stamp = this->get_clock()->now();
+
+    // Hold exactly at the detected scenario
+    // hold.pose.position.x = scenario.x;
+    // hold.pose.position.y = scenario.y;
+    // hold.pose.position.z = current_pose_.pose.position.z;   // or std::max(scenario.z, current_pose_.pose.position.z);
+    hold.pose.position.x = current_pose_.pose.position.x;
+    hold.pose.position.y = current_pose_.pose.position.y;
+    hold.pose.position.z = current_pose_.pose.position.z;   // or std::max(scenario.z, current_pose_.pose.position.z);
+    hold.pose.orientation.w = 1.0;
+
+    target_pose_pub_->publish(hold);
+
     if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::HOVERING)) {
       RCLCPP_INFO(this->get_logger(), "Scenario detected. Stopping to coordinate response.");
       state_machine_->setState(MissionState::HOVERING);
@@ -1389,19 +1408,6 @@ namespace drone_swarm
       active_coordination_scenario_.reset();
       return;
     }
-
-    // 1) Immediately hold at the scenario location (or current pose if you prefer)
-    geometry_msgs::msg::PoseStamped hold;
-    hold.header.frame_id = "map";
-    hold.header.stamp = this->get_clock()->now();
-
-    // Hold exactly at the detected scenario
-    hold.pose.position.x = scenario.x;
-    hold.pose.position.y = scenario.y;
-    hold.pose.position.z = scenario.z;   // or std::max(scenario.z, current_pose_.pose.position.z);
-    hold.pose.orientation.w = 1.0;
-
-    target_pose_pub_->publish(hold);
 
     RCLCPP_INFO(this->get_logger(),
                 "Drone %d detected: %s at [%.2f, %.2f, %.2f]", drone_numeric_id_,
