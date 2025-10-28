@@ -388,6 +388,7 @@ private:
   inline bool isBusyWithAssignedMission() const {
     return in_fetch_rt_ || in_hiker_rescue_;
   }
+  std::vector<int> getKnownDroneIds(void);
 
 };
 
