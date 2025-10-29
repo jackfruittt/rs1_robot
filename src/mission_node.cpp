@@ -59,7 +59,9 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
         "/" + drone_namespace_ + "/info_request", reliable_qos, std::bind(&MissionPlannerNode::infoRequestPingCallback, this, std::placeholders::_1));
     assignment_subs_ = this->create_subscription<std_msgs::msg::String>(
       "/" + drone_namespace_ + "/mission_assignment", reliable_qos, 
-      std::bind(&MissionPlannerNode::assignmentCallback, this, std::placeholders::_1)); 
+      std::bind(&MissionPlannerNode::assignmentCallback, this, std::placeholders::_1));
+    reset_mission_sub_ = this->create_subscription<std_msgs::msg::String>(
+      "/" + drone_namespace_ + "/reset_mission", 10, std::bind(&MissionPlannerNode::resetMissioncallback, this, std::placeholders::_1));
 
     //--- Pubs ---//
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/" + drone_namespace_ + "/cmd_vel", 10);
@@ -529,6 +531,10 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
 
       // Set the full list of waypoints in the planner
       path_planner_->setWaypoints(new_waypoints);
+      {
+        std::lock_guard<std::mutex> lk(cache_mutex_);
+        route_waypoints_cached_ = new_waypoints;
+      }
       
       if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::WAYPOINT_NAVIGATION)) {
         state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
@@ -770,6 +776,10 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
       loadFallbackWaypoints();
     } else {
       path_planner_->setWaypoints(wps);
+      {
+        std::lock_guard<std::mutex> lk(cache_mutex_);
+        original_waypoints_cached_ = wps;
+      }
       RCLCPP_INFO(get_logger(), "Loaded %zu waypoints via enumeration", wps.size());
     }
 
@@ -848,32 +858,13 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
           waypoint.pose.position.y = -6.0;
           waypoint.pose.position.z = 15.0;
       }
-
-      // Shorter waypoints
-      // if (drone_id_ == "rs1_drone_1") {
-      //     waypoint.pose.position.x = -13.0;
-      //     waypoint.pose.position.y = 18.0;
-      //     waypoint.pose.position.z = 15.0;
-      // } else if (drone_id_ == "rs1_drone_2") {
-      //     waypoint.pose.position.x = -13.0;
-      //     waypoint.pose.position.y = 10.0;
-      //     waypoint.pose.position.z = 15.0;
-      // } else if (drone_id_ == "rs1_drone_3") {
-      //     waypoint.pose.position.x = -13.0;
-      //     waypoint.pose.position.y = 2.0;
-      //     waypoint.pose.position.z = 15.0;
-      // } else if (drone_id_ == "rs1_drone_4") {
-      //     waypoint.pose.position.x = 5-13.0;
-      //     waypoint.pose.position.y = -6.0;
-      //     waypoint.pose.position.z = 15.0;
-      // } else {
-      //     waypoint.pose.position.x = 0.0;
-      //     waypoint.pose.position.y = 0.0;
-      //     waypoint.pose.position.z = 15.0;
-      // }
       
       waypoints.push_back(waypoint);
       path_planner_->setWaypoints(waypoints);
+      {
+        std::lock_guard<std::mutex> lk(cache_mutex_);
+        original_waypoints_cached_ = waypoints;
+      }
       RCLCPP_INFO(this->get_logger(), "Loaded fallback waypoint for %s", drone_id_.c_str());
   }
 
@@ -1106,6 +1097,51 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
     // Convert odometry to pose for mission planning
     current_pose_.header = msg->header;
     current_pose_.pose = msg->pose.pose;
+  }
+
+  void MissionPlannerNode::resetMissioncallback(const std_msgs::msg::String::SharedPtr msg) {
+    const std::string payload = trimCopy(msg->data);
+    auto tokens = splitCSV(payload); 
+    if (tokens.size() < 2) {
+      RCLCPP_WARN(this->get_logger(), "Invalid reset command: '%s'", payload.c_str());
+      return;
+    }
+
+    std::vector<geometry_msgs::msg::PoseStamped> route_waypoints_cached;
+    std::vector<geometry_msgs::msg::PoseStamped> original_waypoints_cached;
+
+    {
+      std::lock_guard<std::mutex> lk(cache_mutex_);
+      route_waypoints_cached = route_waypoints_cached_;
+      original_waypoints_cached = original_waypoints_cached_;
+    }
+    
+    const std::string& mode = tokens[1];
+    if (mode == "ORIGINAL_MISSION") {
+      if (original_waypoints_cached.empty()) {
+        RCLCPP_WARN(this->get_logger(), "No original mission cached; ignoring reset.");
+        return;
+      }
+      path_planner_->setWaypoints(original_waypoints_cached);
+      RCLCPP_INFO(this->get_logger(), "Reset to ORIGINAL mission waypoints.");
+      if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::WAYPOINT_NAVIGATION)) {
+        state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
+      }
+    }
+    else if (mode == "ROUTE_MISSION") {
+      if (route_waypoints_cached.empty()) {
+        RCLCPP_WARN(this->get_logger(), "No route mission cached; ignoring reset.");
+        return;
+      }
+      path_planner_->setWaypoints(route_waypoints_cached);
+      RCLCPP_INFO(this->get_logger(), "Reset to ROUTE mission waypoints.");
+      if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::WAYPOINT_NAVIGATION)) {
+        state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
+      }
+    }
+    else {
+      RCLCPP_WARN(this->get_logger(), "Unknown reset mission mode: '%s'", mode.c_str());
+    }
   }
 
   void MissionPlannerNode::velocityCallback(const geometry_msgs::msg::Twist::SharedPtr msg) {

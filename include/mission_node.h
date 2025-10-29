@@ -235,7 +235,6 @@ private:
   void debrisReaction(void);
   void strandedHikerReaction(void);
   void orbitIncident(void);
-
   void alertIncidentGui(const std::optional<ScenarioEvent>& ev);
   const char* evTypeToString(Scenario s) const ;
 
@@ -243,6 +242,7 @@ private:
   void createPeerSubscriptionForId(int id);       // create odom subscription + cached assignment publisher for drone id
   void removePeerSubscriptionForId(int id);       // tear down subscription/publisher and cached state
   void infoRequestPingCallback(const std_msgs::msg::Empty::SharedPtr msg);  // Will send a csv of required drone information back to the management drone
+  void resetMissioncallback(const std_msgs::msg::String::SharedPtr msg); // Allows a user to reset a drone's mission after reacting to a scenario
   std::string buildInfoManifestCsv(void);         // Helper for infoRequestPingCallback
   int findClosestPeerToOrigin(void) const;
   // Callback for receiving mission assignments from other drones
@@ -290,6 +290,7 @@ private:
   rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr info_request_sub_;         ///< For management drones to contact other drones
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr assignment_subs_;         ///< Allows management drones to set the state of other drones
   std::unordered_map<int, rclcpp::Subscription<std_msgs::msg::String>::SharedPtr> info_manifest_subs_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr reset_mission_sub_;
   
   // PUBS
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;            ///< Velocity command publisher
@@ -327,6 +328,9 @@ private:
   std::unordered_map<int, PeerInfo> peer_info_;
   mutable std::mutex incident_mutex_;
   std::optional<ScenarioEvent> active_incident_event_;
+  std::vector<geometry_msgs::msg::PoseStamped> route_waypoints_cached_;
+  std::vector<geometry_msgs::msg::PoseStamped> original_waypoints_cached_;
+  std::mutex cache_mutex_; // mutex for saving the waypoints
   
     
   // Configuration parameters
