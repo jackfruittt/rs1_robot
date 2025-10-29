@@ -33,22 +33,8 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
     this->get_parameter_or<double>("medkit_depot.x",            medkit_depot_xyz_.x,  -28.0);
     this->get_parameter_or<double>("medkit_depot.y",            medkit_depot_xyz_.y,   16.0);
     this->get_parameter_or<double>("medkit_depot.z",            medkit_depot_xyz_.z,   14.0);
-
-
-    // drone_namespace_ = this->get_parameter("drone_namespace").as_string();
-    // mission_update_rate_ = this->get_parameter("mission_update_rate").as_double();
-    // waypoint_tolerance_ = this->get_parameter("waypoint_tolerance").as_double();
-    // helipad_location_.x = this->get_parameter("helipad_location.x").as_double();
-    // helipad_location_.y = this->get_parameter("helipad_location.y").as_double();
-    // helipad_location_.z = this->get_parameter("helipad_location.z").as_double();
-    // battery_level_ = this->get_parameter("battery_level").as_double();
-    // depot_xyz_.x = this->get_parameter("retardant_depot.x").as_double();
-    // depot_xyz_.y = this->get_parameter("retardant_depot.y").as_double();
-    // depot_xyz_.z = this->get_parameter("retardant_depot.z").as_double();
-    // medkit_depot_xyz_.x = this->get_parameter("medkit_depot.x").as_double();
-    // medkit_depot_xyz_.y = this->get_parameter("medkit_depot.y").as_double();
-    // medkit_depot_xyz_.z = this->get_parameter("medkit_depot.z").as_double();
-    // fetch_rt_phase_ = FetchRtPhase::NONE
+    fetch_rt_phase_ = FetchRtPhase::NONE;
+    repeat_Waypoint_Path_ = true;
 
     //--- Component Initialization ---///
     state_machine_ = std::make_unique<StateMachine>(); 
@@ -389,7 +375,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
         // We're in a managed multi-phase mission; phase logic/timers will advance us.
         return;
       }
-      if (repeatWaypointPath == true) {
+      if (repeat_Waypoint_Path_ == true) {
         path_planner_->reset();
         RCLCPP_INFO(get_logger(), "Final waypoint reached. Travelling back to first waypoint.");
         return;
@@ -512,12 +498,12 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
 
       if (tokens.size() == 5) {
         // set a repeat waypoint variable to false
-        RCLCPP_INFO(get_logger(), "Single waypoint set, repeatWaypointPath false");
-        repeatWaypointPath = false;
+        RCLCPP_INFO(get_logger(), "Single waypoint set, repeat_Waypoint_Path_ false");
+        repeat_Waypoint_Path_ = false;
       } else {
         // set a repeat waypoint variable to true
-        RCLCPP_INFO(get_logger(), "Multiple waypoints set, repeatWaypointPath true");
-        repeatWaypointPath = true;
+        RCLCPP_INFO(get_logger(), "Multiple waypoints set, repeat_Waypoint_Path_ true");
+        repeat_Waypoint_Path_ = true;
       }
 
       std::vector<geometry_msgs::msg::PoseStamped> new_waypoints;
@@ -1133,17 +1119,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
     // Add waypoint to path planner
     std::vector<geometry_msgs::msg::PoseStamped> new_waypoint = {*msg};
     path_planner_->setWaypoints(new_waypoint);
-    
-    // // If drone is idle, start mission automatically
-    // if (state_machine_->getCurrentState() == MissionState::IDLE) {
-    //   RCLCPP_INFO(this->get_logger(), "Auto-starting mission for waypoint command");
-    //   state_machine_->setState(MissionState::TAKEOFF);
-    // }
-    // // If drone is hovering, switch to waypoint navigation
-    // else if (state_machine_->getCurrentState() == MissionState::HOVERING) {
-    //   RCLCPP_INFO(this->get_logger(), "Switching to waypoint navigation mode");
-    //   state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
-    // }
+
     RCLCPP_INFO(this->get_logger(), "Waypoint stored. Awaiting /start_mission or manual state change.");
   }
 
