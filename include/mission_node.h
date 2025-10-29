@@ -306,6 +306,9 @@ private:
   
   // TIM
   rclcpp::TimerBase::SharedPtr mission_timer_;                                     ///< Periodic mission timer
+  rclcpp::TimerBase::SharedPtr waypoint_load_timer_;
+  rclcpp::TimerBase::SharedPtr discovery_timer_;
+  rclcpp::TimerBase::SharedPtr mission_params_timer_;
 
   // Mission management components
   std::unique_ptr<StateMachine> state_machine_;       ///< Mission state machine
@@ -322,7 +325,6 @@ private:
   std::unordered_map<int, geometry_msgs::msg::PoseStamped> peer_poses_;
   std::unordered_map<int, rclcpp::Publisher<std_msgs::msg::String>::SharedPtr> assignment_pubs_;
   std::unordered_map<int, PeerInfo> peer_info_;
-  rclcpp::TimerBase::SharedPtr discovery_timer_;
   mutable std::mutex incident_mutex_;
   std::optional<ScenarioEvent> active_incident_event_;
   
@@ -391,7 +393,6 @@ private:
     return in_fetch_rt_ || in_hiker_rescue_;
   }
   std::vector<int> getKnownDroneIds(void);
-
 };
 
 

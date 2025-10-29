@@ -10,39 +10,44 @@ namespace drone_swarm
   ScenarioData parseScenarioMessage(const std::string& message_data);
   static std::string missionStateToString(MissionState state);
 
-  MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
-    : Node("mission_planner", options)
+MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
+  : Node("mission_planner",
+      rclcpp::NodeOptions(options)
+        .automatically_declare_parameters_from_overrides(true)  // for waypoint yaml loading
+  )
   {
     auto reliable_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable(); // QoS (Quality of Service) to tell ROS2 to keep a 10 message buffer and re-send dropped messages so they always arrive
 
-    //--- Parameter Loading ---//
-    this->declare_parameter("drone_namespace", std::string("rs1_drone")); // Runtime ROS parameters
-    this->declare_parameter<double>("mission_update_rate", 5.0);
-    this->declare_parameter<double>("waypoint_tolerance", 0.5);
-    this->declare_parameter<double>("helipad_location.x", 0.0);
-    this->declare_parameter<double>("helipad_location.y", 0.0);
-    this->declare_parameter<double>("helipad_location.z", 0.0);
-    this->declare_parameter<double>("battery_level", 0.8);
-    this->declare_parameter<double>("retardant_depot.x", -28.3);
-    this->declare_parameter<double>("retardant_depot.y",  14.0);
-    this->declare_parameter<double>("retardant_depot.z",  14.0);
-    this->declare_parameter<double>("medkit_depot.x", -28.0);
-    this->declare_parameter<double>("medkit_depot.y", 16.0);
-    this->declare_parameter<double>("medkit_depot.z",  14.0);
 
-    drone_namespace_ = this->get_parameter("drone_namespace").as_string();
-    mission_update_rate_ = this->get_parameter("mission_update_rate").as_double();
-    waypoint_tolerance_ = this->get_parameter("waypoint_tolerance").as_double();
-    helipad_location_.x = this->get_parameter("helipad_location.x").as_double();
-    helipad_location_.y = this->get_parameter("helipad_location.y").as_double();
-    helipad_location_.z = this->get_parameter("helipad_location.z").as_double();
-    battery_level_ = this->get_parameter("battery_level").as_double();
-    depot_xyz_.x = this->get_parameter("retardant_depot.x").as_double();
-    depot_xyz_.y = this->get_parameter("retardant_depot.y").as_double();
-    depot_xyz_.z = this->get_parameter("retardant_depot.z").as_double();
-    medkit_depot_xyz_.x = this->get_parameter("medkit_depot.x").as_double();
-    medkit_depot_xyz_.y = this->get_parameter("medkit_depot.y").as_double();
-    medkit_depot_xyz_.z = this->get_parameter("medkit_depot.z").as_double();
+    // --- Parameter Loading (no declares) --- //
+    this->get_parameter_or<std::string>("drone_namespace",      drone_namespace_,      "rs1_drone");
+    this->get_parameter_or<double>("mission_update_rate",       mission_update_rate_,  5.0);
+    this->get_parameter_or<double>("waypoint_tolerance",        waypoint_tolerance_,   0.5);
+    this->get_parameter_or<double>("helipad_location.x",        helipad_location_.x,   0.0);
+    this->get_parameter_or<double>("helipad_location.y",        helipad_location_.y,   0.0);
+    this->get_parameter_or<double>("helipad_location.z",        helipad_location_.z,   0.0);
+    this->get_parameter_or<double>("battery_level",             battery_level_,        0.8);
+    this->get_parameter_or<double>("retardant_depot.x",         depot_xyz_.x,         -28.3);
+    this->get_parameter_or<double>("retardant_depot.y",         depot_xyz_.y,          14.0);
+    this->get_parameter_or<double>("retardant_depot.z",         depot_xyz_.z,          14.0);
+    this->get_parameter_or<double>("medkit_depot.x",            medkit_depot_xyz_.x,  -28.0);
+    this->get_parameter_or<double>("medkit_depot.y",            medkit_depot_xyz_.y,   16.0);
+    this->get_parameter_or<double>("medkit_depot.z",            medkit_depot_xyz_.z,   14.0);
+
+
+    // drone_namespace_ = this->get_parameter("drone_namespace").as_string();
+    // mission_update_rate_ = this->get_parameter("mission_update_rate").as_double();
+    // waypoint_tolerance_ = this->get_parameter("waypoint_tolerance").as_double();
+    // helipad_location_.x = this->get_parameter("helipad_location.x").as_double();
+    // helipad_location_.y = this->get_parameter("helipad_location.y").as_double();
+    // helipad_location_.z = this->get_parameter("helipad_location.z").as_double();
+    // battery_level_ = this->get_parameter("battery_level").as_double();
+    // depot_xyz_.x = this->get_parameter("retardant_depot.x").as_double();
+    // depot_xyz_.y = this->get_parameter("retardant_depot.y").as_double();
+    // depot_xyz_.z = this->get_parameter("retardant_depot.z").as_double();
+    // medkit_depot_xyz_.x = this->get_parameter("medkit_depot.x").as_double();
+    // medkit_depot_xyz_.y = this->get_parameter("medkit_depot.y").as_double();
+    // medkit_depot_xyz_.z = this->get_parameter("medkit_depot.z").as_double();
     // fetch_rt_phase_ = FetchRtPhase::NONE
 
     //--- Component Initialization ---///
@@ -57,7 +62,7 @@ namespace drone_swarm
     }
 
     //--- Load custom waypoints for surveillance ---//
-    loadWaypointsFromParams();
+    // loadWaypointsFromParams();
     
     //--- Subs ---///
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -87,6 +92,13 @@ namespace drone_swarm
     auto mission_timer_period = std::chrono::milliseconds(static_cast<int>(1000.0 / mission_update_rate_));
     mission_timer_ = this->create_wall_timer(mission_timer_period, std::bind(&MissionPlannerNode::missionTimerCallback, this));
     discovery_timer_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&MissionPlannerNode::discoverPeerDrones, this));
+    waypoint_load_timer_ = this->create_wall_timer(
+        std::chrono::milliseconds(150),
+        [this]() {
+          this->loadWaypointsFromParams();
+          waypoint_load_timer_->cancel();
+        });
+    mission_params_timer_ = this->create_wall_timer(std::chrono::milliseconds(250),[this]() {this->loadMissionParams();mission_params_timer_->cancel();});
 
     RCLCPP_INFO(this->get_logger(), "Mission Planner Node initialised for %s", drone_id_.c_str()); 
 
@@ -560,9 +572,7 @@ namespace drone_swarm
 
     // Make sure we’ve done a recent discovery pass
     discoverPeerDrones();
-
     auto all_drones = getKnownDroneIds();        // dynamic list
-    
     
     geometry_msgs::msg::Point incident;
     incident.x = scenario.x; incident.y = scenario.y; incident.z = scenario.z;
@@ -576,6 +586,14 @@ namespace drone_swarm
       RCLCPP_ERROR(this->get_logger(), "Failed to find suitable responder! No drones available.");
       return;
     }
+
+    // // Fallback to self if no peers or all peers unsuitable
+    // if (responder_id < 0) {
+    //   RCLCPP_WARN(this->get_logger(),
+    //               "No suitable peer responders; falling back to self");
+    //   responder_id = selectBestResponderDrone({drone_numeric_id_}, required_state, incident);
+    //   if (responder_id < 0) responder_id = drone_numeric_id_;
+    // }
 
     // After we've decided on responder_id and (if needed) published the assignment:
     {
@@ -720,70 +738,59 @@ namespace drone_swarm
     return false;
   }
 
-  // NOTE, AM UNSURE IF THIS WORKS OR NOT. HAVEN'T GOT IT TO WORK YET
   void MissionPlannerNode::loadWaypointsFromParams() {
-    RCLCPP_INFO(this->get_logger(), "Loading waypoints from flattened parameters for %s", drone_id_.c_str());
-    
-    try {
-        // Check if mission name parameter exists
-        if (this->has_parameter("mission_name")) {
-            std::string mission_name = this->get_parameter("mission_name").as_string();
-            RCLCPP_INFO(this->get_logger(), "Mission: %s", mission_name.c_str());
-        }
-        
-        // Load waypoints from flattened parameters
-        std::vector<geometry_msgs::msg::PoseStamped> waypoints;
-        int i = 0;
-        
-        while (true) {
-            std::string x_key = "waypoints." + std::to_string(i) + ".position.x";
-            
-            if (!this->has_parameter(x_key)) {
-                break; // No more waypoints
-            }
-            
-            std::string y_key = "waypoints." + std::to_string(i) + ".position.y";
-            std::string z_key = "waypoints." + std::to_string(i) + ".position.z";
-            std::string dwell_time_key = "waypoints." + std::to_string(i) + ".dwell_time";
-            
-            geometry_msgs::msg::PoseStamped waypoint;
-            waypoint.header.frame_id = "map";
-            waypoint.header.stamp = this->get_clock()->now();
-            waypoint.pose.position.x = this->get_parameter(x_key).as_double();
-            waypoint.pose.position.y = this->get_parameter(y_key).as_double();
-            waypoint.pose.position.z = this->get_parameter(z_key).as_double();
-            waypoint.pose.orientation.w = 1.0;
-            
-            // Optionally load dwell time if available
-            if (this->has_parameter(dwell_time_key)) {
-                double dwell_time = this->get_parameter(dwell_time_key).as_double();
-                RCLCPP_DEBUG(this->get_logger(), "Waypoint %d dwell time: %.2f", i, dwell_time);
-                // You could store this in a custom message or handle it in your path planner
-            }
-            
-            waypoints.push_back(waypoint);
-            RCLCPP_INFO(this->get_logger(), "Loaded waypoint %d: [%.2f, %.2f, %.2f]", 
-                       i, waypoint.pose.position.x, waypoint.pose.position.y, waypoint.pose.position.z);
-            i++;
-        }
-        
-        if (!waypoints.empty()) {
-            path_planner_->setWaypoints(waypoints);
-            RCLCPP_INFO(this->get_logger(), "Loaded %zu waypoints from parameters for %s", waypoints.size(), drone_id_.c_str());
-            
-            // Load mission parameters if available
-            loadMissionParams();
-        } else {
-            RCLCPP_WARN(this->get_logger(), "No waypoints found in parameters for %s - using fallback", drone_id_.c_str());
-            loadFallbackWaypoints();
-        }
-        
-    } catch (const std::exception& e) {
-        RCLCPP_ERROR(this->get_logger(), "Error loading waypoints from parameters: %s", e.what());
-        RCLCPP_INFO(this->get_logger(), "Loading fallback waypoints for %s", drone_id_.c_str());
-        loadFallbackWaypoints();
+    RCLCPP_INFO(get_logger(), "Loading waypoint params (enumerate-style) for %s", drone_id_.c_str());
+
+    // List parameter names we can see under the "waypoints." prefix
+    auto result = this->list_parameters({"waypoints"}, 10000); // depth large enough
+    const auto& names = result.names;
+
+    if (names.empty()) {
+      RCLCPP_WARN(get_logger(), "No 'waypoints.*' parameters visible - using fallback");
+      loadFallbackWaypoints();
+      // loadMissionParams();    // still attempt to read mission params
+      return;
     }
-}
+
+    // Extract indices present (waypoints.<idx>.*)
+    std::set<int> indices;
+    std::regex re(R"(waypoints\.([0-9]+)\.)");
+    for (const auto& n: names) {
+      std::smatch m; 
+      if (std::regex_search(n, m, re) && m.size() > 1) {
+        indices.insert(std::stoi(m[1].str()));
+      }
+    }
+
+    std::vector<geometry_msgs::msg::PoseStamped> wps;
+    for (int i : indices) {
+      double x=0,y=0,z=0;
+      // use get_parameter_or so undeclared params don’t throw
+      this->get_parameter_or("waypoints." + std::to_string(i) + ".position.x", x, x);
+      this->get_parameter_or("waypoints." + std::to_string(i) + ".position.y", y, y);
+      this->get_parameter_or("waypoints." + std::to_string(i) + ".position.z", z, z);
+
+      geometry_msgs::msg::PoseStamped wp;
+      wp.header.frame_id = "map";
+      wp.pose.orientation.w = 1.0;
+      wp.pose.position.x = x; wp.pose.position.y = y; wp.pose.position.z = z;
+      wps.push_back(wp);
+
+      RCLCPP_INFO(get_logger(), "WP %d -> [%.2f, %.2f, %.2f]", i, x, y, z);
+    }
+
+    if (wps.empty()) {
+      RCLCPP_WARN(get_logger(), "Waypoints keys existed but no positions parsed - using fallback");
+      loadFallbackWaypoints();
+    } else {
+      path_planner_->setWaypoints(wps);
+      RCLCPP_INFO(get_logger(), "Loaded %zu waypoints via enumeration", wps.size());
+    }
+
+    // Try mission params regardless
+    // loadMissionParams();
+  }
+
 
   // Load mission parameters
   void MissionPlannerNode::loadMissionParams() {
@@ -1127,16 +1134,17 @@ namespace drone_swarm
     std::vector<geometry_msgs::msg::PoseStamped> new_waypoint = {*msg};
     path_planner_->setWaypoints(new_waypoint);
     
-    // If drone is idle, start mission automatically
-    if (state_machine_->getCurrentState() == MissionState::IDLE) {
-      RCLCPP_INFO(this->get_logger(), "Auto-starting mission for waypoint command");
-      state_machine_->setState(MissionState::TAKEOFF);
-    }
-    // If drone is hovering, switch to waypoint navigation
-    else if (state_machine_->getCurrentState() == MissionState::HOVERING) {
-      RCLCPP_INFO(this->get_logger(), "Switching to waypoint navigation mode");
-      state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
-    }
+    // // If drone is idle, start mission automatically
+    // if (state_machine_->getCurrentState() == MissionState::IDLE) {
+    //   RCLCPP_INFO(this->get_logger(), "Auto-starting mission for waypoint command");
+    //   state_machine_->setState(MissionState::TAKEOFF);
+    // }
+    // // If drone is hovering, switch to waypoint navigation
+    // else if (state_machine_->getCurrentState() == MissionState::HOVERING) {
+    //   RCLCPP_INFO(this->get_logger(), "Switching to waypoint navigation mode");
+    //   state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
+    // }
+    RCLCPP_INFO(this->get_logger(), "Waypoint stored. Awaiting /start_mission or manual state change.");
   }
 
   //--- tiny string/parse helpers (local-only) ---//
