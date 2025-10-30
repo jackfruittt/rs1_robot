@@ -18,7 +18,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
   {
     auto reliable_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable(); // QoS (Quality of Service) to tell ROS2 to keep a 10 message buffer and re-send dropped messages so they always arrive
 
-
     // --- Parameter Loading (no declares) --- //
     this->get_parameter_or<std::string>("drone_namespace",      drone_namespace_,      "rs1_drone");
     this->get_parameter_or<double>("mission_update_rate",       mission_update_rate_,  5.0);
@@ -579,14 +578,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
       return;
     }
 
-    // // Fallback to self if no peers or all peers unsuitable
-    // if (responder_id < 0) {
-    //   RCLCPP_WARN(this->get_logger(),
-    //               "No suitable peer responders; falling back to self");
-    //   responder_id = selectBestResponderDrone({drone_numeric_id_}, required_state, incident);
-    //   if (responder_id < 0) responder_id = drone_numeric_id_;
-    // }
-
     // After we've decided on responder_id and (if needed) published the assignment:
     {
       std::lock_guard<std::mutex> lk(dispatch_mutex_);
@@ -601,6 +592,22 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
       cd.target.z     = current_pose_.pose.position.z;
       dispatch_cooldown_[scenario.scenario_name] = cd;
     }
+
+    std::string incident_id = generateIncidentId(scenario);  // e.g., "WILDFIRE_105_52_21"
+    
+    std::ostringstream ss;
+    ss << "DISPATCH," << incident_id << ","
+      << scenario.scenario_name << ","
+      << scenario.x << "," << scenario.y << "," << scenario.z << ","
+      << responder_id << ","
+      << this->now().nanoseconds();
+    
+    std_msgs::msg::String dispatch_msg;
+    dispatch_msg.data = ss.str();
+    incident_dispatch_pub_->publish(dispatch_msg);
+    
+    // Also update own registry
+    recordIncidentDispatch(incident_id, scenario, responder_id);
 
     if (drone_numeric_id_ == responder_id) {
       RCLCPP_INFO(this->get_logger(), "Drone %d: responding scenario", responder_id);
@@ -668,6 +675,137 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
         RCLCPP_INFO(this->get_logger(), "Sent mission to drone %d: %s", responder_id, msg.data.c_str());
       }
     }
+  }
+
+  // In mission_node.cpp - add implementations:
+
+  std::string MissionPlannerNode::generateIncidentId(const ScenarioData& scenario) {
+    // Create deterministic ID based on scenario type and rounded location
+    // Format: "WILDFIRE_105_52_21" (type_x_y_z with 0.1m precision)
+    // This ensures all drones generate the same ID for the same incident
+    
+    // Round coordinates to 1 decimal place (0.1m precision)
+    // This groups nearby detections into the same incident
+    auto round_coord = [](double val) -> int {
+      return static_cast<int>(std::round(val * 10.0));  // 10.53 -> 105
+    };
+    
+    int x_rounded = round_coord(scenario.x);
+    int y_rounded = round_coord(scenario.y);
+    int z_rounded = round_coord(scenario.z);
+    
+    std::ostringstream ss;
+    ss << scenario.scenario_name << "_"
+      << x_rounded << "_"
+      << y_rounded << "_"
+      << z_rounded;
+    
+    return ss.str();
+    // Examples:
+    // "WILDFIRE_105_52_21"
+    // "STRANDED_HIKER_-283_140_140" (handles negatives)
+  }
+
+  void MissionPlannerNode::recordIncidentDispatch(
+      const std::string& incident_id,
+      const ScenarioData& scenario, 
+      int responder_id) {
+    
+    auto now = this->now();
+    
+    // Create incident record
+    ActiveIncident incident;
+    incident.scenario_name = scenario.scenario_name;
+    incident.location.x = scenario.x;
+    incident.location.y = scenario.y;
+    incident.location.z = scenario.z;
+    incident.responder_id = responder_id;
+    incident.dispatch_time = now;
+    incident.expires_at = now + rclcpp::Duration::from_seconds(300);  // 5 min expiry
+    
+    // Update fleet-wide registry
+    {
+      std::lock_guard<std::mutex> lock(registry_mutex_);
+      fleet_incident_registry_[incident_id] = incident;
+      
+      RCLCPP_INFO(this->get_logger(),
+                  "Recorded dispatch: %s (id=%s) → drone %d, expires in 300s",
+                  scenario.scenario_name.c_str(), 
+                  incident_id.c_str(),
+                  responder_id);
+    }
+    
+    // Also update local dispatch cooldown for this drone's own tracking
+    {
+      std::lock_guard<std::mutex> lk(dispatch_mutex_);
+      DispatchCooldown cd;
+      cd.until = steady_clock_.now() + coordination_cooldown_;
+      cd.responder_id = responder_id;
+      cd.target.x = scenario.x;
+      cd.target.y = scenario.y;
+      cd.target.z = scenario.z;
+      dispatch_cooldown_[scenario.scenario_name] = cd;
+    }
+  }
+
+  void MissionPlannerNode::incidentDispatchCallback(
+      const std_msgs::msg::String::SharedPtr msg) {
+    
+    auto tokens = splitCSV(msg->data);
+    if (tokens.size() < 8 || tokens[0] != "DISPATCH") return;
+    
+    ActiveIncident incident;
+    incident.scenario_name = tokens[2];
+    incident.location.x = std::stod(tokens[3]);
+    incident.location.y = std::stod(tokens[4]);
+    incident.location.z = std::stod(tokens[5]);
+    incident.responder_id = std::stoi(tokens[6]);
+    incident.dispatch_time = rclcpp::Time(std::stoll(tokens[7]));
+    incident.expires_at = incident.dispatch_time + rclcpp::Duration::from_seconds(300); // 5 min
+    
+    std::lock_guard<std::mutex> lock(registry_mutex_);
+    fleet_incident_registry_[tokens[1]] = incident;  // tokens[1] is incident_id
+    
+    RCLCPP_INFO(this->get_logger(), 
+                "Registry updated: %s at [%.1f,%.1f,%.1f] → drone %d",
+                incident.scenario_name.c_str(), incident.location.x, 
+                incident.location.y, incident.location.z, incident.responder_id);
+  }
+
+  bool MissionPlannerNode::isIncidentAlreadyManaged(const ScenarioData& scenario) {
+    std::lock_guard<std::mutex> lock(registry_mutex_);
+    
+    auto now = this->now();
+    
+    for (auto it = fleet_incident_registry_.begin(); 
+        it != fleet_incident_registry_.end(); ) {
+      
+      // Clean up expired entries
+      if (now > it->second.expires_at) {
+        it = fleet_incident_registry_.erase(it);
+        continue;
+      }
+      
+      const auto& incident = it->second;
+      
+      // Check if same scenario type within merge radius
+      if (incident.scenario_name == scenario.scenario_name) {
+        double dx = incident.location.x - scenario.x;
+        double dy = incident.location.y - scenario.y;
+        double dz = incident.location.z - scenario.z;
+        double dist_sq = dx*dx + dy*dy + dz*dz;
+        
+        if (dist_sq < (incident_merge_radius_m_ * incident_merge_radius_m_)) {
+          RCLCPP_INFO(this->get_logger(),
+                      "Incident already managed by drone %d (%.1fm away)",
+                      incident.responder_id, std::sqrt(dist_sq));
+          return true;
+        }
+      }
+      ++it;
+    }
+    
+    return false;
   }
 
   // For manager drones to determine whether a fleet member's current state can switch to the target state
@@ -1447,6 +1585,14 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
       return;
     }
 
+    // Check fleet-wide registry first
+    if (isIncidentAlreadyManaged(scenario)) {
+      RCLCPP_DEBUG(this->get_logger(), 
+                  "Ignoring %s - already managed by another drone",
+                  scenario.scenario_name.c_str());
+      return;
+    }
+
     if (shouldSuppressIncident(scenario)) {
       return;  // no hover/ping/selection
     }
@@ -1478,44 +1624,13 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
     // NOTIFY GUI
     alertIncidentGui(this->parseScenarioDetection(*msg));
 
-    //--- Old hover stub ---///
-    // // 1. Immediately transition the *manager* drone to HOVERING.
-    // // 1) Immediately hold at the scenario location (or current pose if you prefer)
-    // geometry_msgs::msg::PoseStamped hold;
-    // hold.header.frame_id = "map";
-    // hold.header.stamp = this->get_clock()->now();
-
-    // // Hold exactly at the detected scenario
-    // // hold.pose.position.x = scenario.x;
-    // // hold.pose.position.y = scenario.y;
-    // // hold.pose.position.z = current_pose_.pose.position.z;   // or std::max(scenario.z, current_pose_.pose.position.z);
-    // hold.pose.position.x = current_pose_.pose.position.x;
-    // hold.pose.position.y = current_pose_.pose.position.y;
-    // hold.pose.position.z = current_pose_.pose.position.z;   // or std::max(scenario.z, current_pose_.pose.position.z);
-    // hold.pose.orientation.w = 1.0;
-
-    // target_pose_pub_->publish(hold);
-
-    // if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::HOVERING)) {
-    //   RCLCPP_INFO(this->get_logger(), "Scenario detected. Stopping to coordinate response.");
-    //   state_machine_->setState(MissionState::HOVERING);
-    //   path_planner_->reset();
-    //   publishMissionCommand(); // Sends a cmd_vel to the drone based on everything in this wall timer
-    // } else if (state_machine_->getCurrentState() == MissionState::HOVERING) {
-    //   RCLCPP_INFO(this->get_logger(), "Already in HOVERING; evaluating scenario.");
-    // } else {
-    //   RCLCPP_WARN(this->get_logger(), "Scenario detected but drone is in non-interruptible state: %s",
-    //               state_machine_->getStateString().c_str());
-    //   // FAILED TO HOVER, so we must reset the flag
-    //   std::lock_guard<std::mutex> lock(coordination_mutex_);
-    //   is_coordinating_ = false;
-    //   active_coordination_scenario_.reset();
-    //   return;
-    // }
-    //--- End old hover stub ---//
+    auto all_drones = getKnownDroneIds();
+    if (all_drones.size() == 1) {
+      return;
+    }
 
     //--- Orbit ---//
-    const double orbit_radius = 3.0;  // 5 metres radius
+    const double orbit_radius = 3.0;  // 3 metres radius
     const int orbit_points = 16;      // 12 waypoints around the circle
     const double orbit_altitude = current_pose_.pose.position.z;
     
@@ -1561,23 +1676,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
       return;
     }
 
-    // if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::WAYPOINT_NAVIGATION)) {
-    //   RCLCPP_INFO(this->get_logger(), "Scenario detected. Stopping to coordinate response.");
-    //   state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
-    //   // path_planner_->reset();
-    //   publishMissionCommand(); // Sends a cmd_vel to the drone based on everything in this wall timer
-    // } else if (state_machine_->getCurrentState() == MissionState::WAYPOINT_NAVIGATION) {
-    //   RCLCPP_INFO(this->get_logger(), "Already in WAYPOINT_NAVIGATION; evaluating scenario.");
-    // } else {
-    //   RCLCPP_WARN(this->get_logger(), "Scenario detected but drone is in non-interruptible state: %s",
-    //               state_machine_->getStateString().c_str());
-      
-    //   // FAILED TO WAYPOINT, so we must reset the flag
-    //   std::lock_guard<std::mutex> lock(coordination_mutex_);
-    //   is_coordinating_ = false;
-    //   active_coordination_scenario_.reset();
-    //   return;
-    // }
     //--- End orbit ---//
 
     RCLCPP_INFO(this->get_logger(),
