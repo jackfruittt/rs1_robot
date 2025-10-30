@@ -85,6 +85,14 @@ struct DispatchCooldown {
   int responder_id{-1};
 };
 
+struct OrbitPoint
+{
+  float x;
+  float y;
+  float z;
+  float yaw; // radians, heading toward the center (cx, cy)
+};
+
 /**
  * @brief Simple data structure to hold parsed scenario information
  * 
@@ -221,6 +229,26 @@ private:
    * @return True if within tolerance of current waypoint
    */
   bool isWaypointReached() const;
+
+  /**
+   * Generate N points on a circle of radius `radius` in the XY plane centered at (x,y),
+   * at altitude z. Each point's yaw faces the center (x,y).
+   *
+   * @param x          center X (meters)
+   * @param y          center Y (meters)
+   * @param z          altitude Z (meters)
+   * @param radius     circle radius (meters), negative treated as |radius|
+   * @param pointCount number of points to produce (min 1)
+   * @return           vector of OrbitPoint {X,Y,Z,Yaw}
+   */
+  std::vector<OrbitPoint> orbitTrajectory(float x, float y, float z,
+                                          float radius, int pointCount);
+
+  /**
+   * @brief Normalises an angle
+   * @return Normalised angle
+   */
+  inline float normalizeAngle(float a);
 
   void scenarioDetectionCallback(const std_msgs::msg::String::SharedPtr msg);
 

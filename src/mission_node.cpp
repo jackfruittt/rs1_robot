@@ -1115,7 +1115,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
       route_waypoints_cached = route_waypoints_cached_;
       original_waypoints_cached = original_waypoints_cached_;
     }
-    
+
     const std::string& mode = tokens[1];
     if (mode == "ORIGINAL_MISSION") {
       if (original_waypoints_cached.empty()) {
@@ -1143,6 +1143,90 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
       RCLCPP_WARN(this->get_logger(), "Unknown reset mission mode: '%s'", mode.c_str());
     }
   }
+
+  inline float normalizeAngle(float a) {
+    constexpr float PI = 3.14159265358979323846f;
+    constexpr float TWO_PI = 2.0f * PI;
+    while (a >= PI)  a -= TWO_PI;
+    while (a < -PI)  a += TWO_PI;
+    return a;
+  }
+
+  /**
+   * @brief Generate circular orbit waypoints around a point of interest
+   * 
+   * Creates a circular trajectory of waypoints that orbit around a central point,
+   * with each waypoint oriented to face the centre (useful for inspection/monitoring).
+   * 
+   * @param center_x X coordinate of orbit centre
+   * @param center_y Y coordinate of orbit centre  
+   * @param center_z Z coordinate (altitude) for all waypoints
+   * @param radius Orbit radius in metres
+   * @param point_count Number of waypoints to generate around the circle
+   * @return Vector of PoseStamped waypoints forming a circular orbit
+   */
+  std::vector<geometry_msgs::msg::PoseStamped> generateOrbitWaypoints(
+      double center_x, double center_y, double center_z,
+      double radius, int point_count)
+  {
+    const int N = std::max(1, point_count);
+    const double R = std::fabs(radius);
+
+    std::vector<geometry_msgs::msg::PoseStamped> waypoints;
+    waypoints.reserve(N);
+
+    // Edge case: zero radius means hovering at the centre point
+    if (R < 0.01)  // Small epsilon for floating point comparison
+    {
+      geometry_msgs::msg::PoseStamped hover_point;
+      hover_point.header.frame_id = "map";
+      hover_point.pose.position.x = center_x;
+      hover_point.pose.position.y = center_y;
+      hover_point.pose.position.z = center_z;
+      hover_point.pose.orientation.w = 1.0;  // Identity quaternion
+      
+      for (int i = 0; i < N; ++i) {
+        waypoints.push_back(hover_point);
+      }
+      return waypoints;
+    }
+
+    constexpr double PI = 3.14159265358979323846;
+    const double angle_step = 2.0 * PI / static_cast<double>(N);
+
+    for (int i = 0; i < N; ++i)
+    {
+      const double theta = angle_step * static_cast<double>(i);
+
+      // Calculate position on circle
+      const double px = center_x + R * std::cos(theta);
+      const double py = center_y + R * std::sin(theta);
+
+      // Calculate yaw to face the centre point
+      double yaw = std::atan2(center_y - py, center_x - px);
+      
+      // Convert yaw to quaternion (rotation around Z axis)
+      // q = [cos(yaw/2), 0, 0, sin(yaw/2)]
+      const double half_yaw = yaw * 0.5;
+      const double qw = std::cos(half_yaw);
+      const double qz = std::sin(half_yaw);
+
+      // Create waypoint
+      geometry_msgs::msg::PoseStamped waypoint;
+      waypoint.header.frame_id = "map";
+      waypoint.pose.position.x = px;
+      waypoint.pose.position.y = py;
+      waypoint.pose.position.z = center_z;
+      waypoint.pose.orientation.w = qw;
+      waypoint.pose.orientation.x = 0.0;
+      waypoint.pose.orientation.y = 0.0;
+      waypoint.pose.orientation.z = qz;
+
+      waypoints.push_back(waypoint);
+    }
+
+    return waypoints;
+}
 
   void MissionPlannerNode::velocityCallback(const geometry_msgs::msg::Twist::SharedPtr msg) {
     current_velocity_ = *msg;
@@ -1394,40 +1478,107 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
     // NOTIFY GUI
     alertIncidentGui(this->parseScenarioDetection(*msg));
 
-    // 1. Immediately transition the *manager* drone to HOVERING.
-    // 1) Immediately hold at the scenario location (or current pose if you prefer)
-    geometry_msgs::msg::PoseStamped hold;
-    hold.header.frame_id = "map";
-    hold.header.stamp = this->get_clock()->now();
+    //--- Old hover stub ---///
+    // // 1. Immediately transition the *manager* drone to HOVERING.
+    // // 1) Immediately hold at the scenario location (or current pose if you prefer)
+    // geometry_msgs::msg::PoseStamped hold;
+    // hold.header.frame_id = "map";
+    // hold.header.stamp = this->get_clock()->now();
 
-    // Hold exactly at the detected scenario
-    // hold.pose.position.x = scenario.x;
-    // hold.pose.position.y = scenario.y;
+    // // Hold exactly at the detected scenario
+    // // hold.pose.position.x = scenario.x;
+    // // hold.pose.position.y = scenario.y;
+    // // hold.pose.position.z = current_pose_.pose.position.z;   // or std::max(scenario.z, current_pose_.pose.position.z);
+    // hold.pose.position.x = current_pose_.pose.position.x;
+    // hold.pose.position.y = current_pose_.pose.position.y;
     // hold.pose.position.z = current_pose_.pose.position.z;   // or std::max(scenario.z, current_pose_.pose.position.z);
-    hold.pose.position.x = current_pose_.pose.position.x;
-    hold.pose.position.y = current_pose_.pose.position.y;
-    hold.pose.position.z = current_pose_.pose.position.z;   // or std::max(scenario.z, current_pose_.pose.position.z);
-    hold.pose.orientation.w = 1.0;
+    // hold.pose.orientation.w = 1.0;
 
-    target_pose_pub_->publish(hold);
+    // target_pose_pub_->publish(hold);
 
-    if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::HOVERING)) {
-      RCLCPP_INFO(this->get_logger(), "Scenario detected. Stopping to coordinate response.");
-      state_machine_->setState(MissionState::HOVERING);
-      path_planner_->reset();
-      publishMissionCommand(); // Sends a cmd_vel to the drone based on everything in this wall timer
-    } else if (state_machine_->getCurrentState() == MissionState::HOVERING) {
-      RCLCPP_INFO(this->get_logger(), "Already in HOVERING; evaluating scenario.");
-    } else {
-      RCLCPP_WARN(this->get_logger(), "Scenario detected but drone is in non-interruptible state: %s",
-                  state_machine_->getStateString().c_str());
+    // if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::HOVERING)) {
+    //   RCLCPP_INFO(this->get_logger(), "Scenario detected. Stopping to coordinate response.");
+    //   state_machine_->setState(MissionState::HOVERING);
+    //   path_planner_->reset();
+    //   publishMissionCommand(); // Sends a cmd_vel to the drone based on everything in this wall timer
+    // } else if (state_machine_->getCurrentState() == MissionState::HOVERING) {
+    //   RCLCPP_INFO(this->get_logger(), "Already in HOVERING; evaluating scenario.");
+    // } else {
+    //   RCLCPP_WARN(this->get_logger(), "Scenario detected but drone is in non-interruptible state: %s",
+    //               state_machine_->getStateString().c_str());
+    //   // FAILED TO HOVER, so we must reset the flag
+    //   std::lock_guard<std::mutex> lock(coordination_mutex_);
+    //   is_coordinating_ = false;
+    //   active_coordination_scenario_.reset();
+    //   return;
+    // }
+    //--- End old hover stub ---//
+
+    //--- Orbit ---//
+    const double orbit_radius = 3.0;  // 5 metres radius
+    const int orbit_points = 16;      // 12 waypoints around the circle
+    const double orbit_altitude = current_pose_.pose.position.z;
+    
+    auto orbit_waypoints = generateOrbitWaypoints(
+        current_pose_.pose.position.x, 
+        current_pose_.pose.position.y, 
+        orbit_altitude,
+        orbit_radius, 
+        orbit_points
+    );
+
+    if (!orbit_waypoints.empty()) {
+      RCLCPP_INFO(this->get_logger(), 
+                  "Generated %zu orbit waypoints for incident monitoring at [%.2f, %.2f]",
+                  orbit_waypoints.size(), scenario.x, scenario.y);
       
-      // FAILED TO HOVER, so we must reset the flag
+      // Set waypoints and enable looping
+      path_planner_->setWaypoints(orbit_waypoints);
+      repeat_Waypoint_Path_ = true;
+      
+      if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::WAYPOINT_NAVIGATION)) {
+        state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
+        RCLCPP_INFO(this->get_logger(), "Beginning orbit surveillance pattern.");
+      } else if (state_machine_->getCurrentState() == MissionState::WAYPOINT_NAVIGATION) {
+        // Already navigating - waypoints will update on next cycle
+        RCLCPP_INFO(this->get_logger(), "Updated to orbit pattern.");
+      } else {
+        RCLCPP_WARN(this->get_logger(), 
+                    "Cannot orbit - drone in non-interruptible state: %s",
+                    state_machine_->getStateString().c_str());
+        
+        // Reset coordination flags
+        std::lock_guard<std::mutex> lock(coordination_mutex_);
+        is_coordinating_ = false;
+        active_coordination_scenario_.reset();
+        return;
+      }
+    } else {
+      RCLCPP_ERROR(this->get_logger(), "Failed to generate orbit waypoints!");
       std::lock_guard<std::mutex> lock(coordination_mutex_);
       is_coordinating_ = false;
       active_coordination_scenario_.reset();
       return;
     }
+
+    // if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::WAYPOINT_NAVIGATION)) {
+    //   RCLCPP_INFO(this->get_logger(), "Scenario detected. Stopping to coordinate response.");
+    //   state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
+    //   // path_planner_->reset();
+    //   publishMissionCommand(); // Sends a cmd_vel to the drone based on everything in this wall timer
+    // } else if (state_machine_->getCurrentState() == MissionState::WAYPOINT_NAVIGATION) {
+    //   RCLCPP_INFO(this->get_logger(), "Already in WAYPOINT_NAVIGATION; evaluating scenario.");
+    // } else {
+    //   RCLCPP_WARN(this->get_logger(), "Scenario detected but drone is in non-interruptible state: %s",
+    //               state_machine_->getStateString().c_str());
+      
+    //   // FAILED TO WAYPOINT, so we must reset the flag
+    //   std::lock_guard<std::mutex> lock(coordination_mutex_);
+    //   is_coordinating_ = false;
+    //   active_coordination_scenario_.reset();
+    //   return;
+    // }
+    //--- End orbit ---//
 
     RCLCPP_INFO(this->get_logger(),
                 "Drone %d detected: %s at [%.2f, %.2f, %.2f]", drone_numeric_id_,
