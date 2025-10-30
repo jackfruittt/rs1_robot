@@ -129,6 +129,14 @@ struct ScenarioEvent {
   std::string raw;              // original raw string (for audit/logs)
 };
 
+struct ActiveIncident {
+  std::string scenario_name;
+  geometry_msgs::msg::Point location;
+  int responder_id;
+  rclcpp::Time dispatch_time;
+  rclcpp::Time expires_at;
+};
+
 /**
  * @class MissionPlannerNode
  * @brief ROS 2 node for autonomous mission planning and execution
@@ -319,6 +327,8 @@ private:
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr assignment_subs_;         ///< Allows management drones to set the state of other drones
   std::unordered_map<int, rclcpp::Subscription<std_msgs::msg::String>::SharedPtr> info_manifest_subs_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr reset_mission_sub_;
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr incident_dispatch_sub_;   /// "DISPATCH,<incident_id>,<scenario_name>,<x>,<y>,<z>,<responder_id>,<timestamp>" Example: "DISPATCH,INC-001,WILDFIRE,10.5,5.2,2.1,3,1234567890"
+
   
   // PUBS
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;            ///< Velocity command publisher
@@ -328,6 +338,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr info_manifest_pub_;          ///< Info manifest publisher for updating management drones
   rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr info_request_pub_;            ///< Info request for management drones to ping
   std::unordered_map<int, rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr> info_request_pubs_;
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr incident_dispatch_pub_;
   
   // SRV
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_mission_service_;       ///< Start mission service
@@ -359,8 +370,8 @@ private:
   std::vector<geometry_msgs::msg::PoseStamped> route_waypoints_cached_;
   std::vector<geometry_msgs::msg::PoseStamped> original_waypoints_cached_;
   std::mutex cache_mutex_; // mutex for saving the waypoints
+
   
-    
   // Configuration parameters
   std::string drone_namespace_;   ///< ROS namespace for this drone
   std::string drone_id_;          ///< Unique drone identifier
@@ -397,9 +408,11 @@ private:
   // steady clock just for gating/cooldowns
   rclcpp::Clock steady_clock_{RCL_STEADY_TIME};
 
-  // tunables (overridden by params below)
   rclcpp::Duration coordination_cooldown_{std::chrono::seconds(5)};
   double incident_merge_radius_m_{3.0};
+
+  std::map<std::string, ActiveIncident> fleet_incident_registry_;
+  std::mutex registry_mutex_;
 
   // 14 OCT
   geometry_msgs::msg::Point helipad_location_;
@@ -424,6 +437,12 @@ private:
   inline bool isBusyWithAssignedMission() const {
     return in_fetch_rt_ || in_hiker_rescue_;
   }
+
+  bool isIncidentAlreadyManaged(const ScenarioData& scenario);
+  void incidentDispatchCallback(const std_msgs::msg::String::SharedPtr msg);
+  std::string generateIncidentId(const ScenarioData& scenario);
+  void recordIncidentDispatch(const std::string& incident_id, const ScenarioData& scenario, int responder_id);
+    
   std::vector<int> getKnownDroneIds(void);
 };
 
