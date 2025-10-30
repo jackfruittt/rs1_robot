@@ -18,7 +18,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
   {
     auto reliable_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable(); // QoS (Quality of Service) to tell ROS2 to keep a 10 message buffer and re-send dropped messages so they always arrive
 
-
     // --- Parameter Loading (no declares) --- //
     this->get_parameter_or<std::string>("drone_namespace",      drone_namespace_,      "rs1_drone");
     this->get_parameter_or<double>("mission_update_rate",       mission_update_rate_,  5.0);
@@ -1624,6 +1623,12 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
     
     // NOTIFY GUI
     alertIncidentGui(this->parseScenarioDetection(*msg));
+
+    auto all_drones = getKnownDroneIds();
+    if (all_drones.size() == 1) {
+      return;
+    }
+
     //--- Orbit ---//
     const double orbit_radius = 3.0;  // 3 metres radius
     const int orbit_points = 16;      // 12 waypoints around the circle
