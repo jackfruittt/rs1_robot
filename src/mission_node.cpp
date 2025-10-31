@@ -522,7 +522,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
         waypoint.header.frame_id = "map";
         waypoint.pose.position.x = target_x;
         waypoint.pose.position.y = target_y;
-        waypoint.pose.position.z = target_z;
+        waypoint.pose.position.z = current_pose_.pose.position.z;
         waypoint.pose.orientation.w = 1.0;
         
         new_waypoints.push_back(waypoint);

@@ -5,35 +5,35 @@ waypoint_configs:
   rs1_drone_1:
     mission_name: "perimeter_patrol_south_west_brown"
     waypoints:
-      - position: {x: -25.2, y: 6.7, z: 16.7}
+      - position: {x: -25.2, y: 6.7, z: 19}
         dwell_time: 0.2
-      - position: {x: -25.5, y: -6.6, z: 16.7}
+      - position: {x: -25.5, y: -6.6, z: 19}
         dwell_time: 0.2
-      - position: {x: -12.3, y: -6.6, z: 16.7}
+      - position: {x: -12.3, y: -6.6, z: 19}
         dwell_time: 0.2
-      - position: {x: -3.0, y: 7.8, z: 16.7}
+      - position: {x: -3.0, y: 7.8, z: 19}
         dwell_time: 0.2
-      - position: {x: -18.0, y: 12.4, z: 16.7}
+      - position: {x: -18.0, y: 12.4, z: 19}
         dwell_time: 0.2
 
   rs1_drone_2:
     mission_name: "perimeter_patrol_north_west_light_green"
     waypoints:
-      - position: {x: -18.99, y: 14.61, z: 16.0}
+      - position: {x: -18.99, y: 14.61, z: 19}
         dwell_time: 2.0
-      - position: {x: 6.377150, y: 3.038830, z: 5.0}
+      - position: {x: 6.377150, y: 3.038830, z: 19}
         dwell_time: 2.0
-      - position: {x: 9.416730, y: 13.918300, z: 5.0}
+      - position: {x: 9.416730, y: 13.918300, z: 19}
         dwell_time: 2.0
-      - position: {x: 16.917400, y: 25.873700, z: 5.0}
+      - position: {x: 16.917400, y: 25.873700, z: 19}
         dwell_time: 2.0
-      - position: {x: 20.468000, y: 11.713300, z: 5.0}
+      - position: {x: 20.468000, y: 11.713300, z: 19}
         dwell_time: 2.0
-      - position: {x: 23.921400, y: 4.430400, z: 5.0}
+      - position: {x: 23.921400, y: 4.430400, z: 19}
         dwell_time: 2.0
-      - position: {x: 24.262800, y: -8.924560, z: 5.0}
+      - position: {x: 24.262800, y: -8.924560, z: 19}
         dwell_time: 2.0
-      - position: {x: 12.489800, y: -5.505170, z: 5.0}
+      - position: {x: 12.489800, y: -5.505170, z: 19}
         dwell_time: 2.0
 
   rs1_drone_3:
