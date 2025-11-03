@@ -173,17 +173,6 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
                         parameters=[drone_controller_params],
                         extra_arguments=[{'use_intra_process_comms': True}],
                     ),
-                    ComposableNode(
-                        package='rs1_robot',
-                        plugin='sensorNodeComponent',
-                        name=f'sensor_processor_{i}',  
-                        namespace=drone_name,
-                        parameters=[{
-                            'use_sim_time': use_sim_time,
-                            'drone_namespace': drone_name
-                        }],
-                        extra_arguments=[{'use_intra_process_comms': True}],
-                    ),
                 ],
                 output='screen'
             )

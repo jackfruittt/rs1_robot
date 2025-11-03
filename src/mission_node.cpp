@@ -10,28 +10,25 @@ namespace drone_swarm
   ScenarioData parseScenarioMessage(const std::string& message_data);
   static std::string missionStateToString(MissionState state);
 
-MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
-  : Node("mission_planner",
-      rclcpp::NodeOptions(options)
-        .automatically_declare_parameters_from_overrides(true)  // for waypoint yaml loading
-  )
+MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const std::string & name)
+  : Node( (name.empty() ? std::string("mission_planner_") + std::to_string(getpid()) : name), rclcpp::NodeOptions(options).automatically_declare_parameters_from_overrides(true))
   {
     auto reliable_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable(); // QoS (Quality of Service) to tell ROS2 to keep a 10 message buffer and re-send dropped messages so they always arrive
 
     // --- Parameter Loading (no declares) --- //
-    this->get_parameter_or<std::string>("drone_namespace",      drone_namespace_,      "rs1_drone");
-    this->get_parameter_or<double>("mission_update_rate",       mission_update_rate_,  5.0);
-    this->get_parameter_or<double>("waypoint_tolerance",        waypoint_tolerance_,   0.5);
-    this->get_parameter_or<double>("helipad_location.x",        helipad_location_.x,   0.0);
-    this->get_parameter_or<double>("helipad_location.y",        helipad_location_.y,   0.0);
-    this->get_parameter_or<double>("helipad_location.z",        helipad_location_.z,   0.0);
-    this->get_parameter_or<double>("battery_level",             battery_level_,        0.8);
-    this->get_parameter_or<double>("retardant_depot.x",         depot_xyz_.x,         -28.3);
-    this->get_parameter_or<double>("retardant_depot.y",         depot_xyz_.y,          14.0);
-    this->get_parameter_or<double>("retardant_depot.z",         depot_xyz_.z,          14.0);
-    this->get_parameter_or<double>("medkit_depot.x",            medkit_depot_xyz_.x,  -28.0);
-    this->get_parameter_or<double>("medkit_depot.y",            medkit_depot_xyz_.y,   16.0);
-    this->get_parameter_or<double>("medkit_depot.z",            medkit_depot_xyz_.z,   14.0);
+    this->get_parameter_or("drone_namespace", drone_namespace_, std::string("rs1_drone"));
+    this->get_parameter_or("mission_update_rate", mission_update_rate_, 5.0);
+    this->get_parameter_or("waypoint_tolerance",        waypoint_tolerance_,   0.5);
+    this->get_parameter_or("helipad_location.x",        helipad_location_.x,   0.0);
+    this->get_parameter_or("helipad_location.y",        helipad_location_.y,   0.0);
+    this->get_parameter_or("helipad_location.z",        helipad_location_.z,   0.0);
+    this->get_parameter_or("battery_level",             battery_level_,        0.8);
+    this->get_parameter_or("retardant_depot.x",         depot_xyz_.x,         -28.3);
+    this->get_parameter_or("retardant_depot.y",         depot_xyz_.y,          14.0);
+    this->get_parameter_or("retardant_depot.z",         depot_xyz_.z,          14.0);
+    this->get_parameter_or("medkit_depot.x",            medkit_depot_xyz_.x,  -28.0);
+    this->get_parameter_or("medkit_depot.y",            medkit_depot_xyz_.y,   16.0);
+    this->get_parameter_or("medkit_depot.z",            medkit_depot_xyz_.z,   14.0);
     fetch_rt_phase_ = FetchRtPhase::NONE;
     repeat_Waypoint_Path_ = true;
 
@@ -68,7 +65,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
     mission_state_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/mission_state", reliable_qos);
     info_manifest_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/info_manifest", reliable_qos);
     incident_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/incident", 10);
-      
+
     //--- Srvs ---//
     start_mission_service_ = this->create_service<std_srvs::srv::Trigger>(
       "/" + drone_namespace_ + "/start_mission", std::bind(&MissionPlannerNode::startMissionCallback, this, std::placeholders::_1, std::placeholders::_2)); // Tiny service: empty request, and response {bool success, string message}
@@ -80,12 +77,12 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
     mission_timer_ = this->create_wall_timer(mission_timer_period, std::bind(&MissionPlannerNode::missionTimerCallback, this));
     discovery_timer_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&MissionPlannerNode::discoverPeerDrones, this));
     waypoint_load_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(150),
+        std::chrono::milliseconds(500),
         [this]() {
           this->loadWaypointsFromParams();
           waypoint_load_timer_->cancel();
         });
-    mission_params_timer_ = this->create_wall_timer(std::chrono::milliseconds(250),[this]() {this->loadMissionParams();mission_params_timer_->cancel();});
+    mission_params_timer_ = this->create_wall_timer(std::chrono::milliseconds(750),[this]() {this->loadMissionParams();mission_params_timer_->cancel();});
 
     RCLCPP_INFO(this->get_logger(), "Mission Planner Node initialised for %s", drone_id_.c_str()); 
 

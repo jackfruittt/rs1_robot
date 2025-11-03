@@ -6,13 +6,20 @@ namespace drone_swarm
 {
 
   // DroneControllerNode Implementation
-  DroneControllerNode::DroneControllerNode(const rclcpp::NodeOptions &options)
-      : Node("drone_controller", options), current_flight_mode_(FlightMode::DISARMED), armed_(false)
+  DroneControllerNode::DroneControllerNode(const rclcpp::NodeOptions &options, const std::string & name)
+      : Node( (name.empty() ? std::string("drone_controller_") + std::to_string(getpid()) : name), rclcpp::NodeOptions(options).automatically_declare_parameters_from_overrides(true)),
+        current_flight_mode_(FlightMode::DISARMED), armed_(false)
   {
     // Initialise ROS parameters for drone configuration
-    this->declare_parameter("drone_namespace", std::string("rs1_drone"));
-
-    drone_namespace_ = this->get_parameter("drone_namespace").as_string();
+    std::string drone_namespace;
+    if (this->has_parameter("drone_namespace")) {
+      drone_namespace = this->get_parameter("drone_namespace").as_string();
+    } else {
+      drone_namespace = "rs1_drone";  // fallback default
+    }
+    
+    // Store the namespace (without leading slash since we're already namespaced)
+    drone_namespace_ = drone_namespace;
 
     // Initialise control components for flight management
     drone_control_ = std::make_unique<DroneControl>();
@@ -20,30 +27,27 @@ namespace drone_swarm
 
     last_control_update_ = std::chrono::steady_clock::now();
 
-    // Create ROS subscriptions using drone namespace pattern
+    // FIXED: Use relative topic names (no leading slash) when node has namespace
+    // ROS 2 will automatically prepend the namespace
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "/" + drone_namespace_ + "/odom", 10,
+        "/odom", 10,
         std::bind(&DroneControllerNode::odomCallback, this, std::placeholders::_1));
 
     goals_sub_ = this->create_subscription<geometry_msgs::msg::PoseArray>(
-        "/" + drone_namespace_ + "/mission/goals", 10,
+        "/mission/goals", 10,
         std::bind(&DroneControllerNode::goalCallback, this, std::placeholders::_1));
 
     target_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-        "/" + drone_namespace_ + "/target_pose", 10,
+        "/target_pose", 10,
         std::bind(&DroneControllerNode::targetPoseCallback, this, std::placeholders::_1));
 
     imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
-        "/" + drone_namespace_ + "/imu", 10,
+        "/imu", 10,
         std::bind(&DroneControllerNode::imuCallback, this, std::placeholders::_1));
-
-    // gps_sub_ = this->create_subscription<sensor_msgs::msg::NavSatFix>(
-    //     "/" + drone_namespace_ + "/gps", 10,
-    //     std::bind(&DroneControllerNode::gpsCallback, this, std::placeholders::_1));
 
     // Subscribe to laser and sonar (future implementation)
     laser_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-        "/" + drone_namespace_ + "/laserscan", 10,
+        "/laserscan", 10,
         [this](const sensor_msgs::msg::LaserScan::SharedPtr msg)
         {
           // TODO: Process laser data when sensor manager is implemented
@@ -51,7 +55,7 @@ namespace drone_swarm
         });
 
     sonar_sub_ = this->create_subscription<sensor_msgs::msg::Range>(
-        "/" + drone_namespace_ + "/sonar", 10,
+        "sonar", 10,
         [this](const sensor_msgs::msg::Range::SharedPtr msg)
         {
           // TODO: Process sonar data when sensor manager is implemented
@@ -59,20 +63,18 @@ namespace drone_swarm
         });
 
     mission_state_sub_ = this->create_subscription<std_msgs::msg::String>(
-        "/" + drone_namespace_ + "/mission_state", 10,
+        "mission_state", 10,
         std::bind(&DroneControllerNode::missionStateCallback, this, std::placeholders::_1));
 
-    // Create publishers
+    // Create publishers (also relative names)
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
-        "/" + drone_namespace_ + "/cmd_vel", 10);
+        "/cmd_vel", 10);
     pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
-        "/" + drone_namespace_ + "/pose", 10);
+        "/pose", 10);
     velocity_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
-        "/" + drone_namespace_ + "/velocity", 10);
+        "/velocity", 10);
     flight_mode_pub_ = this->create_publisher<std_msgs::msg::String>(
-        "/" + drone_namespace_ + "/flight_mode", 10);
-
-    // Create services
+        "/flight_mode", 10);
 
     // Load control parameters
     loadControlParams();
@@ -117,14 +119,9 @@ namespace drone_swarm
 
   void DroneControllerNode::loadControlParams() {
     // Load control parameters from ROS parameters
-    this->declare_parameter("control_frequency", 10.0);
-    this->declare_parameter("telemetry_frequency", 5.0);
-    this->declare_parameter("takeoff_altitude", 2.0);
-    this->declare_parameter("landing_speed", 0.5);
-    this->declare_parameter("hover_altitude_tolerance", 0.2);
-
-    control_frequency_ = this->get_parameter("control_frequency").as_double();
-    telemetry_frequency_ = this->get_parameter("telemetry_frequency").as_double();
+    // Use get_parameter_or instead of declare + get to avoid redeclaration errors
+    this->get_parameter_or("control_frequency", control_frequency_, 10.0);
+    this->get_parameter_or("telemetry_frequency", telemetry_frequency_, 5.0);
 
     // Validate frequencies
     if (control_frequency_ <= 0.0) {
@@ -204,14 +201,6 @@ namespace drone_swarm
                  yaw, yaw * 180.0 / M_PI);
   }
 
-  // void DroneControllerNode::gpsCallback(const sensor_msgs::msg::NavSatFix::SharedPtr msg)
-  // {
-  //   (void)msg; // Suppress unused parameter warning
-  //   // TODO: Process GPS data for position estimation
-  //   // sensor_manager_->updateGPS(msg);
-  //   RCLCPP_DEBUG(this->get_logger(), "GPS data received");
-  // }
-
   void DroneControllerNode::goalCallback(const geometry_msgs::msg::PoseArray::SharedPtr msg) {
     // Future implementation for waypoint handling
     (void)msg; // Suppress unused parameter warning
@@ -259,7 +248,8 @@ namespace drone_swarm
     }
 
     // Simple takeoff control - ascend to target altitude
-    double target_altitude = this->get_parameter("takeoff_altitude").as_double();
+    double target_altitude = 2.0;  // Default value
+    this->get_parameter_or("takeoff_altitude", target_altitude, 2.0);
     double current_altitude = current_odom_.pose.pose.position.z;
 
     geometry_msgs::msg::Twist cmd_vel;
@@ -286,7 +276,6 @@ namespace drone_swarm
 
   void DroneControllerNode::executeWaypointNavigation() {
     // Future implementation for waypoint navigation
-    // 
 
     // Use target pose from drone node
     if (target_pose_.header.stamp.sec == 0)
@@ -318,7 +307,8 @@ namespace drone_swarm
 
   void DroneControllerNode::executeLandingSequence() {
     // Simple landing control - descend at controlled rate
-    double landing_speed = this->get_parameter("landing_speed").as_double();
+    double landing_speed = 0.5;  // Default value
+    this->get_parameter_or("landing_speed", landing_speed, 0.5);
     double current_altitude = current_odom_.pose.pose.position.z;
 
     geometry_msgs::msg::Twist cmd_vel;
@@ -403,16 +393,6 @@ namespace drone_swarm
     velocity_msg = current_odom_.twist.twist;
     velocity_pub_->publish(velocity_msg);
   }
-
-  // Commented out methods for future implementation
-  /*
-  void DroneControllerNode::handleEmergency()
-  {
-    // TODO: Implement emergency handling
-    current_flight_mode_ = FlightMode::EMERGENCY_LAND;
-    RCLCPP_ERROR(this->get_logger(), "Emergency situation detected - initiating emergency landing");
-  }
-  */
 
 } // namespace drone_swarm
 
