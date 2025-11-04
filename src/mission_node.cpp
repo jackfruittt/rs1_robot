@@ -10,34 +10,41 @@ namespace drone_swarm
   ScenarioData parseScenarioMessage(const std::string& message_data);
   static std::string missionStateToString(MissionState state);
 
-MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
-  : Node("mission_planner",
-      rclcpp::NodeOptions(options)
-        .automatically_declare_parameters_from_overrides(true)  // for waypoint yaml loading
-  )
+MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const std::string & name)
+  : Node( (name.empty() ? std::string("mission_planner_") + std::to_string(getpid()) : name), rclcpp::NodeOptions(options).automatically_declare_parameters_from_overrides(true))
   {
     auto reliable_qos = rclcpp::QoS(rclcpp::KeepLast(10)).reliable(); // QoS (Quality of Service) to tell ROS2 to keep a 10 message buffer and re-send dropped messages so they always arrive
 
     // --- Parameter Loading (no declares) --- //
-    this->get_parameter_or<std::string>("drone_namespace",      drone_namespace_,      "rs1_drone");
-    this->get_parameter_or<double>("mission_update_rate",       mission_update_rate_,  5.0);
-    this->get_parameter_or<double>("waypoint_tolerance",        waypoint_tolerance_,   0.5);
-    this->get_parameter_or<double>("helipad_location.x",        helipad_location_.x,   0.0);
-    this->get_parameter_or<double>("helipad_location.y",        helipad_location_.y,   0.0);
-    this->get_parameter_or<double>("helipad_location.z",        helipad_location_.z,   0.0);
-    this->get_parameter_or<double>("battery_level",             battery_level_,        0.8);
-    this->get_parameter_or<double>("retardant_depot.x",         depot_xyz_.x,         -28.3);
-    this->get_parameter_or<double>("retardant_depot.y",         depot_xyz_.y,          14.0);
-    this->get_parameter_or<double>("retardant_depot.z",         depot_xyz_.z,          14.0);
-    this->get_parameter_or<double>("medkit_depot.x",            medkit_depot_xyz_.x,  -28.0);
-    this->get_parameter_or<double>("medkit_depot.y",            medkit_depot_xyz_.y,   16.0);
-    this->get_parameter_or<double>("medkit_depot.z",            medkit_depot_xyz_.z,   14.0);
+    this->get_parameter_or("drone_namespace", drone_namespace_, std::string("rs1_drone"));
+    this->get_parameter_or("mission_update_rate", mission_update_rate_, 5.0);
+    this->get_parameter_or("waypoint_tolerance",        waypoint_tolerance_,   0.5);
+    this->get_parameter_or("helipad_location.x",        helipad_location_.x,   0.0);
+    this->get_parameter_or("helipad_location.y",        helipad_location_.y,   0.0);
+    this->get_parameter_or("helipad_location.z",        helipad_location_.z,   0.0);
+    this->get_parameter_or("battery_level",             battery_level_,        0.8);
+    this->get_parameter_or("retardant_depot.x",         depot_xyz_.x,         -28.3);
+    this->get_parameter_or("retardant_depot.y",         depot_xyz_.y,          14.0);
+    this->get_parameter_or("retardant_depot.z",         depot_xyz_.z,          14.0);
+    this->get_parameter_or("medkit_depot.x",            medkit_depot_xyz_.x,  -28.0);
+    this->get_parameter_or("medkit_depot.y",            medkit_depot_xyz_.y,   16.0);
+    this->get_parameter_or("medkit_depot.z",            medkit_depot_xyz_.z,   14.0);
     fetch_rt_phase_ = FetchRtPhase::NONE;
     repeat_Waypoint_Path_ = true;
+    use_astar_planning_ = this->get_parameter("use_astar_planning").as_bool();
 
     //--- Component Initialization ---///
     state_machine_ = std::make_unique<StateMachine>(); 
     path_planner_ = std::make_unique<PathPlanner>();
+    mission_executor_ = std::make_unique<MissionExecutor>();
+
+    // Initialize Theta* path planner if enabled
+    if (use_astar_planning_) {
+      theta_star_planner_ = std::make_unique<drone_navigation::ThetaStarPathPlanner>();
+      RCLCPP_INFO(this->get_logger(), "Theta* path planning enabled for %s", drone_namespace_.c_str());
+    }
+
+    // Set drone identifier from namespace
     drone_id_ = drone_namespace_;
     try {
         std::string num_part = drone_id_.substr(drone_id_.find_last_of('_') + 1);
@@ -48,6 +55,8 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
 
     //--- Load custom waypoints for surveillance ---//
     // loadWaypointsFromParams();
+    has_pending_goal_ = false;
+    current_path_index_ = 0;
     
     //--- Subs ---///
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
@@ -68,7 +77,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
     mission_state_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/mission_state", reliable_qos);
     info_manifest_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/info_manifest", reliable_qos);
     incident_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/incident", 10);
-      
+
     //--- Srvs ---//
     start_mission_service_ = this->create_service<std_srvs::srv::Trigger>(
       "/" + drone_namespace_ + "/start_mission", std::bind(&MissionPlannerNode::startMissionCallback, this, std::placeholders::_1, std::placeholders::_2)); // Tiny service: empty request, and response {bool success, string message}
@@ -80,12 +89,12 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
     mission_timer_ = this->create_wall_timer(mission_timer_period, std::bind(&MissionPlannerNode::missionTimerCallback, this));
     discovery_timer_ = this->create_wall_timer(std::chrono::seconds(5), std::bind(&MissionPlannerNode::discoverPeerDrones, this));
     waypoint_load_timer_ = this->create_wall_timer(
-        std::chrono::milliseconds(150),
+        std::chrono::milliseconds(500),
         [this]() {
           this->loadWaypointsFromParams();
           waypoint_load_timer_->cancel();
         });
-    mission_params_timer_ = this->create_wall_timer(std::chrono::milliseconds(250),[this]() {this->loadMissionParams();mission_params_timer_->cancel();});
+    mission_params_timer_ = this->create_wall_timer(std::chrono::milliseconds(750),[this]() {this->loadMissionParams();mission_params_timer_->cancel();});
 
     RCLCPP_INFO(this->get_logger(), "Mission Planner Node initialised for %s", drone_id_.c_str()); 
 
@@ -203,6 +212,16 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
           }
         }
       }
+    // Subscribe to LiDAR if Theta* planning is enabled
+    if (use_astar_planning_) {
+      lidar_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
+        "/" + drone_namespace_ + "/lidar", 10,
+        std::bind(&MissionPlannerNode::lidarCallback, this, std::placeholders::_1));
+    }
+
+    // Create publishers  
+    cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
+      "/" + drone_namespace_ + "/cmd_vel", 10);
       
       if (all_received) {
         RCLCPP_INFO(this->get_logger(), "All responses received early!");
@@ -236,6 +255,22 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
     if (it == dispatch_cooldown_.end()) return false;
 
     auto& cd = it->second;
+    // Create path visualization publisher if Theta* is enabled
+    if (use_astar_planning_) {
+      path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
+        "/" + drone_namespace_ + "/planned_path", 10);
+    }
+
+    // Create services
+    start_mission_service_ = this->create_service<std_srvs::srv::Trigger>(
+      "/" + drone_namespace_ + "/start_mission",
+      std::bind(&MissionPlannerNode::startMissionCallback, this,
+                std::placeholders::_1, std::placeholders::_2));
+                
+    stop_mission_service_ = this->create_service<std_srvs::srv::Trigger>(
+      "/" + drone_namespace_ + "/stop_mission",
+      std::bind(&MissionPlannerNode::stopMissionCallback, this,
+                std::placeholders::_1, std::placeholders::_2));
 
     // Same-incident proximity check first
     const double dx = cd.target.x - s.x;
@@ -522,7 +557,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
         waypoint.header.frame_id = "map";
         waypoint.pose.position.x = target_x;
         waypoint.pose.position.y = target_y;
-        waypoint.pose.position.z = target_z;
+        waypoint.pose.position.z = current_pose_.pose.position.z;
         waypoint.pose.orientation.w = 1.0;
         
         new_waypoints.push_back(waypoint);
@@ -2076,4 +2111,41 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options)
       peer_info_[peer_id] = pi;  // <— don’t block on id match for now
     }
   }
+  void MissionPlannerNode::lidarCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
+    if (!use_astar_planning_ || !theta_star_planner_) {
+      return;
+    }
+
+    // Update occupancy grid with current LiDAR data
+    theta_star_planner_->updateOccupancyGrid(msg, current_pose_.pose.position.x, current_pose_.pose.position.y);
+
+    // Plan path to pending goal if we have one
+    if (has_pending_goal_) {
+      auto waypoints = theta_star_planner_->planPath(
+        current_pose_.pose.position.x, current_pose_.pose.position.y,
+        pending_goal_.pose.position.x, pending_goal_.pose.position.y);
+
+      if (!waypoints.empty()) {
+        // Convert waypoints to ROS path and publish for visualization
+        current_astar_path_ = theta_star_planner_->waypointsToPath(waypoints, "map");
+        current_astar_path_.header.stamp = this->get_clock()->now();
+        path_pub_->publish(current_astar_path_);
+
+        // Convert to basic waypoint format for existing path planner
+        std::vector<geometry_msgs::msg::PoseStamped> ros_waypoints;
+        for (const auto& pose : current_astar_path_.poses) {
+          ros_waypoints.push_back(pose);
+        }
+        path_planner_->setWaypoints(ros_waypoints);
+        
+        current_path_index_ = 0;
+        has_pending_goal_ = false;
+
+        RCLCPP_INFO(this->get_logger(), "Theta* planned path with %lu waypoints", waypoints.size());
+      } else {
+        RCLCPP_WARN(this->get_logger(), "A* failed to find path to goal");
+      }
+    }
+  }
+
 }  // namespace drone_swarm

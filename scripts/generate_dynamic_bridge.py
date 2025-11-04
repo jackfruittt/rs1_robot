@@ -6,7 +6,7 @@ Fixed bridge generation script with proper argument handling
 import yaml
 import sys
 import argparse
-import os
+from pathlib import Path
 
 def generate_bridge_config(num_drones):
     """Generate bridge configuration for specified number of drones"""
@@ -118,16 +118,20 @@ def generate_bridge_config(num_drones):
     return config
 
 def main():
+    # Create temp directory path in ROS workspace 
+    ros_ws_temp = Path.home() / 'rs1_ws' / 'temp'
+    default_output = ros_ws_temp / 'rs1_dynamic_bridge.yaml'
+    
     # Handle both old style (positional) and new style (with argparse) calls
     if len(sys.argv) == 2:
         # Old style: python3 script.py <num_drones>
         num_drones = int(sys.argv[1])
-        output_file = '/tmp/rs1_dynamic_bridge.yaml'
+        output_file = default_output
     elif len(sys.argv) >= 3:
         # New style with -o flag or positional output
         parser = argparse.ArgumentParser(description='Generate bridge config for multiple drones')
         parser.add_argument('num_drones', type=int, help='Number of drones')
-        parser.add_argument('-o', '--output', default='/tmp/rs1_dynamic_bridge.yaml', 
+        parser.add_argument('-o', '--output', default=default_output, 
                            help='Output file path')
         
         args = parser.parse_args()
@@ -144,7 +148,7 @@ def main():
     config = generate_bridge_config(num_drones)
     
     # Ensure output directory exists
-    os.makedirs(os.path.dirname(output_file), exist_ok=True)
+    Path(output_file).parent.mkdir(parents=True, exist_ok=True)
     
     # Write to file
     with open(output_file, 'w') as f:

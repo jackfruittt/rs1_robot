@@ -74,7 +74,7 @@ public:
    * @brief Constructor with configurable node options
    * @param options ROS 2 node options for composition and configuration
    */
-  explicit DroneControllerNode(const rclcpp::NodeOptions& options = rclcpp::NodeOptions());
+  explicit DroneControllerNode(const rclcpp::NodeOptions& options = rclcpp::NodeOptions(), const std::string & name = "");
 
 private:
   // Callback methods

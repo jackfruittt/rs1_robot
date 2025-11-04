@@ -5,59 +5,59 @@ waypoint_configs:
   rs1_drone_1:
     mission_name: "perimeter_patrol_south_west_brown"
     waypoints:
-      - position: {x: -25.2, y: 6.7, z: 16.7}
+      - position: {x: -25.2, y: 6.7, z: 19.0}
         dwell_time: 0.2
-      - position: {x: -25.5, y: -6.6, z: 16.7}
+      - position: {x: -25.5, y: -6.6, z: 19.0}
         dwell_time: 0.2
-      - position: {x: -12.3, y: -6.6, z: 16.7}
+      - position: {x: -12.3, y: -6.6, z: 19.0}
         dwell_time: 0.2
-      - position: {x: -3.0, y: 7.8, z: 16.7}
+      - position: {x: -3.0, y: 7.8, z: 19.0}
         dwell_time: 0.2
-      - position: {x: -18.0, y: 12.4, z: 16.7}
+      - position: {x: -18.0, y: 12.4, z: 19.0}
         dwell_time: 0.2
 
   rs1_drone_2:
     mission_name: "perimeter_patrol_north_west_light_green"
     waypoints:
-      - position: {x: -18.99, y: 14.61, z: 16.0}
+      - position: {x: -18.99, y: 14.61, z: 19.0}
         dwell_time: 2.0
-      - position: {x: 6.377150, y: 3.038830, z: 5.0}
+      - position: {x: 6.3, y: 3.0, z: 19.0}
         dwell_time: 2.0
-      - position: {x: 9.416730, y: 13.918300, z: 5.0}
+      - position: {x: 9.4, y: 13.9, z: 19.0}
         dwell_time: 2.0
-      - position: {x: 16.917400, y: 25.873700, z: 5.0}
+      - position: {x: 16.9, y: 25.9, z: 19.0}
         dwell_time: 2.0
-      - position: {x: 20.468000, y: 11.713300, z: 5.0}
+      - position: {x: 20.5, y: 11.7, z: 19.0}
         dwell_time: 2.0
-      - position: {x: 23.921400, y: 4.430400, z: 5.0}
+      - position: {x: 23.9, y: 4.4, z: 19.0}
         dwell_time: 2.0
-      - position: {x: 24.262800, y: -8.924560, z: 5.0}
+      - position: {x: 24.3, y: -8.9, z: 19.0}
         dwell_time: 2.0
-      - position: {x: 12.489800, y: -5.505170, z: 5.0}
+      - position: {x: 12.5, y: -5.5, z: 19.0}
         dwell_time: 2.0
 
   rs1_drone_3:
     mission_name: "perimeter_patrol_north_east_green"
     waypoints:
-      - position: {x: -18.99, y: 14.61, z: 16.0}
+      - position: {x: -19.0, y: 14.61, z: 16.0}
         dwell_time: 2.0
-      - position: {x: 2.179680, y: -6.985730, z: 5.0}
+      - position: {x: 2.1, y: -7.0, z: 5.0}
         dwell_time: 2.0
-      - position: {x: 0.688835, y: -26.395900, z: 5.0}
+      - position: {x: 0.6, y: -26.4, z: 5.0}
         dwell_time: 2.0
-      - position: {x: 5.998040, y: -29.208300, z: 5.0}
+      - position: {x: 6.0, y: -29.2, z: 5.0}
         dwell_time: 2.0
-      - position: {x: 10.798100, y: -22.670000, z: 5.0}
+      - position: {x: 10.8, y: -22.7, z: 5.0}
         dwell_time: 2.0
-      - position: {x: 18.592300, y: -27.947300, z: 5.0}
+      - position: {x: 18.6, y: -27.9, z: 5.0}
         dwell_time: 2.0
-      - position: {x: 25.069400, y: -19.966800, z: 5.0}
+      - position: {x: 25.1, y: -20.0, z: 5.0}
         dwell_time: 2.0
-      - position: {x: -19.966800, y: -18.590900, z: 5.0}
+      - position: {x: -19.9, y: -18.6, z: 5.0}
         dwell_time: 2.0
-      - position: {x: 13.784200, y: -20.059100, z: 5.0}
+      - position: {x: 13.8, y: -20.1, z: 5.0}
         dwell_time: 2.0
-      - position: {x: 8.213530, y: -16.845200, z: 5.0}
+      - position: {x: 8.2, y: -16.8, z: 5.0}
         dwell_time: 2.0
 
   rs1_drone_4:
