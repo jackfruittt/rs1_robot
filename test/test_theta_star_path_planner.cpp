@@ -19,7 +19,7 @@ class ThetaStarPathPlannerTest : public ::testing::Test
 {
 protected:
   void SetUp() override {
-    // Initialise with same grid as A* for comparison: 200x200, 0.1m resolution, 20x20m area
+    // Initialise with same grid parameters: 200x200, 0.1m resolution, 20x20m area
     planner_ = std::make_unique<drone_navigation::ThetaStarPathPlanner>();
   }
 
@@ -57,8 +57,8 @@ TEST_F(ThetaStarPathPlannerTest, BasicPathPlanning)
  */
 TEST_F(ThetaStarPathPlannerTest, ThetaStarOptimalityValidation) 
 {
-  std::cout << "\n🌟 THETA* OPTIMALITY VALIDATION - Testing 20 scenarios for true path optimality 🌟\n";
-  std::cout << "Expected: 100% success rate (vs A*'s 75%)\n";
+  std::cout << "\n THETA* OPTIMALITY VALIDATION - Testing 20 scenarios for true path optimality \n";
+  std::cout << "Expected: 100% success rate (vs grid-based A*'s ~75%)\n";
   std::cout << "Key improvement: Any-angle pathfinding eliminates grid discretization sub-optimality\n\n";
 
   struct TestCase {

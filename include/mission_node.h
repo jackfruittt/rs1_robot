@@ -179,7 +179,7 @@ private:
   void waypointCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
   
   /**
-   * @brief Process LiDAR scan updates for A* path planning
+   * @brief Process LiDAR scan updates for Theta* path planning
    * @param msg LiDAR scan data for obstacle detection
    */
   void lidarCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
@@ -339,7 +339,7 @@ private:
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr reset_mission_sub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr incident_dispatch_sub_;   /// "DISPATCH,<incident_id>,<scenario_name>,<x>,<y>,<z>,<responder_id>,<timestamp>" Example: "DISPATCH,INC-001,WILDFIRE,10.5,5.2,2.1,3,1234567890"
 
-  rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_sub_;         ///< LiDAR subscription for A* planning
+  rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_sub_;         ///< LiDAR subscription for Theta* planning
   
   // PUBS
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;            ///< Velocity command publisher
@@ -350,7 +350,7 @@ private:
   rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr info_request_pub_;            ///< Info request for management drones to ping
   std::unordered_map<int, rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr> info_request_pubs_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr incident_dispatch_pub_;
-  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;                     ///< A* path visualization publisher
+  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;                     ///< Theta* path visualization publisher
   
   // SRV
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_mission_service_;       ///< Start mission service
@@ -457,13 +457,13 @@ private:
   void recordIncidentDispatch(const std::string& incident_id, const ScenarioData& scenario, int responder_id);
     
   std::vector<int> getKnownDroneIds(void);
-  bool use_astar_planning_;       ///< Enable A* path planning for obstacle avoidance
+  bool use_astar_planning_;       ///< Enable Theta* path planning for obstacle avoidance
   
-  // A* planning state
-  geometry_msgs::msg::PoseStamped pending_goal_;     ///< Goal waiting for A* path planning
+  // Theta* planning state
+  geometry_msgs::msg::PoseStamped pending_goal_;     ///< Goal waiting for Theta* path planning
   bool has_pending_goal_;                            ///< Flag for goal waiting to be planned
-  nav_msgs::msg::Path current_astar_path_;           ///< Current A* planned path
-  size_t current_path_index_;                        ///< Index of current waypoint in A* path
+  nav_msgs::msg::Path current_astar_path_;           ///< Current Theta* planned path
+  size_t current_path_index_;                        ///< Index of current waypoint in Theta* path
 };
 
 

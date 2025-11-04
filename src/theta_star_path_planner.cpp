@@ -209,7 +209,7 @@ std::vector<GridCell> ThetaStarPathPlanner::planPathGrid(const GridCell& start, 
         // Path 1: Direct line from grandparent (any-angle)
         setPath1(current, neighbor_node, goal);
       } else {
-        // Path 2: Standard A* grid-based path
+        // Path 2: Standard grid-based path
         setPath2(current, neighbor_node, goal);
       }
       
@@ -254,7 +254,7 @@ void ThetaStarPathPlanner::setPath1(ThetaStarNode* current, ThetaStarNode* neigh
 
 void ThetaStarPathPlanner::setPath2(ThetaStarNode* current, ThetaStarNode* neighbor, const GridCell& goal)
 {
-  // Path 2: Standard grid-based path (like A*)
+  // Path 2: Standard grid-based path
   neighbor->parent = current;
   neighbor->g_cost = current->g_cost + euclideanDistance(current->cell, neighbor->cell);
   neighbor->h_cost = calculateHeuristic(neighbor->cell, goal);
@@ -326,7 +326,7 @@ std::vector<GridCell> ThetaStarPathPlanner::getNeighbors(const GridCell& cell) c
 {
   std::vector<GridCell> neighbors;
   
-  // 8-connected neighbors (same as A*)
+  // 8-connected neighbors
   for (int dx = -1; dx <= 1; ++dx) {
     for (int dy = -1; dy <= 1; ++dy) {
       if (dx == 0 && dy == 0) continue;

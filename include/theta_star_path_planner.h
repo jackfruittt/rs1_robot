@@ -281,7 +281,7 @@ private:
   /**
    * @brief Calculate heuristic cost estimate between grid cells
    * 
-   * Uses Euclidean distance as the heuristic for the A*-Theta* algorithm.
+   * Uses Euclidean distance as the heuristic for the Theta* algorithm.
    * 
    * @param from Starting grid cell
    * @param to Goal grid cell
@@ -313,7 +313,7 @@ private:
   void setPath1(ThetaStarNode* current, ThetaStarNode* neighbor, const GridCell& goal);
   
   /**
-   * @brief Set path costs using standard grid-based path (fallback A* behaviour)
+   * @brief Set path costs using standard grid-based path (fallback grid behaviour)
    * 
    * Used when direct line-of-sight to grandparent is blocked by obstacles.
    * 

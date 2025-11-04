@@ -212,7 +212,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
           }
         }
       }
-    // Subscribe to LiDAR if A* planning is enabled
+    // Subscribe to LiDAR if Theta* planning is enabled
     if (use_astar_planning_) {
       lidar_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
         "/" + drone_namespace_ + "/lidar", 10,
@@ -255,7 +255,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     if (it == dispatch_cooldown_.end()) return false;
 
     auto& cd = it->second;
-    // Create path visualization publisher if A* is enabled
+    // Create path visualization publisher if Theta* is enabled
     if (use_astar_planning_) {
       path_pub_ = this->create_publisher<nav_msgs::msg::Path>(
         "/" + drone_namespace_ + "/planned_path", 10);
@@ -1514,16 +1514,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
   ScenarioData parseScenarioMessage(const std::string& message_data) {
     ScenarioData result;
     result.valid = false;  // Assume failure until we succeed
-    if (use_astar_planning_) {
-      // Store goal for A* planning
-      pending_goal_ = *msg;
-      has_pending_goal_ = true;
-      RCLCPP_INFO(this->get_logger(), "Goal stored for A* planning");
-    } else {
-      // Use basic waypoint following
-      std::vector<geometry_msgs::msg::PoseStamped> new_waypoint = {*msg};
-      path_planner_->setWaypoints(new_waypoint);
-    }
     
     // Split the message by commas
     std::vector<std::string> parts;
@@ -2151,7 +2141,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
         current_path_index_ = 0;
         has_pending_goal_ = false;
 
-        RCLCPP_INFO(this->get_logger(), "A* planned path with %lu waypoints", waypoints.size());
+        RCLCPP_INFO(this->get_logger(), "Theta* planned path with %lu waypoints", waypoints.size());
       } else {
         RCLCPP_WARN(this->get_logger(), "A* failed to find path to goal");
       }
