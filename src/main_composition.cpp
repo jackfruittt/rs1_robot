@@ -16,8 +16,8 @@ int main(int argc, char * argv[])
   options.use_intra_process_comms(true);
   
   // Create both mission planner and drone controller nodes
-  auto mission_planner = std::make_shared<drone_swarm::MissionPlannerNode>(options);
-  auto drone_controller = std::make_shared<drone_swarm::DroneControllerNode>(options);
+auto mission_planner = std::make_shared<drone_swarm::MissionPlannerNode>(options, "mission_planner_composed");
+auto drone_controller = std::make_shared<drone_swarm::DroneControllerNode>(options, "drone_controller_composed");
 
   // Add both nodes to single executor for coordinated execution
   executor.add_node(mission_planner);
