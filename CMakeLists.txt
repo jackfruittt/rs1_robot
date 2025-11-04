@@ -5,7 +5,7 @@ if(CMAKE_COMPILER_IS_GNUCXX OR CMAKE_CXX_COMPILER_ID MATCHES "Clang")
   add_compile_options(-Wall -Wextra -Wpedantic)
 endif()
 
-# Find dependencies
+# --- Dependencies
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
 find_package(rclcpp_components REQUIRED)
@@ -21,8 +21,6 @@ find_package(ros_gz_bridge REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
-find_package(grid_map_ros REQUIRED)
-find_package(grid_map_msgs REQUIRED)
 
 # Find testing dependencies
 if(BUILD_TESTING)
@@ -179,7 +177,7 @@ install(
   DESTINATION share/${PROJECT_NAME}
 )
 
-# Install Python launch files
+# If you specifically need this as an executable launch script:
 install(
   PROGRAMS
     launch/rs1_drone_spawner.py
@@ -201,8 +199,6 @@ ament_export_dependencies(
     tf2
     tf2_ros
     tf2_geometry_msgs
-    grid_map_msgs
-    grid_map_ros
 )
 
 #Export mission planning components
@@ -219,6 +215,13 @@ install(TARGETS mission_planner_component
         ARCHIVE DESTINATION lib
         LIBRARY DESTINATION lib
         RUNTIME DESTINATION bin
+)
+
+install(
+  PROGRAMS
+  "scripts/generate_dynamic_bridge.py"
+  "scripts/swarm_status_checker.py"
+  DESTINATION lib/${PROJECT_NAME}
 )
 
 # Add tests

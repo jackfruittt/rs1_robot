@@ -25,7 +25,7 @@ def load_waypoints_for_drone(waypoints_file_path, drone_name):
             pkg_share = FindPackageShare('rs1_robot').find('rs1_robot')
             full_path = os.path.join(pkg_share, 'config', 'waypoints.yaml')
         else:
-            full_path = str(waypoints_file_path)
+            full_path = str(waypoints_file_path)    
         
         print(f"Loading waypoints from: {full_path}")
         
@@ -163,21 +163,24 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
                     ComposableNode(
                         package='rs1_robot',
                         plugin='drone_swarm::MissionPlannerNode',
-                        name='mission_planner',
+                        name=f'mission_planner_{i}',  
+                        namespace=drone_name,           
                         parameters=[mission_planner_params],
                         extra_arguments=[{'use_intra_process_comms': True}],
                     ),
                     ComposableNode(
                         package='rs1_robot',
                         plugin='drone_swarm::DroneControllerNode', 
-                        name='drone_controller',
+                        name=f'drone_controller_{i}',  
+                        namespace=drone_name,
                         parameters=[drone_controller_params],
                         extra_arguments=[{'use_intra_process_comms': True}],
                     ),
                     ComposableNode(
                         package='rs1_robot',
                         plugin='sensorNodeComponent',
-                        name='sensor_processor',
+                        name=f'sensor_processor_{i}',  
+                        namespace=drone_name,
                         parameters=[{
                             'use_sim_time': use_sim_time,
                             'drone_namespace': drone_name
@@ -262,31 +265,34 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
                 nodes.append(perception_node)
             
         else:
-            # Option 3: Separate processes 
+            # Option 3: Separate processes
             mission_planner = Node(
                 package='rs1_robot',
                 executable='mission_planner_node',
-                name=f'mission_planner_{i}',
+                name=f'mission_planner_{i}',  
+                namespace=drone_name,
                 output='screen',
                 parameters=[mission_planner_params],
                 arguments=['--ros-args', '--log-level', 'info']
             )
             nodes.append(mission_planner)
-            
+
             drone_controller = Node(
                 package='rs1_robot',
                 executable='drone_controller',
-                name=f'drone_controller_{i}',
+                name=f'drone_controller_{i}', 
+                namespace=drone_name,
                 output='screen',
                 parameters=[drone_controller_params],
                 arguments=['--ros-args', '--log-level', 'info']
             )
             nodes.append(drone_controller)
-            
+
             sensor_processor = Node(
                 package='rs1_robot',
                 executable='sensor_node',
-                name=f'sensor_processor_{i}',
+                name=f'sensor_processor_{i}', 
+                namespace=drone_name,
                 output='screen',
                 parameters=[{
                     'use_sim_time': use_sim_time,
@@ -295,8 +301,7 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
                 arguments=['--ros-args', '--log-level', 'info']
             )
             nodes.append(sensor_processor)
-            
-            # Add perception node if enabled (separate process, not composed)
+
             if use_perception == 'true':
                 perception_node = Node(
                     package='rs1_perception',
@@ -323,10 +328,11 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
     for i in range(1, num_drones + 1):
         drone_name = f'rs1_drone_{i}'
         
-        # Position drones in a line with 3m spacing
-        x_pos = (i - 5) * 3.0  # Start at 0, then 3, 6, 9...
-        y_pos = 0.0
-        z_pos = 4.0
+        # # Position drones in a line with 3m spacing
+        x_pos = (i - 41.2)  * 1.0  # Start at 0, then 3, 6, 9...
+        y_pos = 20.02
+        z_pos = 18.7
+        
         
         print(f"Creating drone {i}: {drone_name} at ({x_pos}, {y_pos}, {z_pos})")
         
@@ -426,7 +432,7 @@ def generate_launch_description():
     # Perception launch argument
     use_perception_launch_arg = DeclareLaunchArgument(
         'use_perception',
-        default_value='false',
+        default_value='true',
         description='Flag to enable perception nodes for AprilTag detection'
     )
     ld.add_action(use_perception_launch_arg)

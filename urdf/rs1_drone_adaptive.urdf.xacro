@@ -67,7 +67,7 @@
   <link name="front_cam_link"/>
 
   <joint name="bottom_cam_joint" type="fixed">
-    <origin rpy="0 ${M_PI/4} 0" xyz="0 0 0"/>
+    <origin rpy="0 ${M_PI/2} 0" xyz="0 0 0"/>
     <parent link="base_link" />
     <child link="bottom_cam_link" />
   </joint>
@@ -255,7 +255,6 @@
   </gazebo>
 
   <!-- Bottom Camera with dynamic topic -->
-  <!--
   <gazebo reference="bottom_cam_link">
     <sensor name="bottom_camera" type="camera">
       <always_on>true</always_on>
@@ -264,7 +263,7 @@
       <topic>model/${drone_name}/bottom_camera</topic>
       <gz_frame_id>bottom_cam_link</gz_frame_id>
       <camera>
-        <horizontal_fov>1.5</horizontal_fov>
+        <horizontal_fov>2.09</horizontal_fov>
         <image>
           <width>640</width>
           <height>360</height>
@@ -282,7 +281,7 @@
       </camera>
     </sensor>
   </gazebo>
-  -->
+  
   <!-- GPS with dynamic topic -->
   <gazebo reference="base_link">
     <sensor name="gps" type="navsat">
