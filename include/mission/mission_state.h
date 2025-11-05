@@ -17,21 +17,20 @@ namespace drone_swarm
  * @enum MissionState
  * @brief Enumeration of possible mission states for drone operations
  * 
- * Defines the complete state machine for autonomous drone missions
- * with proper state transitions and safety considerations.
+ * Defines the core state machine for autonomous drone flight operations.
+ * Scenario reactions (wildfire, hiker rescue, debris) are now handled
+ * via services rather than states, allowing clean preservation and
+ * restoration of mission progress.
  */
 enum class MissionState
 {
   IDLE,                         ///< Drone on ground, ready for mission start
   TAKEOFF,                      ///< Ascending to mission altitude
   WAYPOINT_NAVIGATION,          ///< Actively navigating between waypoints
+  RESPONSE_NAVIGATION,          ///< Navigating waypoints for scenario response mission
   HOVERING,                     ///< Maintaining position, awaiting next command
   LANDING,                      ///< Descending to ground
   MANUAL_CONTROL,               ///< External manual control mode
-  WILDFIRE_REACTION,            ///< Respond to fire accordingly
-  ORBIT_INCIDENT,               ///< Hovers around a focal point to keep an eye on an incident
-  STRANDED_HIKER_REACTION,      ///< Respond to hiker accordingly
-  DEBRIS_OBSTRUCTION_REACTION,  ///< Respond to debris accordingly
   EMERGENCY                     ///< Emergency state requiring immediate attention
 };
 

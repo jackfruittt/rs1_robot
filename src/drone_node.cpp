@@ -8,7 +8,7 @@ namespace drone_swarm
   // DroneControllerNode Implementation
   DroneControllerNode::DroneControllerNode(const rclcpp::NodeOptions &options, const std::string & name)
       : Node( (name.empty() ? std::string("drone_controller_") + std::to_string(getpid()) : name), rclcpp::NodeOptions(options).automatically_declare_parameters_from_overrides(true)),
-        current_flight_mode_(FlightMode::DISARMED), armed_(false)
+        current_flight_mode_(FlightMode::DISARMED), current_sonar_range_(0.0), armed_(false)
   {
     // Initialise ROS parameters for drone configuration
     std::string drone_namespace;
@@ -23,58 +23,60 @@ namespace drone_swarm
 
     // Initialise control components for flight management
     drone_control_ = std::make_unique<DroneControl>();
-    // sensor_manager_ = std::make_unique<SensorManager>();  // Commented out - future implementation
-
+    
     last_control_update_ = std::chrono::steady_clock::now();
 
-    // FIXED: Use relative topic names (no leading slash) when node has namespace
-    // ROS 2 will automatically prepend the namespace
+    // Subscribe to topics using explicit namespace like mission_node
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
-        "/odom", 10,
+        "/" + drone_namespace_ + "/odom", 10,
         std::bind(&DroneControllerNode::odomCallback, this, std::placeholders::_1));
 
     goals_sub_ = this->create_subscription<geometry_msgs::msg::PoseArray>(
-        "/mission/goals", 10,
+        "/" + drone_namespace_ + "/mission/goals", 10,
         std::bind(&DroneControllerNode::goalCallback, this, std::placeholders::_1));
 
     target_pose_sub_ = this->create_subscription<geometry_msgs::msg::PoseStamped>(
-        "/target_pose", 10,
+        "/" + drone_namespace_ + "/target_pose", 10,
         std::bind(&DroneControllerNode::targetPoseCallback, this, std::placeholders::_1));
 
     imu_sub_ = this->create_subscription<sensor_msgs::msg::Imu>(
-        "/imu", 10,
+        "/" + drone_namespace_ + "/imu", 10,
         std::bind(&DroneControllerNode::imuCallback, this, std::placeholders::_1));
 
-    // Subscribe to laser and sonar (future implementation)
+    // Subscribe to laser and sonar
     laser_sub_ = this->create_subscription<sensor_msgs::msg::LaserScan>(
-        "/laserscan", 10,
+        "/" + drone_namespace_ + "/lidar", 10,
         [this](const sensor_msgs::msg::LaserScan::SharedPtr msg)
         {
-          // TODO: Process laser data when sensor manager is implemented
-          (void)msg;
+          std::lock_guard<std::mutex> lock(sensor_mutex_);
+          current_lidar_data_ = *msg;
         });
 
     sonar_sub_ = this->create_subscription<sensor_msgs::msg::Range>(
-        "sonar", 10,
+        "/" + drone_namespace_ + "/sonar", 10,
         [this](const sensor_msgs::msg::Range::SharedPtr msg)
         {
-          // TODO: Process sonar data when sensor manager is implemented
-          (void)msg;
+          std::lock_guard<std::mutex> lock(sensor_mutex_);
+          current_sonar_range_ = msg->range;
         });
 
     mission_state_sub_ = this->create_subscription<std_msgs::msg::String>(
-        "mission_state", 10,
+        "/" + drone_namespace_ + "/mission_state", 10,
         std::bind(&DroneControllerNode::missionStateCallback, this, std::placeholders::_1));
 
-    // Create publishers (also relative names)
+    // Create publishers using explicit namespace like mission_node
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
-        "/cmd_vel", 10);
+        "/" + drone_namespace_ + "/cmd_vel", 10);
     pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
-        "/pose", 10);
+        "/" + drone_namespace_ + "/pose", 10);
     velocity_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
-        "/velocity", 10);
+        "/" + drone_namespace_ + "/velocity", 10);
     flight_mode_pub_ = this->create_publisher<std_msgs::msg::String>(
-        "/flight_mode", 10);
+        "/" + drone_namespace_ + "/flight_mode", 10);
+
+    // Configure DroneControl with publisher and logger
+    drone_control_->setCmdVelPublisher(cmd_vel_pub_);
+    drone_control_->setLogger(this->get_logger());
 
     // Load control parameters
     loadControlParams();
@@ -97,8 +99,10 @@ namespace drone_swarm
     {
       executeTakeoffSequence();
     }
-    else if (current_mission_state_ == "WAYPOINT_NAVIGATION")
+    else if (current_mission_state_ == "WAYPOINT_NAVIGATION" || 
+             current_mission_state_ == "RESPONSE_NAVIGATION")
     {
+      // Both normal waypoint navigation and scenario response use same navigation logic
       executeWaypointNavigation();
     }
     else if (current_mission_state_ == "LANDING")
@@ -166,12 +170,27 @@ namespace drone_swarm
       }
       else if (current_mission_state_ == "IDLE")
       {
-        // Disarm the drone
-        armed_ = false;
-        current_flight_mode_ = FlightMode::DISARMED;
-        // TODO: Clear waypoints when waypoint system is implemented
-
-        RCLCPP_INFO(this->get_logger(), "Drone disarmed and in IDLE state");
+        // Keep drone armed and maintain altitude hold at ground level (~0m)
+        // This prevents gravity-induced descent when idle
+        armed_ = true;  // Keep armed to maintain altitude
+        current_flight_mode_ = FlightMode::GUIDED;  // Use GUIDED for altitude hold
+        
+        // Set target to current horizontal position and current sonar altitude
+        // Use sonar for altitude consistency with takeoff monitoring
+        // Sonar returns invalid readings (>5m) when on ground, so clamp to ground level
+        target_pose_.pose.position.x = current_odom_.pose.pose.position.x;
+        target_pose_.pose.position.y = current_odom_.pose.pose.position.y;
+        
+        // Use sonar if valid (0-7m range), otherwise maintain ground level
+        if (current_sonar_range_ >= 0.0 && current_sonar_range_ <= 7.0) {
+          target_pose_.pose.position.z = current_sonar_range_;
+          RCLCPP_DEBUG(this->get_logger(), "IDLE state - maintaining altitude hold at %.2fm (sonar)", 
+                       current_sonar_range_);
+        } else {
+          target_pose_.pose.position.z = 0.0;  // Ground level default
+          RCLCPP_DEBUG(this->get_logger(), "IDLE state - sonar out of range (%.2fm), holding at ground", 
+                       current_sonar_range_);
+        }
       }
     }
   }
@@ -247,88 +266,100 @@ namespace drone_swarm
       return;
     }
 
-    // Simple takeoff control - ascend to target altitude
-    double target_altitude = 2.0;  // Default value
-    this->get_parameter_or("takeoff_altitude", target_altitude, 2.0);
-    double current_altitude = current_odom_.pose.pose.position.z;
-
-    geometry_msgs::msg::Twist cmd_vel;
-    cmd_vel.linear.x = 0.0;
-    cmd_vel.linear.y = 0.0;
-    cmd_vel.angular.x = cmd_vel.angular.y = cmd_vel.angular.z = 0.0;
-
-    if (current_altitude < target_altitude - 0.2)
+    // Get current sonar altitude reading
+    double current_altitude = 0.0;
     {
-      // Ascend at controlled rate
-      cmd_vel.linear.z = 0.5; // 0.5 m/s ascent rate
-      RCLCPP_DEBUG(this->get_logger(), "Ascending - Current: %.2fm, Target: %.2fm",
-                   current_altitude, target_altitude);
+      std::lock_guard<std::mutex> lock(sensor_mutex_);
+      current_altitude = current_sonar_range_;
     }
-    else
-    {
-      // Maintain altitude - takeoff complete
-      cmd_vel.linear.z = 0.0;
-      RCLCPP_DEBUG(this->get_logger(), "Takeoff altitude reached - hovering");
+    
+    // Validate sonar reading - if invalid (inf, -inf, nan), assume ground level
+    if (!std::isfinite(current_altitude) || current_altitude < 0.0) {
+      current_altitude = 0.0;  // Assume ground level if sonar is invalid
+      RCLCPP_DEBUG(this->get_logger(), "Invalid sonar reading, assuming ground level (0m)");
     }
-
-    cmd_vel_pub_->publish(cmd_vel);
+    
+    // Calculate elapsed time
+    auto now = this->get_clock()->now();
+    double elapsed_seconds = (now - takeoff_start_time_).seconds();
+    
+    // Use DroneControl for takeoff with sonar feedback
+    // Target 8m to ensure drone climbs even if sonar reads >5m on ground (invalid reading)
+    // Once in valid range (0-7m), actual altitude will be detected properly
+    double target_altitude = 8.0;  // Higher target to overcome invalid ground readings
+    this->get_parameter_or("takeoff_altitude", target_altitude, 8.0);
+    
+    bool takeoff_complete = drone_control_->takeoff(
+        target_altitude, current_altitude, elapsed_seconds);
+    
+    if (takeoff_complete) {
+      RCLCPP_INFO(this->get_logger(), "Takeoff sequence completed - altitude reached");
+    }
   }
 
   void DroneControllerNode::executeWaypointNavigation() {
-    // Future implementation for waypoint navigation
-
-    // Use target pose from drone node
+    // Check if target pose is available
     if (target_pose_.header.stamp.sec == 0)
     {
       RCLCPP_DEBUG(this->get_logger(), "No target pose available for navigation");
       return;
     }
 
-    // Calculate control command using drone control system
+    // Get current pose from odometry
     geometry_msgs::msg::PoseStamped current_pose;
     current_pose.header.stamp = this->get_clock()->now();
     current_pose.pose = current_odom_.pose.pose;
 
-    geometry_msgs::msg::Twist cmd_vel = drone_control_->calculateAdvancedPositionControl(
-        current_pose, target_pose_, 0.05); // 20Hz control loop = 0.05s dt
+    // Get sensor data for altitude control
+    double current_sonar_altitude = 0.0;
+    sensor_msgs::msg::LaserScan lidar_data;
+    {
+      std::lock_guard<std::mutex> lock(sensor_mutex_);
+      current_sonar_altitude = current_sonar_range_;
+      lidar_data = current_lidar_data_;
+    }
+
+    // Use DroneControl with altitude control for terrain following
+    geometry_msgs::msg::Twist cmd_vel = drone_control_->navigateToWaypointWithAltitudeControl(
+        current_pose, target_pose_, current_sonar_altitude, lidar_data);
 
     cmd_vel_pub_->publish(cmd_vel);
 
-    // Check if target is reached
-    double distance = calculateDistanceToWaypoint(current_pose.pose, target_pose_.pose);
+    // Check if target is reached (2D distance only, altitude is maintained by terrain following)
+    double dx = target_pose_.pose.position.x - current_pose.pose.position.x;
+    double dy = target_pose_.pose.position.y - current_pose.pose.position.y;
+    double distance = std::sqrt(dx*dx + dy*dy);
 
-    if (distance < 0.8)
-    { // Target tolerance
+    if (distance < 0.8) { // Target tolerance
       RCLCPP_DEBUG(this->get_logger(), "Target reached (distance: %.2fm)", distance);
     }
 
-    RCLCPP_DEBUG(this->get_logger(), "Navigating to target - distance: %.2fm", distance);
+    RCLCPP_DEBUG(this->get_logger(), "Navigating to target - distance: %.2fm, altitude: %.2fm", 
+                 distance, current_sonar_altitude);
   }
 
   void DroneControllerNode::executeLandingSequence() {
-    // Simple landing control - descend at controlled rate
-    double landing_speed = 0.5;  // Default value
-    this->get_parameter_or("landing_speed", landing_speed, 0.5);
-    double current_altitude = current_odom_.pose.pose.position.z;
-
-    geometry_msgs::msg::Twist cmd_vel;
-    cmd_vel.linear.x = 0.0;
-    cmd_vel.linear.y = 0.0;
-    cmd_vel.angular.x = cmd_vel.angular.y = cmd_vel.angular.z = 0.0;
-
-    if (current_altitude > 0.3)
-    {                                    // Land until 30cm above ground
-      cmd_vel.linear.z = -landing_speed; // Descend
-      RCLCPP_DEBUG(this->get_logger(), "Landing - Current altitude: %.2fm", current_altitude);
-    }
-    else
+    // Get current sonar altitude reading
+    double current_altitude = 0.0;
     {
-      // Landing complete
-      cmd_vel.linear.z = 0.0;
-      RCLCPP_DEBUG(this->get_logger(), "Landing complete - altitude: %.2fm", current_altitude);
+      std::lock_guard<std::mutex> lock(sensor_mutex_);
+      current_altitude = current_sonar_range_;
     }
-
-    cmd_vel_pub_->publish(cmd_vel);
+    
+    // Calculate elapsed time
+    auto now = this->get_clock()->now();
+    double elapsed_seconds = (now - landing_start_time_).seconds();
+    
+    // Use DroneControl for landing with sonar feedback
+    double target_landing_altitude = 0.2;  // 0.2m above ground
+    this->get_parameter_or("landing_altitude", target_landing_altitude, 0.2);
+    
+    bool landing_complete = drone_control_->land(
+        target_landing_altitude, current_altitude, elapsed_seconds);
+    
+    if (landing_complete) {
+      RCLCPP_INFO(this->get_logger(), "Landing sequence completed - on ground");
+    }
   }
 
   void DroneControllerNode::executeHoverControl() {

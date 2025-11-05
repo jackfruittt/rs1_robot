@@ -1,39 +1,36 @@
 /**
- * @file path_planner.h
- * @brief Path planning and waypoint management for autonomous drone navigation
+ * @file waypoint_planner.h
+ * @brief Waypoint management for autonomous drone navigation
  * @author Jackson Russell
  * OTHER AUTHORS ADD HERE AND BELOW
  * @date August-2025
  */
 
-#ifndef DRONE_SWARM_PATH_PLANNER_H_
-#define DRONE_SWARM_PATH_PLANNER_H_
+#ifndef DRONE_SWARM_WAYPOINT_PLANNER_H_
+#define DRONE_SWARM_WAYPOINT_PLANNER_H_
 
 #include <vector>
 #include <geometry_msgs/msg/pose_stamped.hpp>
-
-// TODO: ADD NAV2 PATH HANDLING INCLUDES FOR AUTONOMOUS PATH PLANNING
-// #include "nav_msgs/msg/path.hpp"
 
 namespace drone_swarm
 {
 
 /**
- * @class PathPlanner
- * @brief Manages waypoint sequences and path planning for drone missions
+ * @class WaypointPlanner
+ * @brief Manages waypoint sequences for drone missions
  * 
  * Provides sequential waypoint navigation with distance calculations
- * and path management. Supports dynamic waypoint updates and mission
+ * and waypoint management. Supports dynamic waypoint updates and mission
  * replanning for autonomous drone operations.
  */
-class PathPlanner
+class WaypointPlanner
 {
 public:
   /**
    * @brief Default constructor
    * Initialises empty waypoint list with index at zero
    */
-  PathPlanner();
+  WaypointPlanner();
   
   /**
    * @brief Set new waypoint sequence for mission
@@ -43,17 +40,6 @@ public:
    * Waypoints should be ordered for sequential navigation.
    */
   void setWaypoints(const std::vector<geometry_msgs::msg::PoseStamped>& waypoints);
-  
-  // TODO: ADD NAV2 PATH CONVERSION METHOD FOR AUTONOMOUS PATH PLANNING
-  // /**
-  //  * @brief Set waypoints directly from nav2 path
-  //  * @param path Planned path from nav2 RRT planner
-  //  * @param subsample_distance Minimum distance between waypoints (optional)
-  //  * 
-  //  * Converts nav_msgs::Path to waypoint sequence with optional subsampling
-  //  * to reduce waypoint density for smoother drone navigation.
-  //  */
-  // void setWaypointsFromPath(const nav_msgs::msg::Path& path, double subsample_distance = 1.0);
   
   /**
    * @brief Get next waypoint and advance index
@@ -95,12 +81,37 @@ public:
    * including altitude differences.
    */
   double getDistanceToWaypoint(const geometry_msgs::msg::PoseStamped& current_pose) const;
+  
+  /**
+   * @brief Get all waypoints in the current path
+   * @return Vector of all waypoints
+   * 
+   * Used for state preservation during scenario reactions
+   */
+  std::vector<geometry_msgs::msg::PoseStamped> getAllWaypoints() const;
+  
+  /**
+   * @brief Get current waypoint index
+   * @return Current index in waypoint sequence
+   * 
+   * Used for state preservation during scenario reactions
+   */
+  size_t getCurrentWaypointIndex() const;
+  
+  /**
+   * @brief Set current waypoint index
+   * @param index Index to set as current waypoint
+   * 
+   * Used for state restoration after scenario reactions
+   * Clamped to valid range [0, waypoints.size()]
+   */
+  void setCurrentWaypointIndex(size_t index);
 
 private:
   std::vector<geometry_msgs::msg::PoseStamped> waypoints_;  ///< Sequence of waypoints for navigation
-  size_t current_waypoint_index_;                          ///< Current position in waypoint sequence
+  size_t current_waypoint_index_;                           ///< Current position in waypoint sequence
 };
 
 }  // namespace drone_swarm
 
-#endif  // DRONE_SWARM_PATH_PLANNER_H_
+#endif  // DRONE_SWARM_WAYPOINT_PLANNER_H_

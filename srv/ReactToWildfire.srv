@@ -1,0 +1,15 @@
+# Service for coordinated wildfire response
+# Request fields
+float64 fire_x              # X coordinate of fire location
+float64 fire_y              # Y coordinate of fire location  
+float64 fire_z              # Z coordinate of fire location
+float64 depot_x             # X coordinate of retardant depot
+float64 depot_y             # Y coordinate of retardant depot
+float64 depot_z             # Z coordinate of retardant depot
+int32 severity              # Fire severity level (1-5)
+string incident_id          # Unique incident identifier
+---
+# Response fields
+bool success                # True if mission accepted and completed
+string message              # Status message or error description
+float64 completion_time     # Time taken to complete mission (seconds)

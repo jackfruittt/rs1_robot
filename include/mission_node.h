@@ -38,8 +38,13 @@
 #include "std_srvs/srv/trigger.hpp"
 #include <std_msgs/msg/empty.hpp>
 
+// Service includes for scenario reactions
+#include "rs1_robot/srv/react_to_wildfire.hpp"
+#include "rs1_robot/srv/react_to_hiker.hpp"
+#include "rs1_robot/srv/react_to_debris.hpp"
+
 #include "mission/state_machine.h"
-#include "mission/path_planner.h"
+#include "mission/waypoint_planner.h"
 #include "mission/mission_state.h"
 #include "mission/mission_executor.h" 
 #include "theta_star_path_planner.h"
@@ -232,6 +237,41 @@ private:
   void landDroneCallback(
     const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
     std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+  
+  /**
+   * @brief Wildfire reaction service callback
+   * @param request Service request with fire and depot locations
+   * @param response Service response with success status and completion time
+   * 
+   * Handles wildfire response mission: Navigate to depot, collect retardant,
+   * deploy at fire location, then return to previous mission state
+   */
+  void wildfireReactionCallback(
+    const std::shared_ptr<rs1_robot::srv::ReactToWildfire::Request> request,
+    std::shared_ptr<rs1_robot::srv::ReactToWildfire::Response> response);
+  
+  /**
+   * @brief Hiker rescue service callback
+   * @param request Service request with hiker and depot locations
+   * @param response Service response with success status and completion time
+   * 
+   * Handles hiker rescue mission: Navigate to depot, collect medkit,
+   * deliver to hiker location, then return to previous mission state
+   */
+  void hikerRescueCallback(
+    const std::shared_ptr<rs1_robot::srv::ReactToHiker::Request> request,
+    std::shared_ptr<rs1_robot::srv::ReactToHiker::Response> response);
+  
+  /**
+   * @brief Debris notification service callback
+   * @param request Service request with debris location
+   * @param response Service response with success status
+   * 
+   * Handles debris obstruction notification (logging only, no active response)
+   */
+  void debrisReactionCallback(
+    const std::shared_ptr<rs1_robot::srv::ReactToDebris::Request> request,
+    std::shared_ptr<rs1_robot::srv::ReactToDebris::Response> response);
 
   // Mission execution methods
   /**
@@ -352,10 +392,17 @@ private:
 
 
   DroneInfo parseInfoManifest(const std::string& manifest_data);
-  std::map<int, DroneInfo> pingDronesForInfo(const std::vector<int>& drone_ids, int timeout_ms = 500);
+  std::map<int, DroneInfo> pingDronesForInfo(const std::vector<int>& drone_ids);
   int selectLowestDronId();
   void performCoordination(const ScenarioData& scenario);
 
+  // Service-based coordination helpers
+  void callWildfireService(int responder_id, const ScenarioData& scenario, const std::string& incident_id);
+  void callHikerService(int responder_id, const ScenarioData& scenario, const std::string& incident_id);
+  void callDebrisService(int responder_id, const ScenarioData& scenario, const std::string& incident_id);
+  rclcpp::Client<rs1_robot::srv::ReactToWildfire>::SharedPtr getOrCreateWildfireClient(int drone_id);
+  rclcpp::Client<rs1_robot::srv::ReactToHiker>::SharedPtr getOrCreateHikerClient(int drone_id);
+  rclcpp::Client<rs1_robot::srv::ReactToDebris>::SharedPtr getOrCreateDebrisClient(int drone_id);
 
   // Parser: turns CSV string into a typed ScenarioEvent
   std::optional<ScenarioEvent> parseScenarioDetection(const std_msgs::msg::String& msg);
@@ -400,15 +447,32 @@ private:
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr takeoff_drone_service_;       ///< Takeoff drone service
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr land_drone_service_;          ///< Landing drone service
   
+  // Scenario reaction services
+  rclcpp::Service<rs1_robot::srv::ReactToWildfire>::SharedPtr wildfire_service_;   ///< Wildfire reaction service
+  rclcpp::Service<rs1_robot::srv::ReactToHiker>::SharedPtr hiker_service_;         ///< Hiker rescue service
+  rclcpp::Service<rs1_robot::srv::ReactToDebris>::SharedPtr debris_service_;       ///< Debris notification service
+  
+  // Scenario reaction service clients (for calling our own services or peers')
+  rclcpp::Client<rs1_robot::srv::ReactToWildfire>::SharedPtr wildfire_client_;     ///< Wildfire reaction client
+  rclcpp::Client<rs1_robot::srv::ReactToHiker>::SharedPtr hiker_client_;           ///< Hiker rescue client
+  rclcpp::Client<rs1_robot::srv::ReactToDebris>::SharedPtr debris_client_;         ///< Debris notification client
+  
+  // Per-peer service clients (created dynamically as peers are discovered)
+  std::map<int, rclcpp::Client<rs1_robot::srv::ReactToWildfire>::SharedPtr> peer_wildfire_clients_;
+  std::map<int, rclcpp::Client<rs1_robot::srv::ReactToHiker>::SharedPtr> peer_hiker_clients_;
+  std::map<int, rclcpp::Client<rs1_robot::srv::ReactToDebris>::SharedPtr> peer_debris_clients_;
+  
   // TIM
   rclcpp::TimerBase::SharedPtr mission_timer_;                                     ///< Periodic mission timer
   rclcpp::TimerBase::SharedPtr waypoint_load_timer_;
   rclcpp::TimerBase::SharedPtr discovery_timer_;
   rclcpp::TimerBase::SharedPtr mission_params_timer_;
+  rclcpp::TimerBase::SharedPtr status_broadcast_timer_;  ///< Periodic status broadcast for peer discovery
+  rclcpp::TimerBase::SharedPtr tiebreaker_timer_;        ///< One-shot timer for tie-breaker delay
 
   // Mission management components
   std::unique_ptr<StateMachine> state_machine_;       ///< Mission state machine
-  std::unique_ptr<PathPlanner> path_planner_;         ///< Waypoint path planner
+  std::unique_ptr<WaypointPlanner> path_planner_;         ///< Waypoint path planner
   std::unique_ptr<MissionExecutor> mission_executor_; ///< Advanced mission executor (placeholder)
   std::unique_ptr<drone_navigation::ThetaStarPathPlanner> theta_star_planner_; ///< Theta* path planner for optimal obstacle-free pathfinding
 
@@ -418,6 +482,8 @@ private:
   
   // Takeoff control variables
   double current_sonar_range_;                     ///< Current sonar reading in metres
+  sensor_msgs::msg::LaserScan current_lidar_data_; ///< Current LiDAR scan for obstacle detection
+  std::mutex lidar_mutex_;                         ///< Mutex for LiDAR data protection
   bool takeoff_in_progress_;                       ///< Flag indicating if takeoff is in progress
   std::chrono::steady_clock::time_point takeoff_start_time_; ///< Time when takeoff started
   double target_takeoff_altitude_;                 ///< Target altitude for takeoff (4.0m)
@@ -464,6 +530,11 @@ private:
   bool is_coordinating_ = false;
   std::optional<ScenarioData> active_coordination_scenario_;
   std::mutex coordination_mutex_;
+  
+  // Flag to indicate if currently executing a scenario reaction mission
+  bool in_scenario_reaction_ = false;
+  std::string active_scenario_type_;  // "WILDFIRE", "STRANDED_HIKER", etc.
+  std::string active_scenario_incident_id_;  // Track the incident ID for resolution
 
   bool fetch_at_fire_ = false;  // Track if drone is at fire location
   rclcpp::Time fire_hover_stamp_;  // When drone started hovering at fire
@@ -481,7 +552,7 @@ private:
   rclcpp::Clock steady_clock_{RCL_STEADY_TIME};
 
   rclcpp::Duration coordination_cooldown_{std::chrono::seconds(5)};
-  double incident_merge_radius_m_{3.0};
+  double incident_merge_radius_m_{7.0};  // 7m radius for 2D (X,Y) incident matching, ignoring Z noise
 
   std::map<std::string, ActiveIncident> fleet_incident_registry_;
   std::mutex registry_mutex_;

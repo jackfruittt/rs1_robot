@@ -13,9 +13,11 @@
 #include <rclcpp/rclcpp.hpp>
 #include <geometry_msgs/msg/pose_stamped.hpp>
 #include <geometry_msgs/msg/twist.hpp>
+#include <memory>
 
 #include "mission_state.h"
-#include "mission/path_planner.h"
+#include "mission/waypoint_planner.h"
+#include "drone_control.h"
 
 namespace drone_swarm
 {
@@ -39,47 +41,139 @@ public:
    */
   MissionExecutor();
   
-  // Future implementation methods (currently commented out)
-  // /**
-  //  * @brief Update mission execution based on current state
-  //  * @param current_pose Current drone position and orientation
-  //  * @param current_velocity Current velocity for trajectory planning
-  //  * 
-  //  * TODO: Implement advanced mission logic for complex operations
-  //  */
-  // void updateMission(const geometry_msgs::msg::PoseStamped& current_pose, 
-  //                   const geometry_msgs::msg::Twist& current_velocity);
+  /**
+   * @brief Set ROS 2 logger for debugging output
+   * @param logger ROS 2 logger instance
+   */
+  void setLogger(rclcpp::Logger logger);
   
-  // /**
-  //  * @brief Get current target pose for mission
-  //  * @return Target pose for current mission phase
-  //  * 
-  //  * TODO: Implement dynamic target generation
-  //  */
-  // geometry_msgs::msg::PoseStamped getTargetPose() const;
+  /**
+   * @brief Set command velocity publisher
+   * @param pub ROS 2 publisher for geometry_msgs::msg::Twist
+   */
+  void setCmdVelPublisher(rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr pub);
   
-  // /**
-  //  * @brief Check if current mission is complete
-  //  * @return True if mission objectives achieved
-  //  * 
-  //  * TODO: Implement mission completion criteria
-  //  */
-  // bool isMissionComplete() const;
+  /**
+   * @brief Execute takeoff mission behavior
+   * @param sonar_range Current sonar reading
+   * @param target_altitude Target altitude for takeoff
+   * @param elapsed_seconds Time elapsed since takeoff started
+   * @return True if takeoff completed, false if still in progress
+   */
+  bool executeTakeoffMission(double sonar_range, double target_altitude, double elapsed_seconds);
   
-  // /**
-  //  * @brief Set current mission state
-  //  * @param state New mission state
-  //  * 
-  //  * TODO: Implement state-based mission behaviour
-  //  */
-  // void setMissionState(MissionState state);
+  /**
+   * @brief Execute landing mission behavior
+   * @param sonar_range Current sonar reading
+   * @param target_altitude Target altitude for landing
+   * @param elapsed_seconds Time elapsed since landing started
+   * @return True if landing completed, false if still in progress
+   */
+  bool executeLandingMission(double sonar_range, double target_altitude, double elapsed_seconds);
+  
+  /**
+   * @brief Execute hovering mission behavior
+   * Maintains current position and altitude
+   */
+  void executeHoveringMission();
+  
+  /**
+   * @brief Execute emergency landing behavior
+   * Immediate descent with safety prioritised over precision
+   */
+  void executeEmergencyMission();
+  
+  /**
+   * @brief Execute wildfire response mission
+   * @param fire_location Location of the fire
+   * @param depot_location Location of retardant depot
+   * @param path_planner Path planner for waypoint management
+   * @return True if mission completed successfully
+   * 
+   * Sequence: Navigate to depot -> Land -> Collect retardant -> Takeoff ->
+   *           Navigate to fire -> Deploy retardant -> Return to previous mission
+   */
+  bool executeWildfireReaction(
+      const geometry_msgs::msg::Point& fire_location,
+      const geometry_msgs::msg::Point& depot_location,
+      const geometry_msgs::msg::Point& helipad_location,
+      WaypointPlanner* path_planner);
+  
+  /**
+   * @brief Execute stranded hiker rescue mission
+   * @param hiker_location Location of stranded hiker
+   * @param depot_location Location of medkit depot
+   * @param path_planner Path planner for waypoint management
+   * @return True if mission completed successfully
+   * 
+   * Sequence: Navigate to depot -> Land -> Collect medkit -> Takeoff ->
+   *           Navigate to hiker -> Deploy medkit -> Return to previous mission
+   */
+  bool executeHikerRescue(
+      const geometry_msgs::msg::Point& hiker_location,
+      const geometry_msgs::msg::Point& depot_location,
+      WaypointPlanner* path_planner);
+  
+  /**
+   * @brief Execute debris obstruction notification
+   * @param debris_location Location of debris
+   * @return True if notification completed
+   * 
+   * Simple notification - logs debris location for path planning avoidance
+   */
+  bool executeDebrisReaction(const geometry_msgs::msg::Point& debris_location);
+  
+  /**
+   * @brief Save current mission state for later restoration
+   * @param path_planner Path planner with current waypoints
+   * 
+   * Stores waypoint progress and mission state before scenario reaction
+   */
+  void saveMissionState(WaypointPlanner* path_planner);
+  
+  /**
+   * @brief Restore previously saved mission state
+   * @param path_planner Path planner to restore waypoints to
+   * @return True if state was restored successfully
+   * 
+   * Restores waypoint progress after scenario reaction completes
+   */
+  bool restoreMissionState(WaypointPlanner* path_planner);
+  
+  /**
+   * @brief Check if mission has been cancelled or aborted
+   * @return True if mission should be terminated
+   */
+  bool isMissionCancelled() const;
+  
+  /**
+   * @brief Cancel current mission operations
+   * Sets internal flag to stop mission execution
+   */
+  void cancelMission();
+  
+  /**
+   * @brief Reset mission executor for new mission
+   * Clears all internal state and prepares for new operations
+   */
+  void reset();
 
 private:
-  void executeMission(void);
-  // Future implementation variables (currently commented out)
-  // geometry_msgs::msg::PoseStamped target_pose_;  ///< Current mission target
-  // bool mission_complete_;                         ///< Mission completion flag
-  // double waypoint_tolerance_;                     ///< Waypoint tolerance in metres
+  // ROS 2 integration
+  rclcpp::Logger logger_;                                                ///< ROS 2 logger for debugging
+  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;  ///< Command publisher
+  
+  // Mission state
+  bool mission_cancelled_;                                               ///< Flag indicating if mission is cancelled
+  std::unique_ptr<DroneControl> flight_controller_;                      ///< Flight control system
+  
+  // State preservation for scenario reactions
+  struct SavedMissionState {
+    std::vector<geometry_msgs::msg::PoseStamped> waypoints;
+    size_t current_waypoint_index;
+    bool valid;
+  };
+  SavedMissionState saved_state_;       ///< Saved mission state for restoration
 };
 
 }  // namespace drone_swarm

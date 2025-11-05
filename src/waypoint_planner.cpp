@@ -1,12 +1,12 @@
-#include "mission/path_planner.h"
+#include "mission/waypoint_planner.h"
 #include <cmath>
 
 namespace drone_swarm
 {
 
-  PathPlanner::PathPlanner() : current_waypoint_index_(0) {}
+  WaypointPlanner::WaypointPlanner() : current_waypoint_index_(0) {}
 
-  void PathPlanner::setWaypoints(const std::vector<geometry_msgs::msg::PoseStamped>& waypoints) {
+  void WaypointPlanner::setWaypoints(const std::vector<geometry_msgs::msg::PoseStamped>& waypoints) {
     // Set new waypoint sequence and reset index to start
     waypoints_ = waypoints;
     current_waypoint_index_ = 0;
@@ -17,7 +17,7 @@ namespace drone_swarm
     // Example: Log when waypoints are set from autonomous planner vs manual input
   }
 
-  geometry_msgs::msg::PoseStamped PathPlanner::getNextWaypoint() {
+  geometry_msgs::msg::PoseStamped WaypointPlanner::getNextWaypoint() {
     // Return next waypoint and advance index if available
     if (hasNextWaypoint()) {
       return waypoints_[current_waypoint_index_++];
@@ -25,7 +25,7 @@ namespace drone_swarm
     return geometry_msgs::msg::PoseStamped();
   }
 
-  geometry_msgs::msg::PoseStamped PathPlanner::getCurrentWaypoint() const {
+  geometry_msgs::msg::PoseStamped WaypointPlanner::getCurrentWaypoint() const {
     // Return current waypoint without advancing index
     if (hasNextWaypoint()) {
       return waypoints_[current_waypoint_index_];
@@ -33,23 +33,41 @@ namespace drone_swarm
     return geometry_msgs::msg::PoseStamped();
   }
 
-  bool PathPlanner::hasNextWaypoint() const {
+  bool WaypointPlanner::hasNextWaypoint() const {
     return current_waypoint_index_ < waypoints_.size();
   }
 
-  void PathPlanner::reset() {
+  void WaypointPlanner::reset() {
     current_waypoint_index_ = 0;
   }
 
-  double PathPlanner::getDistanceToWaypoint(const geometry_msgs::msg::PoseStamped& current_pose) const {
+  double WaypointPlanner::getDistanceToWaypoint(const geometry_msgs::msg::PoseStamped& current_pose) const {
     if (!hasNextWaypoint()) return 0.0;
     
     const auto& target = waypoints_[current_waypoint_index_];
     double dx = target.pose.position.x - current_pose.pose.position.x;
     double dy = target.pose.position.y - current_pose.pose.position.y;
-    double dz = target.pose.position.z - current_pose.pose.position.z;
+    // Use 2D distance only - altitude is independently controlled by terrain following
+    // This prevents obstacle avoidance climbs from blocking waypoint progression
     
-    return std::sqrt(dx*dx + dy*dy + dz*dz);
+    return std::sqrt(dx*dx + dy*dy);
+  }
+  
+  std::vector<geometry_msgs::msg::PoseStamped> WaypointPlanner::getAllWaypoints() const {
+    return waypoints_;
+  }
+  
+  size_t WaypointPlanner::getCurrentWaypointIndex() const {
+    return current_waypoint_index_;
+  }
+  
+  void WaypointPlanner::setCurrentWaypointIndex(size_t index) {
+    // Clamp to valid range
+    if (index > waypoints_.size()) {
+      current_waypoint_index_ = waypoints_.size();
+    } else {
+      current_waypoint_index_ = index;
+    }
   }
 
   // TODO: ADD NAV2 PATH CONVERSION IMPLEMENTATION FOR AUTONOMOUS PATH PLANNING
