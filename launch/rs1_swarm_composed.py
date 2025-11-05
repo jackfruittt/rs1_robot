@@ -146,9 +146,9 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
             'ki_att': 0.05,
             'kd_att': 0.3,
             'max_altitude': 50.0,
-            'max_velocity': 5.0,
-            'max_angular_velocity': 1.0,
-            'safety_max_velocity': 10.0,
+            'max_velocity': 15.0,  # Increased from 5.0 for faster flight (compensates for low Gazebo RTF)
+            'max_angular_velocity': 2.0,  # Increased from 1.0 for faster turns
+            'safety_max_velocity': 8.0,  
             'max_distance_from_home': 100.0
         }
         

@@ -1,0 +1,12 @@
+# Service for debris obstruction notification
+# Request fields
+float64 debris_x            # X coordinate of debris location
+float64 debris_y            # Y coordinate of debris location
+float64 debris_z            # Z coordinate of debris location
+int32 severity              # Obstruction severity (1-5)
+string incident_id          # Unique incident identifier
+---
+# Response fields
+bool success                # True if notification acknowledged
+string message              # Status message
+float64 completion_time     # Time taken to process (seconds)

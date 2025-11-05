@@ -21,6 +21,16 @@ find_package(ros_gz_bridge REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
+
+# Generate service interfaces
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/SetWaypoints.srv"
+  "srv/ReactToWildfire.srv"
+  "srv/ReactToHiker.srv"
+  "srv/ReactToDebris.srv"
+  DEPENDENCIES geometry_msgs std_msgs
+)
 
 # Find testing dependencies
 if(BUILD_TESTING)
@@ -65,8 +75,8 @@ add_library(state_machine SHARED
   src/state_machine.cpp
 )
 
-add_library(path_planner SHARED
-  src/path_planner.cpp
+add_library(waypoint_planner SHARED
+  src/waypoint_planner.cpp
 )
 
 add_library(mission_executor SHARED
@@ -78,7 +88,7 @@ ament_target_dependencies(state_machine
   rclcpp
 )
 
-ament_target_dependencies(path_planner
+ament_target_dependencies(waypoint_planner
   rclcpp
   geometry_msgs
 )
@@ -86,7 +96,11 @@ ament_target_dependencies(path_planner
 ament_target_dependencies(mission_executor
   rclcpp
   geometry_msgs
+  nav_msgs
 )
+
+# Link mission_executor with drone_control
+target_link_libraries(mission_executor drone_control)
 
 # Add Theta* path planner library
 add_library(theta_star_path_planner SHARED
@@ -108,7 +122,7 @@ add_library(mission_planner_component SHARED
 # Link mission planner with mission system libraries
 target_link_libraries(mission_planner_component
   state_machine
-  path_planner
+  waypoint_planner
   mission_executor
   theta_star_path_planner
 )
@@ -131,6 +145,11 @@ ament_target_dependencies(mission_planner_component
   std_msgs
   std_srvs
 )
+
+# Add dependency on generated service interfaces
+rosidl_get_typesupport_target(cpp_typesupport_target
+  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+target_link_libraries(mission_planner_component "${cpp_typesupport_target}")
 
 ament_target_dependencies(drone_controller_enhanced_component
   rclcpp
@@ -158,7 +177,7 @@ install(TARGETS
     pid_controller
     drone_control
     state_machine
-    path_planner
+    waypoint_planner
     mission_executor
     theta_star_path_planner
     mission_planner_component
@@ -208,7 +227,7 @@ install(TARGETS mission_planner_component
         pid_controller
         drone_control
         state_machine
-        path_planner
+        waypoint_planner
         mission_executor
         theta_star_path_planner
         EXPORT export_mission_components
