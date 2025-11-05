@@ -30,6 +30,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "geometry_msgs/msg/pose_stamped.hpp"
 #include "geometry_msgs/msg/twist.hpp"
+#include "sensor_msgs/msg/range.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "nav_msgs/msg/path.hpp"
 #include "sensor_msgs/msg/laser_scan.hpp"
@@ -94,7 +95,7 @@ struct OrbitPoint
   float x;
   float y;
   float z;
-  float yaw; // radians, heading toward the center (cx, cy)
+  float yaw; // radians, heading toward the centre (cx, cy)
 };
 
 /**
@@ -106,9 +107,9 @@ struct OrbitPoint
 struct ScenarioData {
   std::string scenario_name;  // e.g., "STRANDED_HIKER", "WILDFIRE", "DEBRIS_OBSTRUCTION"
   int severity;               // Severity level (1-10)
-  double x;                   // X position in world coordinates (meters)
-  double y;                   // Y position in world coordinates (meters)
-  double z;                   // Z position (altitude) in meters
+  double x;                   // X position in world coordinates (metres)
+  double y;                   // Y position in world coordinates (metres)
+  double z;                   // Z position (altitude) in metres
   double yaw;                 // Heading in radians
   bool can_respond;           // Whether drone should respond to this scenario
   bool valid;                 // Whether parsing was successful
@@ -185,6 +186,12 @@ private:
   void lidarCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
   
   /**
+   * @brief Sonar sensor callback for altitude measurement during takeoff
+   * @param msg Range sensor data for altitude measurement
+   */
+  void sonarCallback(const sensor_msgs::msg::Range::SharedPtr msg);
+  
+  /**
    * @brief Main mission timer callback for periodic execution
    */
   void missionTimerCallback();
@@ -205,6 +212,24 @@ private:
    * @param response Service response with success status and message
    */
   void stopMissionCallback(
+    const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+    
+  /**
+   * @brief Takeoff drone service callback
+   * @param request Service request (empty)
+   * @param response Service response with success status and message
+   */
+  void takeoffDroneCallback(
+    const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+    std::shared_ptr<std_srvs::srv::Trigger::Response> response);
+    
+  /**
+   * @brief Landing drone service callback
+   * @param request Service request (empty)
+   * @param response Service response with success status and message
+   */
+  void landDroneCallback(
     const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
     std::shared_ptr<std_srvs::srv::Trigger::Response> response);
 
@@ -249,13 +274,13 @@ private:
   bool isWaypointReached() const;
 
   /**
-   * Generate N points on a circle of radius `radius` in the XY plane centered at (x,y),
-   * at altitude z. Each point's yaw faces the center (x,y).
+   * Generate N points on a circle of radius `radius` in the XY plane centred at (x,y),
+   * at altitude z. Each point's yaw faces the centre (x,y).
    *
-   * @param x          center X (meters)
-   * @param y          center Y (meters)
-   * @param z          altitude Z (meters)
-   * @param radius     circle radius (meters), negative treated as |radius|
+   * @param x          centre X (metres)
+   * @param y          centre Y (metres)
+   * @param z          altitude Z (metres)
+   * @param radius     circle radius (metres), negative treated as |radius|
    * @param pointCount number of points to produce (min 1)
    * @return           vector of OrbitPoint {X,Y,Z,Yaw}
    */
@@ -271,9 +296,23 @@ private:
   void scenarioDetectionCallback(const std_msgs::msg::String::SharedPtr msg);
 
   // Missions
+  /**
+   * @brief Execute takeoff sequence using sonar feedback
+   * 
+   * Uses sonar sensor to monitor altitude and climb to target_takeoff_altitude_ (5m).
+   * Publishes climb commands and transitions to WAYPOINT_NAVIGATION or HOVERING when complete.
+   * Must be initiated via takeoffDroneCallback service call.
+   */
   void takeoff(void);
   void waypointNavigation(void);
   void hovering(void);
+  /**
+   * @brief Execute landing sequence using sonar feedback
+   * 
+   * Uses sonar sensor to monitor altitude and descend to target_landing_altitude_ (0.2m).
+   * Publishes descent commands and transitions to IDLE when complete.
+   * Must be initiated via landDroneCallback service call.
+   */
   void landing(void);
   void manualControl(void);
   void emergency(void); 
@@ -330,6 +369,7 @@ private:
   //--- ROS 2 communication interfaces ---///
   // SUBS
   rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;              ///< Odometry subscription
+  rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr sonar_sub_;            ///< Sonar subscription
   rclcpp::Subscription<geometry_msgs::msg::Twist>::SharedPtr velocity_sub_;        ///< Velocity subscription (unused)
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr waypoint_sub_;  ///< Waypoint command subscription
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr scenario_sub_;            ///< For perception to send scenario
@@ -351,10 +391,14 @@ private:
   std::unordered_map<int, rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr> info_request_pubs_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr incident_dispatch_pub_;
   rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;                     ///< Theta* path visualization publisher
+  rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr takeoff_pub_;                 ///< Takeoff command publisher
+  rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr land_pub_;                    ///< Landing command publisher
   
   // SRV
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr start_mission_service_;       ///< Start mission service
   rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr stop_mission_service_;        ///< Stop mission service
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr takeoff_drone_service_;       ///< Takeoff drone service
+  rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr land_drone_service_;          ///< Landing drone service
   
   // TIM
   rclcpp::TimerBase::SharedPtr mission_timer_;                                     ///< Periodic mission timer
@@ -371,6 +415,21 @@ private:
   // Current state variables
   geometry_msgs::msg::PoseStamped current_pose_;  ///< Current drone pose from odometry
   geometry_msgs::msg::Twist current_velocity_;    ///< Current velocity (currently unused)
+  
+  // Takeoff control variables
+  double current_sonar_range_;                     ///< Current sonar reading in metres
+  bool takeoff_in_progress_;                       ///< Flag indicating if takeoff is in progress
+  std::chrono::steady_clock::time_point takeoff_start_time_; ///< Time when takeoff started
+  double target_takeoff_altitude_;                 ///< Target altitude for takeoff (4.0m)
+  bool takeoff_complete_;                          ///< Flag indicating takeoff completion
+  
+  // Landing control variables
+  bool landing_in_progress_;                       ///< Flag indicating if landing is in progress
+  std::chrono::steady_clock::time_point landing_start_time_; ///< Time when landing started
+  double target_landing_altitude_;                 ///< Target altitude for landing (0.2m)
+  bool landing_complete_;                          ///< Flag indicating landing completion
+  
+  mutable std::mutex sonar_mutex_;                 ///< Mutex for sonar data protection
 
   // Variables for drone management and collaboration
   mutable std::mutex peers_mutex_;

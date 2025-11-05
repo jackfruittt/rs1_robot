@@ -38,7 +38,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     path_planner_ = std::make_unique<PathPlanner>();
     mission_executor_ = std::make_unique<MissionExecutor>();
 
-    // Initialize Theta* path planner if enabled
+    // Initialise Theta* path planner if enabled
     if (use_astar_planning_) {
       theta_star_planner_ = std::make_unique<drone_navigation::ThetaStarPathPlanner>();
       RCLCPP_INFO(this->get_logger(), "Theta* path planning enabled for %s", drone_namespace_.c_str());
@@ -58,9 +58,22 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     has_pending_goal_ = false;
     current_path_index_ = 0;
     
+    // Initialise takeoff-related variables
+    current_sonar_range_ = 0.0;
+    takeoff_in_progress_ = false;
+    target_takeoff_altitude_ = 4.0; // 4 metres target altitude
+    takeoff_complete_ = false;
+    
+    // Initialise landing-related variables
+    landing_in_progress_ = false;
+    target_landing_altitude_ = 0.2; // 0.2 metres (close to ground, above sonar minimum)
+    landing_complete_ = false;
+    
     //--- Subs ---///
     odom_sub_ = this->create_subscription<nav_msgs::msg::Odometry>(
       "/" + drone_namespace_ + "/odom", 10, std::bind(&MissionPlannerNode::odomCallback, this, std::placeholders::_1));
+    sonar_sub_ = this->create_subscription<sensor_msgs::msg::Range>(
+      "/" + drone_namespace_ + "/sonar", 10, std::bind(&MissionPlannerNode::sonarCallback, this, std::placeholders::_1));
     scenario_sub_ = this->create_subscription<std_msgs::msg::String>(
         "/" + drone_namespace_ + "/scenario_detection", reliable_qos, std::bind(&MissionPlannerNode::scenarioDetectionCallback, this, std::placeholders::_1));
     info_request_sub_ = this->create_subscription<std_msgs::msg::Empty>(
@@ -73,6 +86,8 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
 
     //--- Pubs ---//
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/" + drone_namespace_ + "/cmd_vel", 10);
+    takeoff_pub_ = this->create_publisher<std_msgs::msg::Empty>("/" + drone_namespace_ + "/takeoff", 10);
+    land_pub_ = this->create_publisher<std_msgs::msg::Empty>("/" + drone_namespace_ + "/land", 10);
     target_pose_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>("/" + drone_namespace_ + "/target_pose", 10);
     mission_state_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/mission_state", reliable_qos);
     info_manifest_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/info_manifest", reliable_qos);
@@ -83,6 +98,10 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       "/" + drone_namespace_ + "/start_mission", std::bind(&MissionPlannerNode::startMissionCallback, this, std::placeholders::_1, std::placeholders::_2)); // Tiny service: empty request, and response {bool success, string message}
     stop_mission_service_ = this->create_service<std_srvs::srv::Trigger>(
       "/" + drone_namespace_ + "/stop_mission", std::bind(&MissionPlannerNode::stopMissionCallback, this, std::placeholders::_1, std::placeholders::_2));
+    takeoff_drone_service_ = this->create_service<std_srvs::srv::Trigger>(
+      "/" + drone_namespace_ + "/takeoff_drone", std::bind(&MissionPlannerNode::takeoffDroneCallback, this, std::placeholders::_1, std::placeholders::_2));
+    land_drone_service_ = this->create_service<std_srvs::srv::Trigger>(
+      "/" + drone_namespace_ + "/land_drone", std::bind(&MissionPlannerNode::landDroneCallback, this, std::placeholders::_1, std::placeholders::_2));
 
     //--- Tims ---//
     auto mission_timer_period = std::chrono::milliseconds(static_cast<int>(1000.0 / mission_update_rate_));
@@ -425,6 +444,66 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
   }
 
   void MissionPlannerNode::landing() {
+    // If sonar-based landing is in progress, use sonar feedback
+    if (landing_in_progress_) {
+      double current_altitude = 0.0;
+      {
+        std::lock_guard<std::mutex> lock(sonar_mutex_);
+        current_altitude = current_sonar_range_;
+      }
+      
+      auto elapsed = std::chrono::steady_clock::now() - landing_start_time_;
+      auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+      
+      // Timeout check (20 seconds maximum)
+      if (elapsed_seconds > 20) {
+        RCLCPP_WARN(this->get_logger(), "Landing timeout - reached %.2fm (wanted %.2fm)", 
+                    current_altitude, target_landing_altitude_);
+        landing_complete_ = true;
+        landing_in_progress_ = false;
+      }
+      
+      // Check if target altitude reached (or if sonar indicates ground proximity)
+      // Note: sonar may return ~5m when very close to ground due to minimum range limits
+      if (current_altitude <= target_landing_altitude_ || current_altitude >= 4.5) {
+        RCLCPP_INFO(this->get_logger(), "Landing completed for %s - reached %.2fm", 
+                    drone_id_.c_str(), current_altitude);
+        landing_complete_ = true;
+        landing_in_progress_ = false;
+        
+        // Stop descending
+        geometry_msgs::msg::Twist cmd_vel;
+        cmd_vel.linear.z = 0.0;
+        cmd_vel_pub_->publish(cmd_vel);
+      } else {
+        // Continue descending - send periodic descent commands
+        static int command_counter = 0;
+        if (command_counter % 20 == 0) { // Every 2 seconds at 10Hz
+          geometry_msgs::msg::Twist cmd_vel;
+          cmd_vel.linear.z = -0.5; // 0.5 m/s downward velocity (slower than takeoff)
+          cmd_vel_pub_->publish(cmd_vel);
+          
+          RCLCPP_INFO(this->get_logger(), "Landing progress: %.2fm (target: %.2fm)", 
+                      current_altitude, target_landing_altitude_);
+        }
+        command_counter++;
+      }
+      
+      // Transition to IDLE when landing complete
+      if (landing_complete_) {
+        state_machine_->setState(MissionState::IDLE);
+        path_planner_->reset();
+        // Reset flags
+        in_fetch_rt_ = false;
+        in_hiker_rescue_ = false;
+        in_hiker_rescue_awaiting_takeoff_ = false;
+        RCLCPP_INFO(this->get_logger(), "Landing complete - transitioning to IDLE");
+        return;
+      }
+      return; // Exit early for sonar-based landing
+    }
+    
+    // Fallback to original timer-based landing for mission scenarios
     static std::map<std::string, std::chrono::steady_clock::time_point> landing_timers;
     if (landing_timers.find(drone_id_) == landing_timers.end()) {
         landing_timers[drone_id_] = std::chrono::steady_clock::now();
@@ -1102,6 +1181,105 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     RCLCPP_INFO(this->get_logger(), "Mission stopped for %s - transitioning to LANDING", drone_id_.c_str());
   }
 
+  void MissionPlannerNode::takeoffDroneCallback(
+      const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+      std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+    (void)request;  // Suppress unused parameter warning
+    
+    RCLCPP_INFO(this->get_logger(), "Takeoff service called for %s", drone_id_.c_str());
+    
+    // Check if we can takeoff (must be in IDLE state)
+    if (state_machine_->getCurrentState() != MissionState::IDLE) {
+      response->success = false;
+      response->message = "Cannot takeoff - drone not in IDLE state. Current state: " + 
+                        state_machine_->getStateString();
+      RCLCPP_WARN(this->get_logger(), "%s", response->message.c_str());
+      return;
+    }
+    
+    // Initialise takeoff state
+    {
+      std::lock_guard<std::mutex> lock(sonar_mutex_);
+      takeoff_in_progress_ = true;
+      takeoff_complete_ = false;
+      takeoff_start_time_ = std::chrono::steady_clock::now();
+    }
+    
+    // Publish takeoff command multiple times to ensure reception
+    std_msgs::msg::Empty takeoff_msg;
+    for (int i = 0; i < 5; i++) {
+      takeoff_pub_->publish(takeoff_msg);
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    
+    // Transition to takeoff state
+    state_machine_->setState(MissionState::TAKEOFF);
+    
+    // Publish mission state
+    std_msgs::msg::String state_msg;
+    state_msg.data = state_machine_->getStateString();
+    mission_state_pub_->publish(state_msg);
+    
+    response->success = true;
+    response->message = "Takeoff initiated - drone will climb to 4m using sonar feedback";
+    
+    RCLCPP_INFO(this->get_logger(), "Takeoff initiated for %s - climbing to %.1fm", 
+                drone_id_.c_str(), target_takeoff_altitude_);
+  }
+
+  void MissionPlannerNode::landDroneCallback(
+      const std::shared_ptr<std_srvs::srv::Trigger::Request> request,
+      std::shared_ptr<std_srvs::srv::Trigger::Response> response) {
+    (void)request;  // Suppress unused parameter warning
+    
+    RCLCPP_INFO(this->get_logger(), "Landing service called for %s", drone_id_.c_str());
+    
+    // Check if we can land (must not be in IDLE or LANDING state already)
+    MissionState current_state = state_machine_->getCurrentState();
+    if (current_state == MissionState::IDLE) {
+      response->success = false;
+      response->message = "Cannot land - drone already in IDLE state";
+      RCLCPP_WARN(this->get_logger(), "%s", response->message.c_str());
+      return;
+    }
+    
+    if (current_state == MissionState::LANDING) {
+      response->success = false;
+      response->message = "Cannot land - drone already in LANDING state";
+      RCLCPP_WARN(this->get_logger(), "%s", response->message.c_str());
+      return;
+    }
+    
+    // Initialise landing state
+    {
+      std::lock_guard<std::mutex> lock(sonar_mutex_);
+      landing_in_progress_ = true;
+      landing_complete_ = false;
+      landing_start_time_ = std::chrono::steady_clock::now();
+    }
+    
+    // Publish landing command multiple times to ensure reception
+    std_msgs::msg::Empty land_msg;
+    for (int i = 0; i < 5; i++) {
+      land_pub_->publish(land_msg);
+      std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    
+    // Transition to landing state
+    state_machine_->setState(MissionState::LANDING);
+    
+    // Publish mission state
+    std_msgs::msg::String state_msg;
+    state_msg.data = state_machine_->getStateString();
+    mission_state_pub_->publish(state_msg);
+    
+    response->success = true;
+    response->message = "Landing initiated - drone will descend to 0.2m using sonar feedback";
+    
+    RCLCPP_INFO(this->get_logger(), "Landing initiated for %s - descending to %.1fm", 
+                drone_id_.c_str(), target_landing_altitude_);
+  }
+
   // Mission execution logic
   void MissionPlannerNode::executeMission() {
     MissionState current_state = state_machine_->getCurrentState();
@@ -1161,21 +1339,62 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
   }
 
   void MissionPlannerNode::takeoff() {
-    static auto takeoff_start = std::chrono::steady_clock::now();
-    auto elapsed = std::chrono::steady_clock::now() - takeoff_start;
+    if (!takeoff_in_progress_) {
+      return; // Takeoff not initiated via service
+    }
     
-    if (elapsed > std::chrono::seconds(5)) { // 5 second takeoff simulation
-      RCLCPP_INFO(this->get_logger(), "Takeoff completed for %s - transitioning to waypoint navigation", drone_id_.c_str());
+    double current_altitude = 0.0;
+    {
+      std::lock_guard<std::mutex> lock(sonar_mutex_);
+      current_altitude = current_sonar_range_;
+    }
+    
+    auto elapsed = std::chrono::steady_clock::now() - takeoff_start_time_;
+    auto elapsed_seconds = std::chrono::duration_cast<std::chrono::seconds>(elapsed).count();
+    
+    // Timeout check (10 seconds maximum)
+    if (elapsed_seconds > 10) {
+      RCLCPP_WARN(this->get_logger(), "Takeoff timeout - reached %.2fm (wanted %.2fm)", 
+                  current_altitude, target_takeoff_altitude_);
+      takeoff_complete_ = true;
+      takeoff_in_progress_ = false;
+    }
+    
+    // Check if target altitude reached
+    if (current_altitude >= target_takeoff_altitude_) {
+      RCLCPP_INFO(this->get_logger(), "Takeoff completed for %s - reached %.2fm", 
+                  drone_id_.c_str(), current_altitude);
+      takeoff_complete_ = true;
+      takeoff_in_progress_ = false;
       
-      // Check if we have waypoints to navigate
+      // Stop climbing
+      geometry_msgs::msg::Twist cmd_vel;
+      cmd_vel.linear.z = 0.0;
+      cmd_vel_pub_->publish(cmd_vel);
+    } else {
+      // Continue climbing - send periodic climb commands
+      static int command_counter = 0;
+      if (command_counter % 20 == 0) { // Every 2 seconds at 10Hz
+        geometry_msgs::msg::Twist cmd_vel;
+        cmd_vel.linear.z = 2.0; // 2 m/s upward velocity
+        cmd_vel_pub_->publish(cmd_vel);
+        
+        RCLCPP_INFO(this->get_logger(), "Takeoff progress: %.2fm (target: %.2fm)", 
+                    current_altitude, target_takeoff_altitude_);
+      }
+      command_counter++;
+    }
+    
+    // Transition to next state when takeoff complete
+    if (takeoff_complete_) {
       if (path_planner_->hasNextWaypoint()) {
         state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
+        RCLCPP_INFO(this->get_logger(), "Takeoff complete - transitioning to waypoint navigation");
       } else {
         state_machine_->setState(MissionState::HOVERING);
-        RCLCPP_INFO(this->get_logger(), "No waypoints available - transitioning to HOVERING");
+        RCLCPP_INFO(this->get_logger(), "Takeoff complete - no waypoints available, transitioning to HOVERING");
       }
-      takeoff_start = std::chrono::steady_clock::now(); // Reset for next time
-    }   
+    }
   }
 
   void MissionPlannerNode::hovering() {
@@ -1270,6 +1489,17 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     // Convert odometry to pose for mission planning
     current_pose_.header = msg->header;
     current_pose_.pose = msg->pose.pose;
+  }
+
+  void MissionPlannerNode::sonarCallback(const sensor_msgs::msg::Range::SharedPtr msg) {
+    std::lock_guard<std::mutex> lock(sonar_mutex_);
+    current_sonar_range_ = msg->range;
+    
+    // Debug output during takeoff
+    if (takeoff_in_progress_) {
+      RCLCPP_DEBUG(this->get_logger(), "Sonar reading: %.2fm (target: %.2fm)", 
+                   current_sonar_range_, target_takeoff_altitude_);
+    }
   }
 
   void MissionPlannerNode::resetMissioncallback(const std_msgs::msg::String::SharedPtr msg) {
