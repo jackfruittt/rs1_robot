@@ -12,7 +12,7 @@ def generate_launch_description():
     )
     return LaunchDescription([
         ExecuteProcess(
-            cmd=['ign', 'gazebo', world_path, '--render-engine', 'ogre'],
+            cmd=['ign', 'gazebo', world_path, '--render-engine', 'optix'],
             output='screen'
         )
     ])

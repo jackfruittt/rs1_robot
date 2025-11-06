@@ -99,7 +99,7 @@
     <sensor type="imu" name="imu">
       <always_on>true</always_on>
       <visualize>false</visualize>
-      <update_rate>100</update_rate>
+      <update_rate>50</update_rate>
       <topic>model/${drone_name}/imu</topic>
       <gz_frame_id>base_link</gz_frame_id>
       <imu>
@@ -175,7 +175,7 @@
       <ray>
         <scan>
           <horizontal>
-            <samples>360</samples>
+            <samples>180</samples>
             <resolution>1.0</resolution>
             <min_angle>-3.14159</min_angle>
             <max_angle>3.14159</max_angle>
@@ -230,7 +230,7 @@
   <gazebo reference="front_cam_link">
     <sensor name="front_camera" type="camera">
       <always_on>true</always_on>
-      <update_rate>120</update_rate>
+      <update_rate>30</update_rate>
       <visualize>false</visualize>
       <topic>model/${drone_name}/front_camera</topic>
       <gz_frame_id>front_cam_link</gz_frame_id>
@@ -258,7 +258,7 @@
   <gazebo reference="bottom_cam_link">
     <sensor name="bottom_camera" type="camera">
       <always_on>true</always_on>
-      <update_rate>120</update_rate>
+      <update_rate>30</update_rate>
       <visualize>false</visualize>
       <topic>model/${drone_name}/bottom_camera</topic>
       <gz_frame_id>bottom_cam_link</gz_frame_id>
@@ -281,57 +281,12 @@
       </camera>
     </sensor>
   </gazebo>
-  
-  <!-- GPS with dynamic topic -->
-  <gazebo reference="base_link">
-    <sensor name="gps" type="navsat">
-      <always_on>true</always_on>
-      <update_rate>10</update_rate>
-      <topic>model/${drone_name}/gps</topic>
-      <gz_frame_id>base_link</gz_frame_id>
-      <navsat>
-        <position_sensing>
-          <horizontal>
-            <noise type="gaussian">
-              <mean>0.0</mean>
-              <stddev>1e-2</stddev>
-            </noise>
-          </horizontal>
-          <vertical>
-            <noise type="gaussian">
-              <mean>0.0</mean>
-              <stddev>1e-2</stddev>
-            </noise>
-          </vertical>
-        </position_sensing>
-        <velocity_sensing>
-          <horizontal>
-            <noise type="gaussian">
-              <mean>0.0</mean>
-              <stddev>1e-3</stddev>
-            </noise>
-          </horizontal>
-          <vertical>
-            <noise type="gaussian">
-              <mean>0.0</mean>
-              <stddev>1e-3</stddev>
-            </noise>
-          </vertical>
-        </velocity_sensing>
-      </navsat>
-      <!-- REMOVED: Individual NavSat plugin -->
-      <!--
-      <plugin filename="libignition-gazebo6-navsat-system.so" name="ignition::gazebo::systems::NavSat">
-      </plugin>
-      -->
-    </sensor>
-  </gazebo>
 
   <!-- Contact sensor with dynamic topic -->
   <gazebo reference="base_link">
     <sensor name="collision_sensor" type="contact">
       <always_on>true</always_on>
-      <update_rate>100</update_rate>
+      <update_rate>20</update_rate>
       <topic>${namespace}/bumper</topic>
       <ignition_frame_id>${namespace}/base_link</ignition_frame_id>
       <contact>
