@@ -200,10 +200,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     };
 
     for (int id : peers_to_ping) send_ping(id);
-    // rclcpp::sleep_for(std::chrono::milliseconds(120)); // NEED TO TEST IF NECESSARY OR NOT
-    // for (int id : peers_to_ping) send_ping(id);
-    // rclcpp::sleep_for(std::chrono::milliseconds(120));  
-    // for (int id : peers_to_ping) send_ping(id);
 
     RCLCPP_INFO(this->get_logger(), "Reading cached peer info for %zu peers (non-blocking for composed mode)...", peers_to_ping.size()); 
     
@@ -295,22 +291,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
   /****************** JACKSON AND MATTHEW ******************/
   void MissionPlannerNode::missionTimerCallback() {
       executeMission();
-
-      // Hiker rescue
-      if (in_hiker_rescue_ && medkit_collected_) {
-          if (this->get_clock()->now() - medkit_collect_stamp_ > rclcpp::Duration::from_seconds(2.0)) {
-              RCLCPP_INFO(this->get_logger(), "Medkit collected, proceeding to hiker location.");
-              geometry_msgs::msg::PoseStamped wp_hiker;
-              wp_hiker.header.frame_id = "map";
-              wp_hiker.pose.position = hiker_target_xyz_;
-              wp_hiker.pose.orientation.w = 1.0;
-              path_planner_->setWaypoints({wp_hiker});
-              state_machine_->setState(MissionState::TAKEOFF);
-              medkit_collected_ = false;
-              in_hiker_rescue_awaiting_takeoff_ = true;
-          }
-      }
-
       std_msgs::msg::String state_msg;
       state_msg.data = state_machine_->getStateString();
       mission_state_pub_->publish(state_msg);
@@ -324,18 +304,9 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     }
     if (!isWaypointReached()) return;
 
-    if (in_hiker_rescue_ && !medkit_collected_ && !in_hiker_rescue_awaiting_takeoff_) {
-      RCLCPP_INFO(this->get_logger(), "Arrived at medkit depot. Landing to collect.");
-      state_machine_->setState(MissionState::LANDING);
-      return; 
-    }
 
     (void)path_planner_->getNextWaypoint();
     if (!path_planner_->hasNextWaypoint()) {
-      if (in_hiker_rescue_) {
-        // We're in a managed multi-phase mission; phase logic/timers will advance us.
-        return;
-      }
       
       // Check if we just completed a scenario reaction mission
       if (in_scenario_reaction_) {
@@ -502,30 +473,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       }
       return; // Exit early for sonar-based landing
     }
-    
-    // Fallback to original timer-based landing for mission scenarios
-    static std::map<std::string, std::chrono::steady_clock::time_point> landing_timers;
-    if (landing_timers.find(drone_id_) == landing_timers.end()) {
-        landing_timers[drone_id_] = std::chrono::steady_clock::now();
-    }
-
-    if (std::chrono::steady_clock::now() - landing_timers[drone_id_] > std::chrono::seconds(8)) {
-      if (in_hiker_rescue_ && !medkit_collected_) {
-        medkit_collected_ = true;
-        medkit_collect_stamp_ = this->get_clock()->now();
-        RCLCPP_INFO(this->get_logger(), "Landed at medkit depot. Pausing for collection.");
-        // Stay in LANDING state. The missionTimer will handle the next step.
-      }
-      else {
-        // mission-ending landing.
-        state_machine_->setState(MissionState::IDLE);
-        path_planner_->reset();
-        // Reset flags
-        in_hiker_rescue_ = false;
-        in_hiker_rescue_awaiting_takeoff_ = false;
-      }
-      landing_timers.erase(drone_id_);
-    }
   }
 
   /******************** MATTHEW **************************/
@@ -534,40 +481,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     const std::string payload = trimCopy(msg->data);
     auto tokens = splitCSV(payload); 
 
-    //--- Manage data (set wp, states, etc) ---///
-    if (tokens.size() < 2 || tokens[0] != "ASSIGN") return;
-
-    if (tokens[1] == "HIKER_RESCUE") {
-      if (tokens.size() < 8) return; // Need 8 tokens
-      double dx, dy, dz, hx, hy, hz;
-
-      if (!parseDouble(tokens[2], dx) || !parseDouble(tokens[3], dy) || !parseDouble(tokens[4], dz) ||
-          !parseDouble(tokens[5], hx) || !parseDouble(tokens[6], hy) || !parseDouble(tokens[7], hz)) {
-        return;
-      }
-
-      RCLCPP_INFO(this->get_logger(), "HIKER_RESCUE mission assigned.");
-      in_hiker_rescue_ = true;
-      medkit_collected_ = false;
-      in_hiker_rescue_awaiting_takeoff_ = false;
-      hiker_target_xyz_.x = hx;
-      hiker_target_xyz_.y = hy;
-      hiker_target_xyz_.z = hz + 1; // so drones don't crash
-
-      geometry_msgs::msg::PoseStamped wp_depot;
-      wp_depot.header.frame_id = "map";
-      wp_depot.pose.position.x = dx;
-      wp_depot.pose.position.y = dy;
-      wp_depot.pose.position.z = dz;
-      wp_depot.pose.orientation.w = 1.0;
-      
-      path_planner_->setWaypoints({wp_depot});
-      if (state_machine_->canTransition(MissionState::WAYPOINT_NAVIGATION)) {
-        state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
-      }
-    }
-
-    else if (tokens[1] == "ROUTE") {
+    if (tokens[1] == "ROUTE") {
       // Expected format: ASSIGN,ROUTE,x1,y1,z1,x2,y2,z2,...
       // Number of tokens must be 2 (ASSIGN,ROUTE) + a multiple of 3 (x,y,z)
       if (tokens.size() < 5 || (tokens.size() - 2) % 3 != 0) {
@@ -1704,7 +1618,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     state_machine_->setState(MissionState::LANDING);
   }
 
-
   /*********************** IS JACKSONS   ***************** */
   void MissionPlannerNode::publishMissionCommand() {
     // Publish waypoints for both normal navigation and scenario response missions
@@ -1800,10 +1713,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     else {
       RCLCPP_WARN(this->get_logger(), "Unknown reset mission mode: '%s'", mode.c_str());
     }
-  }
-
-  void MissionPlannerNode::velocityCallback(const geometry_msgs::msg::Twist::SharedPtr msg) {
-    current_velocity_ = *msg;
   }
 
   void MissionPlannerNode::waypointCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
@@ -2641,15 +2550,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     for (int peer_id : detected_peer_ids) {
       createPeerSubscriptionForId(peer_id);
     }
-  }
-
-  // Apparently removing inside of the lock could cause issues but idc for now, @jackson can look into this
-  void MissionPlannerNode::removePeerSubscriptionForId(int id) {
-    std::lock_guard<std::mutex> lock(peers_mutex_);
-    peer_odom_subs_.erase(id);
-    peer_poses_.erase(id);
-    assignment_pubs_.erase(id);
-    RCLCPP_INFO(this->get_logger(), "Peer drone %d removed", id);
   }
 
   void MissionPlannerNode::infoRequestPingCallback(const std_msgs::msg::Empty::SharedPtr) {
