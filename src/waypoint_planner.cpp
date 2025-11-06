@@ -68,6 +68,7 @@ namespace drone_swarm
     }
   }
   
+  /******************************** TEMU RRT *******************************************/
   std::vector<geometry_msgs::msg::PoseStamped> WaypointPlanner::generateRandomWaypoints(
       const geometry_msgs::msg::PoseStamped& start_pose,
       int num_waypoints,
@@ -114,12 +115,11 @@ namespace drone_swarm
       
       if (has_last_angle) {
         // Bias towards continuing in similar direction with some randomness
-        // Using 45 degree std dev for straighter, more exploratory paths
-        // (reduced from 60 degrees to encourage exploration over wandering)
+        // Using 45 degree std dev for straighter, more exploratory paths to prevent circling the same small area
         std::normal_distribution<> angle_variation(last_angle, M_PI / 4.0);  // 45 degree std dev
         angle = angle_variation(gen);
         
-        // Ensure we don't make sharp reversals (> 150 degrees turn)
+        // Ensure no sharp reversals (> 150 degrees turn)
         double angle_diff = std::abs(std::remainder(angle - last_angle, 2.0 * M_PI));
         if (angle_diff > 5.0 * M_PI / 6.0) {  // If turn > 150 degrees
           continue;  // Try again with different angle
@@ -146,7 +146,7 @@ namespace drone_swarm
         continue;  // Would intersect, try again
       }
       
-      // Vali date point, add it to path
+      // Validate point, add it to path
       path_points.push_back(candidate);
       current_point = candidate;
       last_angle = angle;

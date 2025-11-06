@@ -58,16 +58,6 @@ namespace drone_swarm
     pid_z_->setGains(kp, ki, kd);
   }
 
-  void DroneControl::updateVelocityPIDGains(double kp, double ki, double kd) {
-    // Future implementation - velocity controllers not yet implemented
-    (void)kp; (void)ki; (void)kd;
-  }
-
-  void DroneControl::updateAttitudePIDGains(double kp, double ki, double kd) {
-    // Future implementation - attitude controllers not yet implemented
-    (void)kp; (void)ki; (void)kd;
-  }
-
   void DroneControl::setControlLimits(double max_velocity, double max_angular_velocity) {
     // Configure velocity limits for safe operation
     max_velocity_ = max_velocity;

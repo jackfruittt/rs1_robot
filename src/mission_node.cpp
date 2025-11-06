@@ -64,7 +64,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     
     // Initialise landing-related variables
     landing_in_progress_ = false;
-    target_landing_altitude_ = 0.2; // 0.2 metres (close to ground, above sonar minimum)
+    target_landing_altitude_ = 0.2; // 0.2 metres (close to ground, sonar minimum)
     landing_complete_ = false;
     
     //--- Subs ---///
@@ -562,7 +562,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       wp_depot.pose.orientation.w = 1.0;
       
       path_planner_->setWaypoints({wp_depot});
-      if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::WAYPOINT_NAVIGATION)) {
+      if (state_machine_->canTransition(MissionState::WAYPOINT_NAVIGATION)) {
         state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
       }
     }
@@ -613,7 +613,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
         route_waypoints_cached_ = new_waypoints;
       }
       
-      if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::WAYPOINT_NAVIGATION)) {
+      if (state_machine_->canTransition(MissionState::WAYPOINT_NAVIGATION)) {
         state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
       }
     }
@@ -924,52 +924,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     return false;
   }
 
-  // For manager drones to determine whether a fleet member's current state can switch to the target state
-  bool MissionPlannerNode::canStateTransitionTo(MissionState current_state, MissionState target_state) {
-    // Simplified state transitions - scenario reactions are services, not states
-    switch (current_state) {
-      case MissionState::IDLE:
-        return  target_state == MissionState::TAKEOFF || 
-                target_state == MissionState::MANUAL_CONTROL;
-
-      case MissionState::TAKEOFF:
-        return  target_state == MissionState::WAYPOINT_NAVIGATION ||
-                target_state == MissionState::RESPONSE_NAVIGATION ||
-                target_state == MissionState::HOVERING ||
-                target_state == MissionState::EMERGENCY;
-
-      case MissionState::WAYPOINT_NAVIGATION:
-        return  target_state == MissionState::HOVERING || 
-                target_state == MissionState::LANDING ||
-                target_state == MissionState::EMERGENCY;
-      
-      case MissionState::RESPONSE_NAVIGATION:
-        return  target_state == MissionState::WAYPOINT_NAVIGATION ||
-                target_state == MissionState::HOVERING || 
-                target_state == MissionState::LANDING ||
-                target_state == MissionState::IDLE ||
-                target_state == MissionState::EMERGENCY;
-
-      case MissionState::HOVERING:
-        return  target_state == MissionState::WAYPOINT_NAVIGATION ||
-                target_state == MissionState::RESPONSE_NAVIGATION ||
-                target_state == MissionState::LANDING ||
-                target_state == MissionState::EMERGENCY;
-
-      case MissionState::LANDING:
-        return  target_state == MissionState::IDLE || 
-                target_state == MissionState::EMERGENCY;
-
-      case MissionState::MANUAL_CONTROL:
-        return  target_state == MissionState::IDLE || 
-                target_state == MissionState::EMERGENCY;
-
-      case MissionState::EMERGENCY:
-        return  target_state == MissionState::IDLE;
-    }
-    return false;
-  }
-  
   /******************* JACKSON ******************************/
   void MissionPlannerNode::loadWaypointsFromParams() {
     RCLCPP_INFO(get_logger(), "Loading waypoint params (enumerate-style) for %s", drone_id_.c_str());
@@ -1032,36 +986,12 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
   // Load mission parameters
   void MissionPlannerNode::loadMissionParams() {
       try {
-          // Load mission parameters if they exist
-          if (this->has_parameter("mission_params.takeoff_altitude")) {
-              double takeoff_altitude = this->get_parameter("mission_params.takeoff_altitude").as_double();
-              RCLCPP_INFO(this->get_logger(), "Takeoff altitude: %.2f", takeoff_altitude);
-              // Store or use this parameter as needed
-          }
-          
-          if (this->has_parameter("mission_params.landing_speed")) {
-              double landing_speed = this->get_parameter("mission_params.landing_speed").as_double();
-              RCLCPP_INFO(this->get_logger(), "Landing speed: %.2f", landing_speed);
-          }
-          
+          // Load waypoint tolerance override from YAML if provided
           if (this->has_parameter("mission_params.waypoint_tolerance")) {
               double yaml_tolerance = this->get_parameter("mission_params.waypoint_tolerance").as_double();
-              // Override the default tolerance with YAML value
               waypoint_tolerance_ = yaml_tolerance;
               RCLCPP_INFO(this->get_logger(), "Updated waypoint tolerance to: %.2f", waypoint_tolerance_);
           }
-          
-          if (this->has_parameter("mission_params.max_velocity")) {
-              double max_velocity = this->get_parameter("mission_params.max_velocity").as_double();
-              RCLCPP_INFO(this->get_logger(), "Max velocity: %.2f", max_velocity);
-          }
-          
-          if (this->has_parameter("mission_params.loop_missions")) {
-              bool loop_missions = this->get_parameter("mission_params.loop_missions").as_bool();
-              RCLCPP_INFO(this->get_logger(), "Loop missions: %s", loop_missions ? "true" : "false");
-              // @TODO store this in a member variable for use in mission execution
-          }
-          
       } catch (const std::exception& e) {
           RCLCPP_WARN(this->get_logger(), "Error loading mission parameters: %s", e.what());
       }
@@ -1436,15 +1366,56 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     debris_location.y = request->debris_y;
     debris_location.z = request->debris_z;
     
-    // Execute debris reaction (notification only)
-    bool success = mission_executor_->executeDebrisReaction(debris_location);
+    // Save current mission state before starting debris inspection
+    mission_executor_->saveMissionState(path_planner_.get());
+    RCLCPP_INFO(this->get_logger(), "Saved current mission state for debris inspection");
     
-    response->success = success;
-    response->message = success ? "Debris notification acknowledged" : "Debris notification failed";
-    response->completion_time = (this->now() - start_time).seconds();
+    // Execute debris reaction (orbit inspection mission)
+    bool success = mission_executor_->executeDebrisReaction(debris_location, path_planner_.get());
     
-    RCLCPP_INFO(this->get_logger(), "Debris notification processed in %.2f seconds",
-                response->completion_time);
+    if (success) {
+      // Mark that we're in a scenario reaction mission
+      in_scenario_reaction_ = true;
+      active_scenario_type_ = "DEBRIS_OBSTRUCTION";
+      active_scenario_incident_id_ = request->incident_id;
+      
+      // Track if drone was IDLE before mission
+      was_idle_before_reaction_ = (state_machine_->getCurrentState() == MissionState::IDLE);
+      
+      // If drone is IDLE, need to initiate takeoff first
+      if (state_machine_->getCurrentState() == MissionState::IDLE) {
+        {
+          std::lock_guard<std::mutex> lock(sonar_mutex_);
+          takeoff_in_progress_ = true;
+          takeoff_complete_ = false;
+          takeoff_start_time_ = std::chrono::steady_clock::now();
+        }
+        
+        std_msgs::msg::Empty takeoff_msg;
+        takeoff_pub_->publish(takeoff_msg);
+        state_machine_->setState(MissionState::TAKEOFF);
+        RCLCPP_INFO(this->get_logger(), "Initiated takeoff for debris inspection");
+      } else if (state_machine_->getCurrentState() != MissionState::RESPONSE_NAVIGATION) {
+        // Already airborne, transition to response navigation
+        state_machine_->setState(MissionState::RESPONSE_NAVIGATION);
+        RCLCPP_INFO(this->get_logger(), "Transitioned to RESPONSE_NAVIGATION for debris inspection");
+      }
+      
+      response->success = true;
+      response->message = "Debris inspection mission started - orbiting for visual survey";
+      response->completion_time = 0.0;  // Mission is async
+      
+      RCLCPP_INFO(this->get_logger(), "Debris inspection mission started - executing orbital survey");
+    } else {
+      // Failed to set up mission
+      mission_executor_->restoreMissionState(path_planner_.get());
+      
+      response->success = false;
+      response->message = "Failed to start debris inspection mission";
+      response->completion_time = 0.0;
+      
+      RCLCPP_ERROR(this->get_logger(), "Debris inspection failed to start");
+    }
   }
 
   // Service-based coordination helper methods
@@ -1658,8 +1629,8 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
         break;
         
       case MissionState::HOVERING:
-        // Maintain position - could wait for new waypoints or manual commands
-        hovering();
+        // Maintain position - handled by drone_controller
+        // Mission planner has no action needed in hover state
         break;
         
       case MissionState::LANDING:
@@ -1668,8 +1639,8 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
         break;
         
       case MissionState::MANUAL_CONTROL:
-        // External control - monitor for return to autonomous mode
-        manualControl();
+        // External control - mission planner has no action
+        // Monitor for return to autonomous mode via state change
         break;
         
       case MissionState::EMERGENCY:
@@ -1726,19 +1697,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
   }
 
 /***************** STUFF BELOW NOT JACKSON *****************/
-
-
-
-  void MissionPlannerNode::hovering() {
-    // Mission planner monitors hovering state
-    // Actual hovering control is handled by drone_controller
-    // We just maintain state here - drone_controller will keep position
-  }
-
-  void MissionPlannerNode::manualControl() {
-    RCLCPP_DEBUG(this->get_logger(), "In manual control mode");
-  }
-
   void MissionPlannerNode::emergency() {
     RCLCPP_WARN(this->get_logger(), "Emergency state active - drone_controller executing emergency descent");
     // Mission planner just monitors - actual emergency descent is handled by drone_controller
@@ -1824,7 +1782,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       }
       path_planner_->setWaypoints(original_waypoints_cached);
       RCLCPP_INFO(this->get_logger(), "Reset to ORIGINAL mission waypoints.");
-      if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::WAYPOINT_NAVIGATION)) {
+      if (state_machine_->canTransition(MissionState::WAYPOINT_NAVIGATION)) {
         state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
       }
     }
@@ -1835,7 +1793,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       }
       path_planner_->setWaypoints(route_waypoints_cached);
       RCLCPP_INFO(this->get_logger(), "Reset to ROUTE mission waypoints.");
-      if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::WAYPOINT_NAVIGATION)) {
+      if (state_machine_->canTransition(MissionState::WAYPOINT_NAVIGATION)) {
         state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
       }
     }
@@ -1843,92 +1801,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       RCLCPP_WARN(this->get_logger(), "Unknown reset mission mode: '%s'", mode.c_str());
     }
   }
-
-
-  /**************************** MATTHEW AND MARCUS *****************************/
-  inline float normalizeAngle(float a) {
-    constexpr float PI = 3.14159265358979323846f;
-    constexpr float TWO_PI = 2.0f * PI;
-    while (a >= PI)  a -= TWO_PI;
-    while (a < -PI)  a += TWO_PI;
-    return a;
-  }
-
-  /**
-   * @brief Generate circular orbit waypoints around a point of interest
-   * 
-   * Creates a circular trajectory of waypoints that orbit around a central point,
-   * with each waypoint oriented to face the centre (useful for inspection/monitoring).
-   * 
-   * @param center_x X coordinate of orbit centre
-   * @param center_y Y coordinate of orbit centre  
-   * @param center_z Z coordinate (altitude) for all waypoints
-   * @param radius Orbit radius in metres
-   * @param point_count Number of waypoints to generate around the circle
-   * @return Vector of PoseStamped waypoints forming a circular orbit
-   */
-  std::vector<geometry_msgs::msg::PoseStamped> generateOrbitWaypoints(
-      double center_x, double center_y, double center_z,
-      double radius, int point_count)
-  {
-    const int N = std::max(1, point_count);
-    const double R = std::fabs(radius);
-
-    std::vector<geometry_msgs::msg::PoseStamped> waypoints;
-    waypoints.reserve(N);
-
-    // Edge case: zero radius means hovering at the centre point
-    if (R < 0.01)  // Small epsilon for floating point comparison
-    {
-      geometry_msgs::msg::PoseStamped hover_point;
-      hover_point.header.frame_id = "map";
-      hover_point.pose.position.x = center_x;
-      hover_point.pose.position.y = center_y;
-      hover_point.pose.position.z = center_z;
-      hover_point.pose.orientation.w = 1.0;  // Identity quaternion
-      
-      for (int i = 0; i < N; ++i) {
-        waypoints.push_back(hover_point);
-      }
-      return waypoints;
-    }
-
-    constexpr double PI = 3.14159265358979323846;
-    const double angle_step = 2.0 * PI / static_cast<double>(N);
-
-    for (int i = 0; i < N; ++i)
-    {
-      const double theta = angle_step * static_cast<double>(i);
-
-      // Calculate position on circle
-      const double px = center_x + R * std::cos(theta);
-      const double py = center_y + R * std::sin(theta);
-
-      // Calculate yaw to face the centre point
-      double yaw = std::atan2(center_y - py, center_x - px);
-      
-      // Convert yaw to quaternion (rotation around Z axis)
-      // q = [cos(yaw/2), 0, 0, sin(yaw/2)]
-      const double half_yaw = yaw * 0.5;
-      const double qw = std::cos(half_yaw);
-      const double qz = std::sin(half_yaw);
-
-      // Create waypoint
-      geometry_msgs::msg::PoseStamped waypoint;
-      waypoint.header.frame_id = "map";
-      waypoint.pose.position.x = px;
-      waypoint.pose.position.y = py;
-      waypoint.pose.position.z = center_z;
-      waypoint.pose.orientation.w = qw;
-      waypoint.pose.orientation.x = 0.0;
-      waypoint.pose.orientation.y = 0.0;
-      waypoint.pose.orientation.z = qz;
-
-      waypoints.push_back(waypoint);
-    }
-
-    return waypoints;
-}
 
   void MissionPlannerNode::velocityCallback(const geometry_msgs::msg::Twist::SharedPtr msg) {
     current_velocity_ = *msg;

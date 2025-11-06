@@ -102,22 +102,6 @@ public:
   void updatePositionPIDGains(double kp, double ki, double kd);
   
   /**
-   * @brief Update velocity PID controller gains
-   * @param kp Proportional gain
-   * @param ki Integral gain
-   * @param kd Derivative gain
-   */
-  void updateVelocityPIDGains(double kp, double ki, double kd);
-  
-  /**
-   * @brief Update attitude PID controller gains
-   * @param kp Proportional gain
-   * @param ki Integral gain
-   * @param kd Derivative gain
-   */
-  void updateAttitudePIDGains(double kp, double ki, double kd);
-  
-  /**
    * @brief Set control output limits
    * @param max_velocity Maximum linear velocity (m/s)
    * @param max_angular_velocity Maximum angular velocity (rad/s)

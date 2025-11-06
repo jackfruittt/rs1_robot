@@ -74,6 +74,7 @@ namespace drone_swarm
                 target_state == MissionState::EMERGENCY;
       case MissionState::MANUAL_CONTROL:
         return  target_state == MissionState::IDLE || 
+                target_state == MissionState::WAYPOINT_NAVIGATION ||
                 target_state == MissionState::EMERGENCY;
       case MissionState::EMERGENCY:
         return  target_state == MissionState::IDLE;
