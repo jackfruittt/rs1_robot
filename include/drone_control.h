@@ -16,6 +16,7 @@
 #include "geometry_msgs/msg/twist.hpp"
 #include "geometry_msgs/msg/point.hpp"
 #include "nav_msgs/msg/odometry.hpp"
+#include "sensor_msgs/msg/laser_scan.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "pid.h"
 
@@ -101,22 +102,6 @@ public:
   void updatePositionPIDGains(double kp, double ki, double kd);
   
   /**
-   * @brief Update velocity PID controller gains
-   * @param kp Proportional gain
-   * @param ki Integral gain
-   * @param kd Derivative gain
-   */
-  void updateVelocityPIDGains(double kp, double ki, double kd);
-  
-  /**
-   * @brief Update attitude PID controller gains
-   * @param kp Proportional gain
-   * @param ki Integral gain
-   * @param kd Derivative gain
-   */
-  void updateAttitudePIDGains(double kp, double ki, double kd);
-  
-  /**
    * @brief Set control output limits
    * @param max_velocity Maximum linear velocity (m/s)
    * @param max_angular_velocity Maximum angular velocity (rad/s)
@@ -153,6 +138,69 @@ public:
    * and smooth trajectory following for autonomous missions.
    */
   bool flyToGoal(VehicleData& vehicle, const geometry_msgs::msg::Pose& goal);
+  
+  /**
+   * @brief Navigate to 2D waypoint using terrain-following altitude control
+   * @param current_pose Current drone position from odometry
+   * @param target_waypoint Target waypoint (only X,Y used, Z ignored)
+   * @param sonar_range Current sonar altitude reading
+   * @param lidar_data Current LiDAR scan for obstacle detection
+   * @param dt Time step for control calculations
+   * @return Twist command for waypoint navigation with terrain following
+   * 
+   * Navigates to X,Y coordinates while maintaining constant altitude above ground
+   * using sonar feedback. Uses LiDAR to detect obstacles and climb over them.
+   */
+  geometry_msgs::msg::Twist navigateToWaypointWithAltitudeControl(
+    const geometry_msgs::msg::PoseStamped& current_pose,
+    const geometry_msgs::msg::PoseStamped& target_waypoint,
+    double sonar_range,
+    const sensor_msgs::msg::LaserScan& lidar_data,
+    double dt = 0.1,
+    bool allow_descent = false);  // If true, allows descending below terrain following altitude
+  
+  /**
+   * @brief Set target altitude above ground for terrain following
+   * @param altitude Target altitude in metres above ground (default 13m)
+   */
+  void setTerrainFollowingAltitude(double altitude);
+  
+  /**
+   * @brief Set emergency climb parameters for obstacle avoidance
+   * @param detection_distance Distance ahead to scan for obstacles (default 5m)
+   * @param climb_altitude Additional altitude to climb over obstacles (default 5m)
+   */
+  void setEmergencyClimbParams(double detection_distance, double climb_altitude);
+  
+  /**
+   * @brief Execute takeoff maneuver using sonar feedback
+   * @param target_altitude Target altitude in metres
+   * @param sonar_range Current sonar reading in metres
+   * @param elapsed_seconds Time elapsed since takeoff started
+   * @param max_timeout_seconds Maximum time allowed for takeoff
+   * @return True if takeoff complete (success or timeout), false if still in progress
+   * 
+   * Handles complete takeoff logic including velocity command publishing,
+   * progress monitoring, and completion detection using sonar feedback.
+   * Publishes climb commands until target altitude is reached.
+   */
+  bool takeoff(double target_altitude, double sonar_range, 
+               double elapsed_seconds, double max_timeout_seconds = 10.0);
+  
+  /**
+   * @brief Execute landing maneuver using sonar feedback
+   * @param target_altitude Target landing altitude in metres (typically 0.2m)
+   * @param sonar_range Current sonar reading in metres
+   * @param elapsed_seconds Time elapsed since landing started
+   * @param max_timeout_seconds Maximum time allowed for landing
+   * @return True if landing complete (success or timeout), false if still in progress
+   * 
+   * Handles complete landing logic including velocity command publishing,
+   * progress monitoring, and completion detection using sonar feedback.
+   * Publishes descent commands until target altitude is reached.
+   */
+  bool land(double target_altitude, double sonar_range,
+            double elapsed_seconds, double max_timeout_seconds = 20.0);
   
   /**
    * @brief Basic position control mode
@@ -229,23 +277,6 @@ public:
    */
   double calculateYawControl(double target_yaw, double current_yaw, double dt);
   
-  // Advanced features (currently commented out for future implementation)
-  // /**
-  //  * @brief Enable/disable terrain following mode
-  //  * @param enabled True to enable terrain following
-  //  * 
-  //  * TODO: Implement terrain following using range sensors
-  //  */
-  // void setTerrainFollowingEnabled(bool enabled);
-  
-  // /**
-  //  * @brief Set altitude adjustment for terrain following
-  //  * @param adjustment Altitude offset in metres
-  //  * 
-  //  * TODO: Implement dynamic altitude adjustment
-  //  */
-  // void setCurrentAltitudeAdjustment(double adjustment);
-
 private:
   // PID controllers for position control (X, Y, Z)
   std::unique_ptr<PIDController> pid_x_;
@@ -268,10 +299,6 @@ private:
   double max_velocity_;               ///< Maximum linear velocity limit
   double max_angular_velocity_;       ///< Maximum angular velocity limit
   
-  // Enhanced control features (for future implementation)
-  // bool terrain_following_enabled_;     ///< Terrain following mode flag
-  // double current_altitude_adjustment_; ///< Current altitude offset
-  
   // Command smoothing
   geometry_msgs::msg::Twist last_cmd_;  ///< Previous command for smoothing
   bool first_command_;                  ///< First command flag
@@ -283,6 +310,17 @@ private:
   // ROS 2 integration
   rclcpp::Logger logger_;               ///< ROS 2 logger for debugging
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;  ///< Command publisher
+  
+  // Altitude control parameters
+  double terrain_following_altitude_;   ///< Target altitude above ground (metres)
+  double obstacle_detection_distance_;  ///< Distance ahead to scan for obstacles (metres)
+  double emergency_climb_altitude_;     ///< Additional altitude for obstacle avoidance (metres)
+  bool emergency_climb_active_;         ///< Flag indicating if emergency climb is in progress
+  std::chrono::steady_clock::time_point emergency_climb_start_; ///< When emergency climb started
+  std::chrono::steady_clock::time_point clearance_hold_start_; ///< When clearance altitude was reached
+  bool clearance_hold_active_;          ///< Holding at clearance altitude before resuming
+  double clearance_target_altitude_;    ///< Target altitude to hold during clearance
+  bool panic_climb_active_;             ///< Ultra-aggressive climb for tall obstacles
   
   /**
    * @brief Apply velocity and angular limits to command
@@ -319,6 +357,13 @@ private:
    * @return Normalized angle
    */
   double normalizeAngle(double angle);
+  
+  /**
+   * @brief Check for obstacles in forward direction using LiDAR
+   * @param lidar_data Current LiDAR scan data
+   * @return Minimum distance to obstacle in forward sector (infinity if none)
+   */
+  double checkForObstaclesAhead(const sensor_msgs::msg::LaserScan& lidar_data);
 };
 
 }  // namespace drone_swarm

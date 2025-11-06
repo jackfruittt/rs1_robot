@@ -27,16 +27,7 @@
 #include "nav_msgs/msg/odometry.hpp"
 #include "std_msgs/msg/string.hpp"
 #include "std_srvs/srv/trigger.hpp"
-
-// TODO: ADD NAV2 CONTROLLER INCLUDES FOR LOCAL PLANNING AND OBSTACLE AVOIDANCE (OPTIONAL)
-// #include "nav2_msgs/action/follow_path.hpp"
-// #include "nav2_msgs/msg/speed_limit.hpp"
-// #include "geometry_msgs/msg/twist_stamped.hpp"
-// Example: Include nav2 controller interfaces for local planning and dynamic obstacle avoidance
-
 #include "drone_control.h"
-// #include "drone/sensor_manager.h"     // Commented out - future implementation
-// #include "drone/safety_monitor.h"     // Commented out - future implementation
 
 namespace drone_swarm
 {
@@ -201,18 +192,14 @@ private:
 
   // ROS 2 communication interfaces
   // Subscriber interfaces
-  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;              ///< Odometry subscription
-  rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr goals_sub_;       ///< Goal waypoints (unused)
+  rclcpp::Subscription<nav_msgs::msg::Odometry>::SharedPtr odom_sub_;                ///< Odometry subscription
+  rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr goals_sub_;         ///< Goal waypoints (unused)
   rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr target_pose_sub_; ///< Target pose subscription
-  rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;                 ///< IMU data (unused)
-  rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_sub_;           ///< GPS data (unused)
-  rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr laser_sub_;         ///< Laser scan (unused)
-  rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr sonar_sub_;             ///< Sonar range (unused)
-  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr mission_state_sub_;       ///< Mission state subscription
-
-  // TODO: ADD NAV2 CONTROLLER SUBSCRIPTIONS FOR LOCAL PLANNING (OPTIONAL)
-  // rclcpp::Subscription<geometry_msgs::msg::TwistStamped>::SharedPtr nav2_cmd_vel_sub_; ///< Nav2 velocity commands
-  // rclcpp::Subscription<nav2_msgs::msg::SpeedLimit>::SharedPtr speed_limit_sub_;        ///< Dynamic speed limits
+  rclcpp::Subscription<sensor_msgs::msg::Imu>::SharedPtr imu_sub_;                   ///< IMU data (unused)
+  rclcpp::Subscription<sensor_msgs::msg::NavSatFix>::SharedPtr gps_sub_;             ///< GPS data (unused)
+  rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr laser_sub_;           ///< Laser scan (unused)
+  rclcpp::Subscription<sensor_msgs::msg::Range>::SharedPtr sonar_sub_;               ///< Sonar range (unused)
+  rclcpp::Subscription<std_msgs::msg::String>::SharedPtr mission_state_sub_;         ///< Mission state subscription
 
   // Publisher interfaces
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;            ///< Velocity command publisher
@@ -220,18 +207,11 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr velocity_pub_;           ///< Current velocity publisher
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr flight_mode_pub_;            ///< Flight mode publisher
 
-  // Service interfaces (commented out for future implementation)
-  // rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr arm_service_;              ///< Arm service
-  // rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr disarm_service_;           ///< Disarm service
-  // rclcpp::Service<std_srvs::srv::Trigger>::SharedPtr emergency_service_;        ///< Emergency service
-
   // Timer for control loop
   rclcpp::TimerBase::SharedPtr control_timer_;                                     ///< Main control timer
 
   // Control and sensor management components
   std::unique_ptr<DroneControl> drone_control_;                                    ///< Low-level drone control
-  // std::unique_ptr<SensorManager> sensor_manager_;                               ///< Sensor data management (future)
-  // std::unique_ptr<SafetyMonitor> safety_monitor_;                               ///< Safety monitoring (future)
 
   // Current state variables
   geometry_msgs::msg::PoseStamped target_pose_;    ///< Current target pose from mission planner
@@ -239,9 +219,10 @@ private:
   FlightMode current_flight_mode_;                 ///< Current flight mode
   std::string current_mission_state_;              ///< Current mission state from planner
   
-  // Waypoint navigation (currently unused - future implementation)
-  // std::vector<geometry_msgs::msg::PoseStamped> current_waypoints_;  ///< Waypoint sequence
-  // size_t current_waypoint_index_;                                   ///< Current waypoint index
+  // Sensor data for altitude control
+  double current_sonar_range_;                     ///< Current sonar altitude reading
+  sensor_msgs::msg::LaserScan current_lidar_data_; ///< Current LiDAR data for obstacle detection
+  std::mutex sensor_mutex_;                        ///< Mutex for thread-safe sensor access
   
   // Mission timing variables
   rclcpp::Time takeoff_start_time_;                ///< Takeoff sequence start time

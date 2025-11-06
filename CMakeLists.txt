@@ -21,8 +21,25 @@ find_package(ros_gz_bridge REQUIRED)
 find_package(tf2 REQUIRED)
 find_package(tf2_ros REQUIRED)
 find_package(tf2_geometry_msgs REQUIRED)
+find_package(rosidl_default_generators REQUIRED)
 
-# --- Public headers in 'include/'
+# Generate service interfaces
+rosidl_generate_interfaces(${PROJECT_NAME}
+  "srv/SetWaypoints.srv"
+  "srv/ReactToWildfire.srv"
+  "srv/ReactToHiker.srv"
+  "srv/ReactToDebris.srv"
+  DEPENDENCIES geometry_msgs std_msgs
+)
+
+# Find testing dependencies
+if(BUILD_TESTING)
+  find_package(ament_lint_auto REQUIRED)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_lint_auto_find_test_dependencies()
+endif()
+
+# Include directories
 include_directories(include)
 
 # Create separate libraries for mission planning components
@@ -58,8 +75,8 @@ add_library(state_machine SHARED
   src/state_machine.cpp
 )
 
-add_library(path_planner SHARED
-  src/path_planner.cpp
+add_library(waypoint_planner SHARED
+  src/waypoint_planner.cpp
 )
 
 add_library(mission_executor SHARED
@@ -71,7 +88,7 @@ ament_target_dependencies(state_machine
   rclcpp
 )
 
-ament_target_dependencies(path_planner
+ament_target_dependencies(waypoint_planner
   rclcpp
   geometry_msgs
 )
@@ -79,7 +96,11 @@ ament_target_dependencies(path_planner
 ament_target_dependencies(mission_executor
   rclcpp
   geometry_msgs
+  nav_msgs
 )
+
+# Link mission_executor with drone_control
+target_link_libraries(mission_executor drone_control)
 
 # Create mission planner component library
 add_library(mission_planner_component SHARED
@@ -89,7 +110,7 @@ add_library(mission_planner_component SHARED
 # Link mission planner with mission system libraries
 target_link_libraries(mission_planner_component
   state_machine
-  path_planner
+  waypoint_planner
   mission_executor
 )
 
@@ -111,6 +132,11 @@ ament_target_dependencies(mission_planner_component
   std_msgs
   std_srvs
 )
+
+# Add dependency on generated service interfaces
+rosidl_get_typesupport_target(cpp_typesupport_target
+  ${PROJECT_NAME} "rosidl_typesupport_cpp")
+target_link_libraries(mission_planner_component "${cpp_typesupport_target}")
 
 ament_target_dependencies(drone_controller_enhanced_component
   rclcpp
@@ -138,7 +164,7 @@ install(TARGETS
     pid_controller
     drone_control
     state_machine
-    path_planner
+    waypoint_planner
     mission_executor
     mission_planner_component
     drone_controller_enhanced_component
@@ -180,14 +206,14 @@ ament_export_dependencies(
     tf2_geometry_msgs
 )
 
-# NEW: Export mission planning components
+#Export mission planning components
 ament_export_targets(export_mission_components)
 install(TARGETS mission_planner_component
         drone_controller_enhanced_component
         pid_controller
         drone_control
         state_machine
-        path_planner
+        waypoint_planner
         mission_executor
         EXPORT export_mission_components
         ARCHIVE DESTINATION lib
@@ -201,5 +227,11 @@ install(
   "scripts/swarm_status_checker.py"
   DESTINATION lib/${PROJECT_NAME}
 )
+
+
+# Add tests
+if(BUILD_TESTING)
+  # Tests can be added here
+endif()
 
 ament_package()

@@ -90,7 +90,7 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
     # Generate bridge config for multiple drones
     try:
         script_path = str(Path.home() / 'Software' / 'rs1_robot' / 'scripts' / 'generate_dynamic_bridge.py')
-        result = subprocess.run(['python3', script_path, str(num_drones), '-o', '/tmp/rs1_dynamic_bridge.yaml'], 
+        result = subprocess.run(['python3', script_path, str(num_drones)], 
                               capture_output=True, text=True, check=True)
         print(f"Bridge config generated for {num_drones} drones")
     except Exception as e:
@@ -100,11 +100,12 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
     nodes = []
     
     # Create bridge node
+    bridge_config_path = str(Path.home() / 'rs1_ws' / 'temp' / 'rs1_dynamic_bridge.yaml')
     gazebo_bridge = Node(
         package='ros_ign_bridge',
         executable='parameter_bridge',
         parameters=[{
-            'config_file': '/tmp/rs1_dynamic_bridge.yaml',
+            'config_file': bridge_config_path,
             'use_sim_time': use_sim_time
         }],
         output='screen'
@@ -133,20 +134,6 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
             'drone_namespace': drone_name,
             'control_frequency': 50.0,
             'telemetry_frequency': 10.0,
-            'kp_pos': 1.0,
-            'ki_pos': 0.1,
-            'kd_pos': 0.5,
-            'kp_vel': 0.8,
-            'ki_vel': 0.05,
-            'kd_vel': 0.3,
-            'kp_att': 0.8,
-            'ki_att': 0.05,
-            'kd_att': 0.3,
-            'max_altitude': 50.0,
-            'max_velocity': 5.0,
-            'max_angular_velocity': 1.0,
-            'safety_max_velocity': 10.0,
-            'max_distance_from_home': 100.0
         }
         
         if use_composition == 'true':
@@ -317,7 +304,7 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
         # # Position drones in a line with 3m spacing
         x_pos = (i - 41.2)  * 1.0  # Start at 0, then 3, 6, 9...
         y_pos = 20.02
-        z_pos = 18.7
+        z_pos = 19.7
         
         
         print(f"Creating drone {i}: {drone_name} at ({x_pos}, {y_pos}, {z_pos})")

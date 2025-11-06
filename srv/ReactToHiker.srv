@@ -1,0 +1,15 @@
+# Service for coordinated stranded hiker rescue
+# Request fields
+float64 hiker_x             # X coordinate of hiker location
+float64 hiker_y             # Y coordinate of hiker location
+float64 hiker_z             # Z coordinate of hiker location
+float64 depot_x             # X coordinate of medkit depot
+float64 depot_y             # Y coordinate of medkit depot
+float64 depot_z             # Z coordinate of medkit depot
+int32 severity              # Urgency level (1-5)
+string incident_id          # Unique incident identifier
+---
+# Response fields
+bool success                # True if mission accepted and completed
+string message              # Status message or error description
+float64 completion_time     # Time taken to complete mission (seconds)
