@@ -545,15 +545,6 @@ private:
                               MissionState required_state,
                               const geometry_msgs::msg::Point& incident_xyz);
 
-
-  /**
-   * @brief Check if a drone can transition between states
-   * @param current Current mission state
-   * @param target Target mission state
-   * @return true if transition is valid
-   */
-  bool canStateTransitionTo(MissionState current, MissionState target);
-
   void infoManifestCallback(int peer_id, const std_msgs::msg::String::SharedPtr& msg);
   bool waitForPeerMatch(int id, std::chrono::milliseconds max_wait) ;
   bool waitForPeerPingSubscriber(int peer_id, std::chrono::milliseconds timeout);

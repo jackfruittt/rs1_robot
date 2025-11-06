@@ -213,13 +213,67 @@ bool MissionExecutor::executeHikerRescue(
   return true;
 }
 
-bool MissionExecutor::executeDebrisReaction(const geometry_msgs::msg::Point& debris_location) {
-  RCLCPP_INFO(logger_, "Debris obstruction detected at [%.2f, %.2f, %.2f]",
-              debris_location.x, debris_location.y, debris_location.z);
-  RCLCPP_INFO(logger_, "Debris notification logged - no active response required");
+bool MissionExecutor::executeDebrisReaction(
+    const geometry_msgs::msg::Point& debris_location,
+    WaypointPlanner* path_planner) {
   
-  // Debris detection is notification-only
-  // Future: Could update obstacle map or path planner
+  if (!path_planner) {
+    RCLCPP_ERROR(logger_, "WaypointPlanner is null in executeDebrisReaction");
+    return false;
+  }
+  
+  RCLCPP_INFO(logger_, "=== DEBRIS INSPECTION MISSION STARTED ===");
+  RCLCPP_INFO(logger_, "  Debris location: [%.2f, %.2f, %.2f]",
+              debris_location.x, debris_location.y, debris_location.z);
+  
+  // Generate circular orbit waypoints for debris inspection
+  // 5m radius orbit with 8 waypoints (45° intervals) for comprehensive view
+  const double ORBIT_RADIUS = 5.0;  // meters
+  const int ORBIT_POINTS = 8;       // waypoints around circle
+  
+  std::vector<geometry_msgs::msg::PoseStamped> orbit_waypoints;
+  orbit_waypoints.reserve(ORBIT_POINTS);
+  
+  constexpr double PI = 3.14159265358979323846;
+  const double angle_step = 2.0 * PI / static_cast<double>(ORBIT_POINTS);
+  
+  for (int i = 0; i < ORBIT_POINTS; ++i) {
+    const double theta = angle_step * static_cast<double>(i);
+    
+    // Calculate position on circle around debris
+    const double px = debris_location.x + ORBIT_RADIUS * std::cos(theta);
+    const double py = debris_location.y + ORBIT_RADIUS * std::sin(theta);
+    
+    // Calculate yaw to face the debris (centre point)
+    double yaw = std::atan2(debris_location.y - py, debris_location.x - px);
+    
+    // Convert yaw to quaternion (rotation around Z axis)
+    const double half_yaw = yaw * 0.5;
+    const double qw = std::cos(half_yaw);
+    const double qz = std::sin(half_yaw);
+    
+    // Create waypoint
+    geometry_msgs::msg::PoseStamped waypoint;
+    waypoint.header.frame_id = "map";
+    waypoint.header.stamp = rclcpp::Time(0);
+    waypoint.pose.position.x = px;
+    waypoint.pose.position.y = py;
+    waypoint.pose.position.z = debris_location.z;  // Same altitude as debris
+    waypoint.pose.orientation.w = qw;
+    waypoint.pose.orientation.x = 0.0;
+    waypoint.pose.orientation.y = 0.0;
+    waypoint.pose.orientation.z = qz;
+    
+    orbit_waypoints.push_back(waypoint);
+  }
+  
+  // Set the orbit waypoints for execution
+  path_planner->setWaypoints(orbit_waypoints);
+  
+  RCLCPP_INFO(logger_, "Debris inspection waypoints configured:");
+  RCLCPP_INFO(logger_, "  Orbit radius: %.1fm with %d waypoints", ORBIT_RADIUS, ORBIT_POINTS);
+  RCLCPP_INFO(logger_, "  Drone will orbit debris for visual inspection");
+  RCLCPP_INFO(logger_, "=== Mission waypoints set, execution delegated to waypoint navigation ===");
   
   return true;
 }

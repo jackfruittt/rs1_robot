@@ -85,13 +85,17 @@ public:
       WaypointPlanner* path_planner);
   
   /**
-   * @brief Execute debris obstruction notification
+   * @brief Execute debris obstruction response mission
    * @param debris_location Location of debris
-   * @return True if notification completed
+   * @param path_planner Path planner for waypoint management
+   * @return True if mission completed successfully
    * 
-   * Simple notification - logs debris location for path planning avoidance
+   * Generates circular orbit waypoints around debris for visual inspection
+   * Allows drone to survey the obstruction from multiple angles
    */
-  bool executeDebrisReaction(const geometry_msgs::msg::Point& debris_location);
+  bool executeDebrisReaction(
+      const geometry_msgs::msg::Point& debris_location,
+      WaypointPlanner* path_planner);
   
   /**
    * @brief Save current mission state for later restoration
