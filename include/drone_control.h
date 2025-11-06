@@ -172,7 +172,8 @@ public:
     const geometry_msgs::msg::PoseStamped& target_waypoint,
     double sonar_range,
     const sensor_msgs::msg::LaserScan& lidar_data,
-    double dt = 0.1);
+    double dt = 0.1,
+    bool allow_descent = false);  // If true, allows descending below terrain following altitude
   
   /**
    * @brief Set target altitude above ground for terrain following
@@ -331,9 +332,11 @@ private:
   double obstacle_detection_distance_;  ///< Distance ahead to scan for obstacles (metres)
   double emergency_climb_altitude_;     ///< Additional altitude for obstacle avoidance (metres)
   bool emergency_climb_active_;         ///< Flag indicating if emergency climb is in progress
+  std::chrono::steady_clock::time_point emergency_climb_start_; ///< When emergency climb started
   std::chrono::steady_clock::time_point clearance_hold_start_; ///< When clearance altitude was reached
   bool clearance_hold_active_;          ///< Holding at clearance altitude before resuming
   double clearance_target_altitude_;    ///< Target altitude to hold during clearance
+  bool panic_climb_active_;             ///< Ultra-aggressive climb for tall obstacles
   
   /**
    * @brief Apply velocity and angular limits to command

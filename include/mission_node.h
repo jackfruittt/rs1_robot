@@ -46,8 +46,7 @@
 #include "mission/state_machine.h"
 #include "mission/waypoint_planner.h"
 #include "mission/mission_state.h"
-#include "mission/mission_executor.h" 
-#include "theta_star_path_planner.h"
+#include "mission/mission_executor.h"
 
 namespace drone_swarm
 {
@@ -68,17 +67,6 @@ enum class ReactionPhase {
   SELF_ORBIT, 
   COMPLETE 
 };
-
-enum class FetchRtPhase { 
-  NONE, 
-  TO_DEPOT, 
-  LANDING, 
-  WAITING, 
-  TO_FIRE,
-  HOVERING_AT_FIRE,
-  RE_TAKEOFF 
-};
-
 
 struct DroneInfo {
   int drone_id;
@@ -183,12 +171,6 @@ private:
    * @param msg Waypoint pose command for navigation
    */
   void waypointCallback(const geometry_msgs::msg::PoseStamped::SharedPtr msg);
-  
-  /**
-   * @brief Process LiDAR scan updates for Theta* path planning
-   * @param msg LiDAR scan data for obstacle detection
-   */
-  void lidarCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg);
   
   /**
    * @brief Sonar sensor callback for altitude measurement during takeoff
@@ -374,19 +356,14 @@ private:
   void assignmentCallback(const std_msgs::msg::String::SharedPtr msg);
 
   // --- Mission Assignment State Flags ---
-  // For WILDFIRE fetch-and-deliver
-  bool in_fetch_rt_{false};
-  bool fetch_landed_{false};
-  rclcpp::Time fetch_land_stamp_;
-  geometry_msgs::msg::Point fetch_fire_target_{};
-
   // For STRANDED_HIKER fetch-and-deliver
   bool in_hiker_rescue_{false};
   bool medkit_collected_{false};
   bool in_hiker_rescue_awaiting_takeoff_{false}; // Prevents state machine loop
   rclcpp::Time medkit_collect_stamp_;
   geometry_msgs::msg::Point hiker_target_xyz_{};
-  geometry_msgs::msg::Point medkit_depot_xyz_{}; // Loaded from params  void infoManifestCallback(int peer_id, const std_msgs::msg::String::SharedPtr& msg);
+  geometry_msgs::msg::Point medkit_depot_xyz_{}; // Loaded from params
+
   static bool parseKeyVal(const std::string& tok, std::string& key, std::string& val);
   static MissionState stateFromString(const std::string& s);
 
@@ -425,8 +402,6 @@ private:
   std::unordered_map<int, rclcpp::Subscription<std_msgs::msg::String>::SharedPtr> info_manifest_subs_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr reset_mission_sub_;
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr incident_dispatch_sub_;   /// "DISPATCH,<incident_id>,<scenario_name>,<x>,<y>,<z>,<responder_id>,<timestamp>" Example: "DISPATCH,INC-001,WILDFIRE,10.5,5.2,2.1,3,1234567890"
-
-  rclcpp::Subscription<sensor_msgs::msg::LaserScan>::SharedPtr lidar_sub_;         ///< LiDAR subscription for Theta* planning
   
   // PUBS
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;            ///< Velocity command publisher
@@ -437,7 +412,6 @@ private:
   rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr info_request_pub_;            ///< Info request for management drones to ping
   std::unordered_map<int, rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr> info_request_pubs_;
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr incident_dispatch_pub_;
-  rclcpp::Publisher<nav_msgs::msg::Path>::SharedPtr path_pub_;                     ///< Theta* path visualization publisher
   rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr takeoff_pub_;                 ///< Takeoff command publisher
   rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr land_pub_;                    ///< Landing command publisher
   
@@ -474,7 +448,6 @@ private:
   std::unique_ptr<StateMachine> state_machine_;       ///< Mission state machine
   std::unique_ptr<WaypointPlanner> path_planner_;         ///< Waypoint path planner
   std::unique_ptr<MissionExecutor> mission_executor_; ///< Advanced mission executor (placeholder)
-  std::unique_ptr<drone_navigation::ThetaStarPathPlanner> theta_star_planner_; ///< Theta* path planner for optimal obstacle-free pathfinding
 
   // Current state variables
   geometry_msgs::msg::PoseStamped current_pose_;  ///< Current drone pose from odometry
@@ -521,7 +494,6 @@ private:
   ReactionPhase wildfire_phase_{ReactionPhase::NONE};
   rclcpp::Time   wildfire_phase_start_;
   std::optional<int> assigned_peer_id_;
-  std::chrono::steady_clock::time_point fetch_land_steady_{};
 
   double battery_level_{0.8};                 // our own (stubbed via param)
   int    collect_window_ms_{400};             // reply window
@@ -535,11 +507,9 @@ private:
   bool in_scenario_reaction_ = false;
   std::string active_scenario_type_;  // "WILDFIRE", "STRANDED_HIKER", etc.
   std::string active_scenario_incident_id_;  // Track the incident ID for resolution
+  bool was_idle_before_reaction_ = false;  // Track if drone was IDLE before scenario mission
+  bool payload_collected_ = false;  // Track if retardant/medkit has been collected from depot
 
-  bool fetch_at_fire_ = false;  // Track if drone is at fire location
-  rclcpp::Time fire_hover_stamp_;  // When drone started hovering at fire
-  FetchRtPhase fetch_rt_phase_ = FetchRtPhase::NONE;
-  
   geometry_msgs::msg::Pose hover_hold_pose_;
 
   bool repeat_Waypoint_Path_ = false; // to determine whether a drone is stationary or starts waypoints over again
@@ -556,6 +526,17 @@ private:
 
   std::map<std::string, ActiveIncident> fleet_incident_registry_;
   std::mutex registry_mutex_;
+
+  // Recently resolved incidents - prevent re-detection after resuming patrol
+  struct ResolvedIncident {
+    geometry_msgs::msg::Point location;
+    std::string scenario_name;
+    rclcpp::Time resolved_at;
+  };
+  std::vector<ResolvedIncident> recently_resolved_incidents_;
+  std::mutex resolved_incidents_mutex_;
+  rclcpp::Duration resolved_incident_ignore_duration_{std::chrono::seconds(1200)};  // Ignore for 20 minutes
+  double resolved_incident_match_radius_{15.0};  // 15m radius for matching resolved incidents
 
   // 14 OCT
   geometry_msgs::msg::Point helipad_location_;
@@ -578,7 +559,7 @@ private:
   bool waitForPeerPingSubscriber(int peer_id, std::chrono::milliseconds timeout);
   bool shouldSuppressIncident(const ScenarioData& s);
   inline bool isBusyWithAssignedMission() const {
-    return in_fetch_rt_ || in_hiker_rescue_;
+    return in_hiker_rescue_;
   }
 
   bool isIncidentAlreadyManaged(const ScenarioData& scenario);
@@ -587,13 +568,6 @@ private:
   void recordIncidentDispatch(const std::string& incident_id, const ScenarioData& scenario, int responder_id);
     
   std::vector<int> getKnownDroneIds(void);
-  bool use_astar_planning_;       ///< Enable Theta* path planning for obstacle avoidance
-  
-  // Theta* planning state
-  geometry_msgs::msg::PoseStamped pending_goal_;     ///< Goal waiting for Theta* path planning
-  bool has_pending_goal_;                            ///< Flag for goal waiting to be planned
-  nav_msgs::msg::Path current_astar_path_;           ///< Current Theta* planned path
-  size_t current_path_index_;                        ///< Index of current waypoint in Theta* path
 };
 
 
