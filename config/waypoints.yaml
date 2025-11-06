@@ -15,6 +15,7 @@ waypoint_configs:
         dwell_time: 2.0
       - position: {x: 10.3, y: 3.0, z: 15.0}
         dwell_time: 2.0
+  
   rs1_drone_2:
     mission_name: "stranded_hiker_detection_patrol"
     waypoints:

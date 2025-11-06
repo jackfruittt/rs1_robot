@@ -34,9 +34,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     this->get_parameter_or("medkit_depot.y",            medkit_depot_xyz_.y,  helipad_location_.y);
     this->get_parameter_or("medkit_depot.z",            medkit_depot_xyz_.z,  helipad_location_.z);
     
-    fetch_rt_phase_ = FetchRtPhase::NONE;
     repeat_Waypoint_Path_ = true;
-    use_astar_planning_ = this->get_parameter("use_astar_planning").as_bool();
 
     //--- Component Initialisation ---///
     state_machine_ = std::make_unique<StateMachine>(); 
@@ -45,12 +43,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     
     // Configure mission executor with logger
     mission_executor_->setLogger(this->get_logger());
-
-    // Initialise Theta* path planner if enabled
-    if (use_astar_planning_) {
-      theta_star_planner_ = std::make_unique<drone_navigation::ThetaStarPathPlanner>();
-      RCLCPP_INFO(this->get_logger(), "Theta* path planning enabled for %s", drone_namespace_.c_str());
-    }
 
     // Set drone identifier from namespace
     drone_id_ = drone_namespace_;
@@ -63,8 +55,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
 
     //--- Load custom waypoints for surveillance ---//
     // loadWaypointsFromParams();
-    has_pending_goal_ = false;
-    current_path_index_ = 0;
     
     // Initialise takeoff-related variables
     current_sonar_range_ = 0.0;
@@ -166,6 +156,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     discoverPeerDrones();
   }
 
+  /************************** MATTHEW  ***************************************/
   std::map<int, DroneInfo> MissionPlannerNode::pingDronesForInfo(
       const std::vector<int>& drone_ids) {
     
@@ -216,7 +207,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
 
     RCLCPP_INFO(this->get_logger(), "Reading cached peer info for %zu peers (non-blocking for composed mode)...", peers_to_ping.size()); 
     
-    // COMPOSED MODE OPTIMISATION: Skip ping requests, just use cached info
+    // COMPOSED MODE OPTIMISATION by Jackson: Skip ping requests, just use cached info
     // The info_manifest subscriptions continuously update peer_info_ in background
     // Sending ping + waiting blocks the executor in composed nodes
     
@@ -259,6 +250,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     return results;
   }
 
+  /*************** JACKSON *******************/
   bool MissionPlannerNode::shouldSuppressIncident(const ScenarioData& s) {
     const auto now = steady_clock_.now();
     std::lock_guard<std::mutex> lk(dispatch_mutex_);
@@ -300,6 +292,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     return false;
   }
 
+  /****************** JACKSON AND MATTHEW ******************/
   void MissionPlannerNode::missionTimerCallback() {
       executeMission();
 
@@ -316,46 +309,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
               medkit_collected_ = false;
               in_hiker_rescue_awaiting_takeoff_ = true;
           }
-      }
-
-      if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::LANDING && fetch_landed_) {
-        fetch_rt_phase_ = FetchRtPhase::WAITING;
-      }
-
-      // After 2s ground wait, take off towards fire
-      if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::WAITING) {
-        if (this->get_clock()->now() - fetch_land_stamp_ > rclcpp::Duration::from_seconds(2.0) &&
-            state_machine_->getCurrentState() == MissionState::IDLE) {
-
-          RCLCPP_INFO(this->get_logger(), "Retardant collected, proceeding to fire location.");
-          geometry_msgs::msg::PoseStamped wp_fire;
-          wp_fire.header.frame_id = "map";
-          wp_fire.pose.position = fetch_fire_target_;
-          wp_fire.pose.orientation.w = 1.0;
-          path_planner_->setWaypoints({wp_fire});
-
-          state_machine_->setState(MissionState::TAKEOFF);   // legal: IDLE -> TAKEOFF
-          fetch_rt_phase_ = FetchRtPhase::TO_FIRE;
-        }
-      }
-
-      // NEW: After hovering at fire, return to depot
-      if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::HOVERING_AT_FIRE) {
-        if (this->get_clock()->now() - fire_hover_stamp_ > rclcpp::Duration::from_seconds(2.0)) {
-          RCLCPP_INFO(this->get_logger(), "Retardant dropped, returning to depot.");
-          geometry_msgs::msg::PoseStamped wp_depot;
-          wp_depot.header.frame_id = "map";
-          wp_depot.pose.position.x = depot_xyz_.x;
-          wp_depot.pose.position.y = depot_xyz_.y;
-          wp_depot.pose.position.z = depot_xyz_.z;
-          wp_depot.pose.orientation.w = 1.0;
-          path_planner_->setWaypoints({wp_depot});
-
-          fetch_rt_phase_ = FetchRtPhase::TO_DEPOT;   // keep the loop going
-          fetch_landed_   = false;
-
-          state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
-        }
       }
 
       std_msgs::msg::String state_msg;
@@ -377,31 +330,9 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       return; 
     }
 
-    // UPDATED: Only land when specifically going to depot
-    if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::TO_DEPOT) {
-      RCLCPP_INFO(this->get_logger(), "Arrived at retardant depot. Landing to collect.");
-      fetch_rt_phase_ = FetchRtPhase::LANDING;
-      state_machine_->setState(MissionState::LANDING);
-      return; 
-    }
-
-    // NEW: Handle arrival at fire location
-    if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::TO_FIRE) {
-      RCLCPP_INFO(this->get_logger(), "Arrived at fire location. Hovering to drop retardant.");
-      fetch_rt_phase_ = FetchRtPhase::HOVERING_AT_FIRE;
-      fire_hover_stamp_ = this->get_clock()->now();
-      return;
-    }
-
-    // NEW: Don't advance waypoints while hovering at fire - timer callback handles the cycle
-    if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::HOVERING_AT_FIRE) {
-      // Timer callback will handle transitioning back to depot after 5 seconds
-      return;
-    }
-
     (void)path_planner_->getNextWaypoint();
     if (!path_planner_->hasNextWaypoint()) {
-      if (in_fetch_rt_ || in_hiker_rescue_) {
+      if (in_hiker_rescue_) {
         // We're in a managed multi-phase mission; phase logic/timers will advance us.
         return;
       }
@@ -418,6 +349,23 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
           if (it != fleet_incident_registry_.end()) {
             RCLCPP_INFO(get_logger(), "Marking incident %s as RESOLVED and removing from registry",
                         active_scenario_incident_id_.c_str());
+            
+            // Add to recently resolved incidents list to prevent re-detection
+            {
+              std::lock_guard<std::mutex> resolved_lock(resolved_incidents_mutex_);
+              ResolvedIncident resolved;
+              resolved.location = it->second.location;
+              resolved.scenario_name = it->second.scenario_name;
+              resolved.resolved_at = this->get_clock()->now();
+              recently_resolved_incidents_.push_back(resolved);
+              
+              RCLCPP_INFO(get_logger(), 
+                         "Added %s at [%.2f, %.2f, %.2f] to ignore list for %.0f seconds",
+                         resolved.scenario_name.c_str(),
+                         resolved.location.x, resolved.location.y, resolved.location.z,
+                         resolved_incident_ignore_duration_.seconds());
+            }
+            
             fleet_incident_registry_.erase(it);
           }
         }
@@ -430,9 +378,14 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
         active_scenario_type_.clear();
         active_scenario_incident_id_.clear();  // Clear the incident ID
         
-        // If we have waypoints to restore, transition to WAYPOINT_NAVIGATION
-        // (NOT RESPONSE_NAVIGATION - that's only for scenario missions)
-        if (path_planner_->hasNextWaypoint()) {
+        // Decide what to do based on pre-mission state
+        if (was_idle_before_reaction_) {
+          // Drone was IDLE before mission - land at helipad and return to IDLE
+          was_idle_before_reaction_ = false;  // Reset flag
+          state_machine_->setState(MissionState::LANDING);
+          RCLCPP_INFO(get_logger(), "Scenario mission complete. Drone was IDLE before, landing at helipad and returning to IDLE.");
+        } else if (path_planner_->hasNextWaypoint()) {
+          // Drone was on patrol - resume original waypoint navigation
           state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
           RCLCPP_INFO(get_logger(), "Resumed original mission from saved state");
         } else {
@@ -444,15 +397,68 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       }
       
       if (repeat_Waypoint_Path_ == true) {
-        path_planner_->reset();
-        RCLCPP_INFO(get_logger(), "Final waypoint reached. Travelling back to first waypoint.");
+        // Generate new random waypoints for autonomous patrol
+        // Using larger distances (8-15m) for better area coverage and exploration
+        RCLCPP_INFO(get_logger(), "Final waypoint reached. Generating new random patrol route...");
+        /**** JACKSONS TEMU RRT  ******/
+        auto new_waypoints = path_planner_->generateRandomWaypoints(
+            current_pose_,  // Start from current position
+            3,              // Generate 3 waypoints (fewer but farther apart)
+            8.0,            // Minimum 8m between points (explore wider area)
+            15.0,           // Maximum 15m between points (better coverage)
+            current_pose_.pose.position.z  // Maintain current altitude
+        );
+        
+        if (!new_waypoints.empty()) {
+          path_planner_->setWaypoints(new_waypoints);
+          RCLCPP_INFO(get_logger(), "Generated %zu new waypoints for autonomous patrol", 
+                     new_waypoints.size());
+          
+          // Log each waypoint coordinate for visibility
+          for (size_t i = 0; i < new_waypoints.size(); ++i) {
+            const auto& wp = new_waypoints[i];
+            RCLCPP_INFO(get_logger(), "  Waypoint %zu: [%.2f, %.2f, %.2f]",
+                       i + 1, wp.pose.position.x, wp.pose.position.y, wp.pose.position.z);
+          }
+        } else {
+          // Fallback: just reset to beginning if generation failed
+          path_planner_->reset();
+          RCLCPP_WARN(get_logger(), "Random waypoint generation failed, resetting to original route");
+        }
         return;
       }
       RCLCPP_INFO(get_logger(), "Final waypoint reached. Mission complete. Hovering.");
       state_machine_->setState(MissionState::HOVERING);
-      // (Do not clear in_fetch_rt_ here; leave that to mission logic)
     } else {
-      // Check if we just reached the fire waypoint in a wildfire mission (waypoint index 1, after depot)
+      // Check if we just reached depot waypoint in a scenario mission (waypoint index 0)
+      // Need to descend and collect payload (retardant or medkit)
+      if (in_scenario_reaction_ && !payload_collected_ && 
+          path_planner_->getCurrentWaypointIndex() == 0) {
+        RCLCPP_INFO(get_logger(), "Reached depot location - descending to collect payload (checking sonar < 1m)");
+        
+        // Check if we've descended enough (sonar reading < 1m = close to ground)
+        double current_altitude = 0.0;
+        {
+          std::lock_guard<std::mutex> lock(sonar_mutex_);
+          current_altitude = current_sonar_range_;
+        }
+        
+        if (current_altitude < 1.0) {
+          // Close enough to ground - payload collected
+          payload_collected_ = true;
+          RCLCPP_INFO(get_logger(), "Payload collected at %.2fm altitude - ascending and continuing mission", 
+                     current_altitude);
+          // Continue to next waypoint
+          (void)path_planner_->getNextWaypoint();
+          RCLCPP_INFO(get_logger(), "Waypoint reached - moving to next waypoint");
+        } else {
+          // Still need to descend - don't advance waypoint yet
+          RCLCPP_DEBUG(get_logger(), "Descending to depot: altitude %.2fm (need < 1.0m)", current_altitude);
+        }
+        return;
+      }
+      
+      // Check if we just reached the fire/hiker waypoint (waypoint index 1, after depot)
       if (in_scenario_reaction_ && active_scenario_type_ == "WILDFIRE" && 
           path_planner_->getCurrentWaypointIndex() == 1) {
         RCLCPP_INFO(get_logger(), "Reached fire location - extinguishing fire for 2 seconds");
@@ -467,6 +473,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     }
   }
 
+  /******************* JACKSON ********************************/
   void MissionPlannerNode::landing() {
     // Mission planner delegates actual flight execution to drone controller
     // We only monitor completion and handle mission-specific logic
@@ -488,7 +495,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
         state_machine_->setState(MissionState::IDLE);
         path_planner_->reset();
         // Reset flags
-        in_fetch_rt_ = false;
         in_hiker_rescue_ = false;
         in_hiker_rescue_awaiting_takeoff_ = false;
         RCLCPP_INFO(this->get_logger(), "Landing complete - transitioning to IDLE");
@@ -509,21 +515,12 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
         medkit_collect_stamp_ = this->get_clock()->now();
         RCLCPP_INFO(this->get_logger(), "Landed at medkit depot. Pausing for collection.");
         // Stay in LANDING state. The missionTimer will handle the next step.
-      } 
-      else if (in_fetch_rt_ && fetch_rt_phase_ == FetchRtPhase::LANDING && !fetch_landed_) { // fetch fire retardant and in fire retardant phase if not landed then land 
-        fetch_landed_ = true;
-        fetch_land_stamp_ = this->get_clock()->now();
-        RCLCPP_INFO(this->get_logger(), "Landed at retardant depot. Pausing for collection.");
-        state_machine_->setState(MissionState::IDLE);   // <-- move to IDLE so TAKEOFF is legal
-        landing_timers.erase(drone_id_);
-        return;
       }
       else {
         // mission-ending landing.
         state_machine_->setState(MissionState::IDLE);
         path_planner_->reset();
         // Reset flags
-        in_fetch_rt_ = false;
         in_hiker_rescue_ = false;
         in_hiker_rescue_awaiting_takeoff_ = false;
       }
@@ -531,6 +528,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     }
   }
 
+  /******************** MATTHEW **************************/
   void MissionPlannerNode::assignmentCallback(const std_msgs::msg::String::SharedPtr msg) {
     //--- Decode data ---///
     const std::string payload = trimCopy(msg->data);
@@ -569,34 +567,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       }
     }
 
-    else if (tokens[1] == "FETCH_RT") {
-        if (tokens.size() < 8) return;
-        double dx, dy, dz, fx, fy, fz;
-        if (!parseDouble(tokens[2], dx) || !parseDouble(tokens[3], dy) || !parseDouble(tokens[4], dz) ||
-            !parseDouble(tokens[5], fx) || !parseDouble(tokens[6], fy) || !parseDouble(tokens[7], fz)) {
-          return;
-        }
-
-        RCLCPP_INFO(this->get_logger(), "FETCH_RT mission assigned.");
-        in_fetch_rt_ = true;
-        fetch_rt_phase_ = FetchRtPhase::TO_DEPOT; 
-        fetch_landed_ = false;
-        fetch_fire_target_.x = fx;
-        fetch_fire_target_.y = fy;
-        fetch_fire_target_.z = fz + 1;
-
-        geometry_msgs::msg::PoseStamped wp_depot;
-        wp_depot.header.frame_id = "map";
-        wp_depot.pose.position.x = dx;
-        wp_depot.pose.position.y = dy;
-        wp_depot.pose.position.z = dz;
-        wp_depot.pose.orientation.w = 1.0;
-
-        path_planner_->setWaypoints({wp_depot});
-        if (canStateTransitionTo(state_machine_->getCurrentState(), MissionState::WAYPOINT_NAVIGATION)) {
-          state_machine_->setState(MissionState::WAYPOINT_NAVIGATION);
-        }
-    }
     else if (tokens[1] == "ROUTE") {
       // Expected format: ASSIGN,ROUTE,x1,y1,z1,x2,y2,z2,...
       // Number of tokens must be 2 (ASSIGN,ROUTE) + a multiple of 3 (x,y,z)
@@ -664,6 +634,8 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     return ids;
   }
 
+
+  /*************************** MATTHEW (MOSTLY MATTHEW) *****************************/
   void MissionPlannerNode::performCoordination(const ScenarioData& scenario) {
     RCLCPP_INFO(this->get_logger(), "Coordinating response for %s", scenario.scenario_name.c_str());
     
@@ -750,6 +722,8 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     recordIncidentDispatch(incident_id, scenario, responder_id);
     RCLCPP_INFO(this->get_logger(), "Incident dispatch recorded");
 
+
+    /************* JACKSONS SR BASED ON SERVICE CALLS ******************/
     // Call appropriate service based on scenario type
     if (scenario.scenario_name == "STRANDED_HIKER") {
       RCLCPP_INFO(this->get_logger(), 
@@ -787,7 +761,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     }
   }
 
-
+/************************* MATTHEW ***************************/
   std::string MissionPlannerNode::generateIncidentId(const ScenarioData& scenario) {
     // Create deterministic ID based on scenario type and rounded location
     // Format: "WILDFIRE_105_52_21" (type_x_y_z with 0.1m precision)
@@ -995,7 +969,8 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     }
     return false;
   }
-
+  
+  /******************* JACKSON ******************************/
   void MissionPlannerNode::loadWaypointsFromParams() {
     RCLCPP_INFO(get_logger(), "Loading waypoint params (enumerate-style) for %s", drone_id_.c_str());
 
@@ -1053,7 +1028,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     // loadMissionParams();
   }
 
-
+/****************************** JACKSONS MISSION PLANNING CALLBACK STUFF STARTS HERE **********/
   // Load mission parameters
   void MissionPlannerNode::loadMissionParams() {
       try {
@@ -1326,6 +1301,9 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       active_scenario_type_ = "WILDFIRE";
       active_scenario_incident_id_ = request->incident_id;  // Store incident ID for resolution
       
+      // Track if drone was IDLE before mission (so we can return to IDLE after)
+      was_idle_before_reaction_ = (state_machine_->getCurrentState() == MissionState::IDLE);
+      
       // If drone is IDLE, need to initiate takeoff first
       if (state_machine_->getCurrentState() == MissionState::IDLE) {
         // Initiate takeoff
@@ -1398,6 +1376,9 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       in_scenario_reaction_ = true;
       active_scenario_type_ = "STRANDED_HIKER";
       active_scenario_incident_id_ = request->incident_id;  // Store incident ID for resolution
+      
+      // Track if drone was IDLE before mission (so we can return to IDLE after)
+      was_idle_before_reaction_ = (state_machine_->getCurrentState() == MissionState::IDLE);
       
       // If drone is IDLE, need to initiate takeoff first
       if (state_machine_->getCurrentState() == MissionState::IDLE) {
@@ -1576,30 +1557,10 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     
     RCLCPP_INFO(this->get_logger(), "Sending wildfire service request to drone %d", responder_id);
     
-    // Send async request - capture only POD types, no 'this' or logger references
+    // Send async request - fire and forget pattern (no callback needed for composed mode)
+    // The responder drone will handle the mission and update the registry when complete
     try {
-      auto logger_name = std::string(this->get_logger().get_name());
-      auto result_future = client->async_send_request(request,
-        [responder_id, logger_name](rclcpp::Client<rs1_robot::srv::ReactToWildfire>::SharedFuture future) {
-          try {
-            auto response = future.get();
-            auto logger = rclcpp::get_logger(logger_name);
-            if (response->success) {
-              RCLCPP_INFO(logger, 
-                         "Drone %d completed wildfire response in %.2f seconds: %s",
-                         responder_id, response->completion_time, response->message.c_str());
-            } else {
-              RCLCPP_WARN(logger,
-                         "Drone %d wildfire response failed: %s",
-                         responder_id, response->message.c_str());
-            }
-          } catch (const std::exception& e) {
-            auto logger = rclcpp::get_logger(logger_name);
-            RCLCPP_ERROR(logger,
-                        "Exception in wildfire service callback: %s", e.what());
-          }
-        });
-      
+      client->async_send_request(request);
       RCLCPP_INFO(this->get_logger(), 
                  "Successfully sent wildfire service request to drone %d for incident %s",
                  responder_id, incident_id.c_str());
@@ -1633,28 +1594,8 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     request->severity = scenario.severity;
     request->incident_id = incident_id;
     
-    // Send async request - capture only POD types and logger name string
-    auto logger_name = std::string(this->get_logger().get_name());
-    auto result_future = client->async_send_request(request,
-      [responder_id, logger_name](rclcpp::Client<rs1_robot::srv::ReactToHiker>::SharedFuture future) {
-        try {
-          auto response = future.get();
-          auto logger = rclcpp::get_logger(logger_name);
-          if (response->success) {
-            RCLCPP_INFO(logger,
-                       "Drone %d completed hiker rescue in %.2f seconds: %s",
-                       responder_id, response->completion_time, response->message.c_str());
-          } else {
-            RCLCPP_WARN(logger,
-                       "Drone %d hiker rescue failed: %s",
-                       responder_id, response->message.c_str());
-          }
-        } catch (const std::exception& e) {
-          auto logger = rclcpp::get_logger(logger_name);
-          RCLCPP_ERROR(logger,
-                      "Exception in hiker rescue service callback: %s", e.what());
-        }
-      });
+    // Send async request - fire and forget pattern (no callback needed for composed mode)
+    client->async_send_request(request);
     
     RCLCPP_INFO(this->get_logger(),
                "Called hiker rescue service on drone %d for incident %s",
@@ -1682,28 +1623,8 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     request->severity = scenario.severity;
     request->incident_id = incident_id;
     
-    // Send async request - capture only POD types and logger name string
-    auto logger_name = std::string(this->get_logger().get_name());
-    auto result_future = client->async_send_request(request,
-      [responder_id, logger_name](rclcpp::Client<rs1_robot::srv::ReactToDebris>::SharedFuture future) {
-        try {
-          auto response = future.get();
-          auto logger = rclcpp::get_logger(logger_name);
-          if (response->success) {
-            RCLCPP_INFO(logger,
-                       "Drone %d acknowledged debris notification in %.2f seconds: %s",
-                       responder_id, response->completion_time, response->message.c_str());
-          } else {
-            RCLCPP_WARN(logger,
-                       "Drone %d debris notification failed: %s",
-                       responder_id, response->message.c_str());
-          }
-        } catch (const std::exception& e) {
-          auto logger = rclcpp::get_logger(logger_name);
-          RCLCPP_ERROR(logger,
-                      "Exception in debris notification service callback: %s", e.what());
-        }
-      });
+    // Send async request - fire and forget pattern (no callback needed for composed mode)
+    client->async_send_request(request);
     
     RCLCPP_INFO(this->get_logger(),
                "Called debris notification service on drone %d for incident %s",
@@ -1804,6 +1725,10 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     }
   }
 
+/***************** STUFF BELOW NOT JACKSON *****************/
+
+
+
   void MissionPlannerNode::hovering() {
     // Mission planner monitors hovering state
     // Actual hovering control is handled by drone_controller
@@ -1821,6 +1746,8 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     state_machine_->setState(MissionState::LANDING);
   }
 
+
+  /*********************** IS JACKSONS   ***************** */
   void MissionPlannerNode::publishMissionCommand() {
     // Publish waypoints for both normal navigation and scenario response missions
     if ((state_machine_->getCurrentState() == MissionState::WAYPOINT_NAVIGATION ||
@@ -1917,6 +1844,8 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     }
   }
 
+
+  /**************************** MATTHEW AND MARCUS *****************************/
   inline float normalizeAngle(float a) {
     constexpr float PI = 3.14159265358979323846f;
     constexpr float TWO_PI = 2.0f * PI;
@@ -2220,6 +2149,40 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     RCLCPP_INFO(this->get_logger(), "Parsed scenario: %s at [%.2f, %.2f, %.2f]", 
                 scenario.scenario_name.c_str(), scenario.x, scenario.y, scenario.z);
 
+    // Check if this incident was recently resolved - prevents re-detection after resuming patrol
+    {
+      std::lock_guard<std::mutex> lock(resolved_incidents_mutex_);
+      auto now = this->get_clock()->now();
+      
+      // Clean up expired resolved incidents
+      recently_resolved_incidents_.erase(
+        std::remove_if(recently_resolved_incidents_.begin(), 
+                      recently_resolved_incidents_.end(),
+                      [&](const ResolvedIncident& resolved) {
+                        return (now - resolved.resolved_at) > resolved_incident_ignore_duration_;
+                      }),
+        recently_resolved_incidents_.end()
+      );
+      
+      // Check if current detection matches a recently resolved incident
+      for (const auto& resolved : recently_resolved_incidents_) {
+        double dx = scenario.x - resolved.location.x;
+        double dy = scenario.y - resolved.location.y;
+        double distance = std::sqrt(dx * dx + dy * dy);
+        
+        // Check if same type and within spatial threshold
+        if (scenario.scenario_name == resolved.scenario_name && 
+            distance < resolved_incident_match_radius_) {
+          double time_since_resolved = (now - resolved.resolved_at).seconds();
+          RCLCPP_INFO(this->get_logger(),
+                     "Ignoring %s detection - recently resolved %.1fs ago (%.2fm away). "
+                     "Prevents re-detection after resuming patrol.",
+                     scenario.scenario_name.c_str(), time_since_resolved, distance);
+          return;
+        }
+      }
+    }
+
     // Don't interrupt drones executing scenario missions (check BEFORE registry to avoid time comparison issues)
     if (in_scenario_reaction_) {
       RCLCPP_INFO(this->get_logger(),
@@ -2246,8 +2209,8 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     if (isBusyWithAssignedMission()) {
       RCLCPP_INFO(this->get_logger(),
                   "Ignoring scenario while executing assigned mission "
-                  "(in_fetch_rt=%d, in_hiker_rescue=%d)",
-                  in_fetch_rt_, in_hiker_rescue_);
+                  "(in_hiker_rescue=%d)",
+                  in_hiker_rescue_);
       return;
     }
 
@@ -2634,7 +2597,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
 
     const auto& best = candidates.front();
     RCLCPP_INFO(this->get_logger(),
-                "✓ Selected drone %d: IDLE, battery=%.0f%%, dist_to_incident=%.2fm",
+                "Selected drone %d: IDLE, battery=%.0f%%, dist_to_incident=%.2fm",
                 best.id, best.battery * 100.0, best.distance);
     return best.id;
   }
@@ -2856,48 +2819,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     {
       std::lock_guard<std::mutex> lock(peers_mutex_);
       peer_info_[peer_id] = pi;  // <— don’t block on id match for now
-    }
-  }
-  void MissionPlannerNode::lidarCallback(const sensor_msgs::msg::LaserScan::SharedPtr msg) {
-    // Store LiDAR data for altitude control (always needed)
-    {
-      std::lock_guard<std::mutex> lock(lidar_mutex_);
-      current_lidar_data_ = *msg;
-    }
-    
-    if (!use_astar_planning_ || !theta_star_planner_) {
-      return;
-    }
-
-    // Update occupancy grid with current LiDAR data
-    theta_star_planner_->updateOccupancyGrid(msg, current_pose_.pose.position.x, current_pose_.pose.position.y);
-
-    // Plan path to pending goal if we have one
-    if (has_pending_goal_) {
-      auto waypoints = theta_star_planner_->planPath(
-        current_pose_.pose.position.x, current_pose_.pose.position.y,
-        pending_goal_.pose.position.x, pending_goal_.pose.position.y);
-
-      if (!waypoints.empty()) {
-        // Convert waypoints to ROS path and publish for visualization
-        current_astar_path_ = theta_star_planner_->waypointsToPath(waypoints, "map");
-        current_astar_path_.header.stamp = this->get_clock()->now();
-        path_pub_->publish(current_astar_path_);
-
-        // Convert to basic waypoint format for existing path planner
-        std::vector<geometry_msgs::msg::PoseStamped> ros_waypoints;
-        for (const auto& pose : current_astar_path_.poses) {
-          ros_waypoints.push_back(pose);
-        }
-        path_planner_->setWaypoints(ros_waypoints);
-        
-        current_path_index_ = 0;
-        has_pending_goal_ = false;
-
-        RCLCPP_INFO(this->get_logger(), "Theta* planned path with %lu waypoints", waypoints.size());
-      } else {
-        RCLCPP_WARN(this->get_logger(), "A* failed to find path to goal");
-      }
     }
   }
 

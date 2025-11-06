@@ -106,10 +106,58 @@ public:
    * Clamped to valid range [0, waypoints.size()]
    */
   void setCurrentWaypointIndex(size_t index);
+  
+  /**
+   * @brief Generate random waypoints for autonomous patrol
+   * @param start_pose Starting position for the new route
+   * @param num_waypoints Number of waypoints to generate (default: 5)
+   * @param min_distance Minimum distance between consecutive waypoints in metres (default: 1.0)
+   * @param max_distance Maximum distance between consecutive waypoints in metres (default: 3.0)
+   * @param altitude Target altitude for waypoints in metres (default: 15.0)
+   * @return Vector of randomly generated waypoints
+   * 
+   * Generates a valid patrol route with the following constraints:
+   * - Waypoints within map bounds (x: -50 to 50, y: -50 to 50)
+   * - Consecutive points separated by min_distance to max_distance
+   * - No path self-intersections (segments don't cross)
+   * - Smooth turns with angle constraints to prevent sharp reversals
+   */
+  std::vector<geometry_msgs::msg::PoseStamped> generateRandomWaypoints(
+      const geometry_msgs::msg::PoseStamped& start_pose,
+      int num_waypoints = 5,
+      double min_distance = 1.0,
+      double max_distance = 3.0,
+      double altitude = 15.0);
 
 private:
   std::vector<geometry_msgs::msg::PoseStamped> waypoints_;  ///< Sequence of waypoints for navigation
   size_t current_waypoint_index_;                           ///< Current position in waypoint sequence
+  
+  /**
+   * @brief Check if two line segments intersect
+   * @param p1 Start of first segment
+   * @param p2 End of first segment
+   * @param p3 Start of second segment
+   * @param p4 End of second segment
+   * @return True if segments intersect, false otherwise
+   * 
+   * Uses cross product method to detect line segment intersection
+   */
+  bool segmentsIntersect(
+      const geometry_msgs::msg::Point& p1,
+      const geometry_msgs::msg::Point& p2,
+      const geometry_msgs::msg::Point& p3,
+      const geometry_msgs::msg::Point& p4) const;
+  
+  /**
+   * @brief Check if adding a new point would create path self-intersection
+   * @param existing_path Current path points
+   * @param new_point Proposed new point
+   * @return True if adding point would cause intersection, false if safe
+   */
+  bool wouldCauseIntersection(
+      const std::vector<geometry_msgs::msg::Point>& existing_path,
+      const geometry_msgs::msg::Point& new_point) const;
 };
 
 }  // namespace drone_swarm

@@ -15,7 +15,8 @@ namespace drone_swarm
       logger_(rclcpp::get_logger("drone_control")),
       terrain_following_altitude_(5.0), obstacle_detection_distance_(5.0), 
       emergency_climb_altitude_(5.0), emergency_climb_active_(false),
-      clearance_hold_active_(false), clearance_target_altitude_(0.0)
+      clearance_hold_active_(false), clearance_target_altitude_(0.0),
+      panic_climb_active_(false)
   {
     // Initialise PID controllers with optimised gains from flyToGoal testing
     pid_x_ = std::make_unique<PIDController>(0.8, 0.05, 0.15);  // Horizontal X control
@@ -511,7 +512,8 @@ namespace drone_swarm
     const geometry_msgs::msg::PoseStamped& target_waypoint,
     double sonar_range,
     const sensor_msgs::msg::LaserScan& lidar_data,
-    double dt) {
+    double dt,
+    bool allow_descent) {
     
     // Validate delta time input
     const double DEFAULT_DT = 0.1;
@@ -533,21 +535,58 @@ namespace drone_swarm
     const double MAX_EMERGENCY_ALTITUDE = 50.0; // Maximum altitude limit for safety
     const double OBSTACLE_SLOWDOWN_FACTOR = 0.05; // Reduce speed to 5% when obstacle detected
     const double EXTRA_CLIMB_AFTER_CLEAR = 1.5; // Climb extra 1.5m after clearing obstacle
+    const double PANIC_CLIMB_TIMEOUT = 2.0; // Enter panic climb after 2 seconds of emergency climb
+    const double PANIC_CLIMB_SPEED = 10.0; // Vertical speed for panic climb (m/s)
     
     double speed_multiplier = 1.0; // By default, full speed
     
-    if (min_obstacle_distance < obstacle_detection_distance_ && min_obstacle_distance > 0.1) {
-      // Obstacle detected - SLOW DOWN HARD and keep climbing
-      speed_multiplier = OBSTACLE_SLOWDOWN_FACTOR; // Reduce to 5% speed
+    // If descent is allowed (e.g., landing at depot), use a low target altitude to force descent
+    if (allow_descent) {
+      target_altitude = 0.5;  // Target very low altitude (0.5m) to force descent
+      RCLCPP_DEBUG(logger_, "Descent mode active - targeting %.2fm altitude (current: %.2fm)", 
+                   target_altitude, sonar_range);
+    }
+    else if (min_obstacle_distance < obstacle_detection_distance_ && min_obstacle_distance > 0.1) {
+      // Obstacle detected - determine response based on proximity
+      // Very close obstacles (<2m): STOP forward motion entirely, climb only
+      // Medium distance (2-5m): Slow to 5%, keep climbing
+      const double CRITICAL_DISTANCE = 2.0; // Stop forward motion if closer than 2m
+      
+      if (min_obstacle_distance < CRITICAL_DISTANCE) {
+        speed_multiplier = 0.0; // STOP all horizontal movement
+      } else {
+        speed_multiplier = OBSTACLE_SLOWDOWN_FACTOR; // Slow to 5%
+      }
       
       if (!emergency_climb_active_) {
-        // Just detected obstacle - start emergency climb
+        // Just detected obstacle - start emergency climb and timer
         clearance_target_altitude_ = sonar_range + emergency_climb_altitude_;
         clearance_target_altitude_ = std::min(clearance_target_altitude_, MAX_EMERGENCY_ALTITUDE);
         emergency_climb_active_ = true;
+        emergency_climb_start_ = std::chrono::steady_clock::now();
+        panic_climb_active_ = false;
         clearance_hold_active_ = false; // Reset the post-clear climb flag
-        RCLCPP_WARN(logger_, "Obstacle detected %.2fm ahead - SLOWING to %.0f%% speed, climbing to %.2fm (current: %.2fm)", 
-                    min_obstacle_distance, speed_multiplier * 100.0, clearance_target_altitude_, sonar_range);
+        
+        if (speed_multiplier == 0.0) {
+          RCLCPP_WARN(logger_, "CRITICAL: Obstacle %.2fm ahead - STOPPING forward motion, CLIMBING to %.2fm (current: %.2fm)", 
+                      min_obstacle_distance, clearance_target_altitude_, sonar_range);
+        } else {
+          RCLCPP_WARN(logger_, "Obstacle detected %.2fm ahead - SLOWING to %.0f%% speed, climbing to %.2fm (current: %.2fm)", 
+                      min_obstacle_distance, speed_multiplier * 100.0, clearance_target_altitude_, sonar_range);
+        }
+      }
+      
+      // Check if we've been climbing for too long (tall obstacle) - enter PANIC CLIMB
+      auto climb_duration = std::chrono::steady_clock::now() - emergency_climb_start_;
+      double climb_seconds = std::chrono::duration<double>(climb_duration).count();
+      
+      if (climb_seconds > PANIC_CLIMB_TIMEOUT && !panic_climb_active_) {
+        panic_climb_active_ = true;
+        // Add 2m safety margin above current altitude for tall obstacles
+        clearance_target_altitude_ = sonar_range + 2.0; // Just 2m above current position
+        clearance_target_altitude_ = std::min(clearance_target_altitude_, MAX_EMERGENCY_ALTITUDE);
+        RCLCPP_ERROR(logger_, "PANIC CLIMB ACTIVATED! Tall obstacle detected (%.1fs climbing). Ascending FAST to %.2fm!", 
+                     climb_seconds, clearance_target_altitude_);
       }
       
       target_altitude = clearance_target_altitude_;
@@ -558,8 +597,9 @@ namespace drone_swarm
                      sonar_range, clearance_target_altitude_, min_obstacle_distance);
       }
       
-    } else if (emergency_climb_active_ && min_obstacle_distance > obstacle_detection_distance_ * 1.5) {
+    } else if (emergency_climb_active_ && min_obstacle_distance > obstacle_detection_distance_ * 1.2) {
       // Obstacle just cleared - continue climbing extra before resuming normal operations
+      // Reduced threshold from 1.5 to 1.2 (6m instead of 7.5m) for faster recovery
       if (!clearance_hold_active_) {
         // First time clearing - add extra climb height
         clearance_target_altitude_ = sonar_range + EXTRA_CLIMB_AFTER_CLEAR;
@@ -574,6 +614,7 @@ namespace drone_swarm
         // Extra climb complete - now return to normal
         emergency_climb_active_ = false;
         clearance_hold_active_ = false;
+        panic_climb_active_ = false;
         target_altitude = terrain_following_altitude_;
         speed_multiplier = 1.0;
         RCLCPP_INFO(logger_, "Extra climb complete at %.2fm - continuing at full speed", sonar_range);
@@ -594,8 +635,15 @@ namespace drone_swarm
     double altitude_error = target_altitude - sonar_range;
     double altitude_command = pid_z_->calculateWithWindupProtection(target_altitude, sonar_range, dt, 1.0);
     
-    // Conservative altitude velocity limits for safety
-    altitude_command = std::clamp(altitude_command, -5.0, 5.0); // +-5m/s max vertical velocity
+    // Apply panic climb speed if activated (overrides PID for tall obstacles)
+    if (panic_climb_active_) {
+      altitude_command = PANIC_CLIMB_SPEED; // Force ridiculous climb rate
+      RCLCPP_DEBUG(logger_, "PANIC CLIMB: Forcing vertical speed to %.1f m/s (altitude: %.2fm / %.2fm)",
+                   altitude_command, sonar_range, target_altitude);
+    } else {
+      // Conservative altitude velocity limits for safety during normal operation
+      altitude_command = std::clamp(altitude_command, -5.0, 5.0); // +-5m/s max vertical velocity
+    }
     
     // Combine horizontal and vertical commands
     geometry_msgs::msg::Twist cmd_vel = horizontal_cmd;
@@ -619,11 +667,6 @@ namespace drone_swarm
     return cmd_vel;
   }
 
-  void DroneControl::setTerrainFollowingAltitude(double altitude) {
-    terrain_following_altitude_ = std::max(3.0, altitude); // Minimum 3m for safety
-    RCLCPP_INFO(logger_, "Terrain following altitude set to %.2fm", terrain_following_altitude_);
-  }
-
   void DroneControl::setEmergencyClimbParams(double detection_distance, double climb_altitude) {
     obstacle_detection_distance_ = std::max(2.0, detection_distance); // Minimum 2m detection
     emergency_climb_altitude_ = std::max(2.0, climb_altitude); // Minimum 2m climb
@@ -636,7 +679,7 @@ namespace drone_swarm
       return std::numeric_limits<double>::infinity(); // No data = no obstacles
     }
     
-    // Calculate forward-facing LiDAR indices (assuming 0deg is forward)
+    // Calculate forward-facing LiDAR indices (0deg is forward)
     int total_rays = static_cast<int>(lidar_data.ranges.size());
     double angle_increment = lidar_data.angle_increment;
     double angle_min = lidar_data.angle_min;
