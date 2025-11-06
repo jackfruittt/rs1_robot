@@ -64,7 +64,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     
     // Initialise landing-related variables
     landing_in_progress_ = false;
-    target_landing_altitude_ = 0.2; // 0.2 metres (close to ground, above sonar minimum)
+    target_landing_altitude_ = 0.2; // 0.2 metres (close to ground, sonar minimum)
     landing_complete_ = false;
     
     //--- Subs ---///

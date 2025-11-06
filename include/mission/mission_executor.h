@@ -54,36 +54,6 @@ public:
   void setCmdVelPublisher(rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr pub);
   
   /**
-   * @brief Execute takeoff mission behavior
-   * @param sonar_range Current sonar reading
-   * @param target_altitude Target altitude for takeoff
-   * @param elapsed_seconds Time elapsed since takeoff started
-   * @return True if takeoff completed, false if still in progress
-   */
-  bool executeTakeoffMission(double sonar_range, double target_altitude, double elapsed_seconds);
-  
-  /**
-   * @brief Execute landing mission behavior
-   * @param sonar_range Current sonar reading
-   * @param target_altitude Target altitude for landing
-   * @param elapsed_seconds Time elapsed since landing started
-   * @return True if landing completed, false if still in progress
-   */
-  bool executeLandingMission(double sonar_range, double target_altitude, double elapsed_seconds);
-  
-  /**
-   * @brief Execute hovering mission behavior
-   * Maintains current position and altitude
-   */
-  void executeHoveringMission();
-  
-  /**
-   * @brief Execute emergency landing behavior
-   * Immediate descent with safety prioritised over precision
-   */
-  void executeEmergencyMission();
-  
-  /**
    * @brief Execute wildfire response mission
    * @param fire_location Location of the fire
    * @param depot_location Location of retardant depot

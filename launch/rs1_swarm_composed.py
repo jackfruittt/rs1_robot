@@ -134,20 +134,6 @@ def spawn_multiple_drones_with_composition(context, *args, **kwargs):
             'drone_namespace': drone_name,
             'control_frequency': 50.0,
             'telemetry_frequency': 10.0,
-            'kp_pos': 1.0,
-            'ki_pos': 0.1,
-            'kd_pos': 0.5,
-            'kp_vel': 0.8,
-            'ki_vel': 0.05,
-            'kd_vel': 0.3,
-            'kp_att': 0.8,
-            'ki_att': 0.05,
-            'kd_att': 0.3,
-            'max_altitude': 50.0,
-            'max_velocity': 15.0,  # Increased from 5.0 for faster flight (compensates for low Gazebo RTF)
-            'max_angular_velocity': 2.0,  # Increased from 1.0 for faster turns
-            'safety_max_velocity': 8.0,  
-            'max_distance_from_home': 100.0
         }
         
         if use_composition == 'true':

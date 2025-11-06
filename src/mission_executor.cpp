@@ -6,10 +6,10 @@ namespace drone_swarm
 
 MissionExecutor::MissionExecutor() 
   : logger_(rclcpp::get_logger("mission_executor")), mission_cancelled_(false) {
-  // Initialize flight controller for mission execution
+  // Initialise flight controller for mission execution
   flight_controller_ = std::make_unique<DroneControl>();
   
-  // Initialize saved state
+  // Initialise saved state
   saved_state_.valid = false;
   saved_state_.current_waypoint_index = 0;
 }
@@ -26,60 +26,6 @@ void MissionExecutor::setCmdVelPublisher(rclcpp::Publisher<geometry_msgs::msg::T
   if (flight_controller_) {
     flight_controller_->setCmdVelPublisher(pub);
   }
-}
-
-bool MissionExecutor::executeTakeoffMission(double sonar_range, double target_altitude, double elapsed_seconds) {
-  if (mission_cancelled_ || !flight_controller_) {
-    return true; // Mission cancelled or no flight controller
-  }
-  
-  return flight_controller_->takeoff(target_altitude, sonar_range, elapsed_seconds);
-}
-
-bool MissionExecutor::executeLandingMission(double sonar_range, double target_altitude, double elapsed_seconds) {
-  if (mission_cancelled_ || !flight_controller_) {
-    return true; // Mission cancelled or no flight controller
-  }
-  
-  return flight_controller_->land(target_altitude, sonar_range, elapsed_seconds);
-}
-
-void MissionExecutor::executeHoveringMission() {
-  if (mission_cancelled_ || !cmd_vel_pub_) {
-    return; // Mission cancelled or no publisher
-  }
-  
-  // Publish hover command (zero velocities)
-  geometry_msgs::msg::Twist hover_cmd;
-  hover_cmd.linear.x = 0.0;
-  hover_cmd.linear.y = 0.0;
-  hover_cmd.linear.z = 0.0;
-  hover_cmd.angular.x = 0.0;
-  hover_cmd.angular.y = 0.0;
-  hover_cmd.angular.z = 0.0;
-  
-  cmd_vel_pub_->publish(hover_cmd);
-  
-  RCLCPP_DEBUG(logger_, "Executing hovering mission - maintaining position");
-}
-
-void MissionExecutor::executeEmergencyMission() {
-  if (!cmd_vel_pub_) {
-    return; // No publisher available
-  }
-  
-  // Emergency descent - fast but controlled
-  geometry_msgs::msg::Twist emergency_cmd;
-  emergency_cmd.linear.x = 0.0;
-  emergency_cmd.linear.y = 0.0;
-  emergency_cmd.linear.z = -1.0; // 1 m/s downward (faster than normal landing)
-  emergency_cmd.angular.x = 0.0;
-  emergency_cmd.angular.y = 0.0;
-  emergency_cmd.angular.z = 0.0;
-  
-  cmd_vel_pub_->publish(emergency_cmd);
-  
-  RCLCPP_WARN(logger_, "Executing emergency mission - rapid descent initiated");
 }
 
 bool MissionExecutor::isMissionCancelled() const {
