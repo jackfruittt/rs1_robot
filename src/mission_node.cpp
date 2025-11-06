@@ -659,16 +659,6 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
                     "Exception calling wildfire service: %s", e.what());
       }
     }
-    else if (scenario.scenario_name == "DEBRIS_OBSTRUCTION") {
-      RCLCPP_INFO(this->get_logger(),
-                 "Notifying drone %d about debris via service call", responder_id);
-      try {
-        callDebrisService(responder_id, scenario, incident_id);
-      } catch (const std::exception& e) {
-        RCLCPP_ERROR(this->get_logger(), 
-                    "Exception calling debris service: %s", e.what());
-      }
-    }
     else {
       RCLCPP_WARN(this->get_logger(), 
                  "Unknown scenario type: %s", scenario.scenario_name.c_str());
@@ -1929,6 +1919,91 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
 
     RCLCPP_INFO(this->get_logger(), "Parsed scenario: %s at [%.2f, %.2f, %.2f]", 
                 scenario.scenario_name.c_str(), scenario.x, scenario.y, scenario.z);
+
+    // Special case: Debris is handled directly by detecting drone (no coordination needed)
+    // The detecting drone simply orbits for visual inspection since debris cannot be removed
+    if (scenario.scenario_name == "DEBRIS_OBSTRUCTION") {
+      RCLCPP_INFO(this->get_logger(), "Debris detected - handling directly without coordination");
+      
+      // Check if already in a scenario reaction
+      if (in_scenario_reaction_) {
+        RCLCPP_INFO(this->get_logger(),
+                    "Ignoring debris detection - currently executing %s mission",
+                    active_scenario_type_.c_str());
+        return;
+      }
+      
+      // Build debris location
+      geometry_msgs::msg::Point debris_location;
+      debris_location.x = scenario.x;
+      debris_location.y = scenario.y;
+      debris_location.z = scenario.z;
+      
+      // Generate incident ID for tracking
+      std::string incident_id = generateIncidentId(scenario);
+      
+      // Check if this specific debris was recently inspected
+      {
+        std::lock_guard<std::mutex> lock(resolved_incidents_mutex_);
+        auto now = this->get_clock()->now();
+        
+        for (const auto& resolved : recently_resolved_incidents_) {
+          if (resolved.scenario_name == "DEBRIS_OBSTRUCTION") {
+            // Check if same location (within match radius)
+            double dx = resolved.location.x - scenario.x;
+            double dy = resolved.location.y - scenario.y;
+            double dz = resolved.location.z - scenario.z;
+            double dist = std::sqrt(dx*dx + dy*dy + dz*dz);
+            
+            if (dist < resolved_incident_match_radius_) {
+              double seconds_since = (now - resolved.resolved_at).seconds();
+              RCLCPP_INFO(this->get_logger(),
+                         "Ignoring debris - already inspected %.1f seconds ago (%.1fm away)",
+                         seconds_since, dist);
+              return;
+            }
+          }
+        }
+      }
+      
+      // Save current mission and execute debris inspection orbit
+      mission_executor_->saveMissionState(path_planner_.get());
+      
+      bool success = mission_executor_->executeDebrisReaction(debris_location, path_planner_.get());
+      
+      if (success) {
+        in_scenario_reaction_ = true;
+        active_scenario_type_ = "DEBRIS_OBSTRUCTION";
+        active_scenario_incident_id_ = incident_id;
+        was_idle_before_reaction_ = (state_machine_->getCurrentState() == MissionState::IDLE);
+        
+        // Initiate takeoff or transition to response navigation
+        if (state_machine_->getCurrentState() == MissionState::IDLE) {
+          {
+            std::lock_guard<std::mutex> lock(sonar_mutex_);
+            takeoff_in_progress_ = true;
+            takeoff_complete_ = false;
+            takeoff_start_time_ = std::chrono::steady_clock::now();
+          }
+          std_msgs::msg::Empty takeoff_msg;
+          takeoff_pub_->publish(takeoff_msg);
+          state_machine_->setState(MissionState::TAKEOFF);
+          RCLCPP_INFO(this->get_logger(), "Initiated takeoff for debris inspection");
+        } else if (state_machine_->getCurrentState() != MissionState::RESPONSE_NAVIGATION) {
+          state_machine_->setState(MissionState::RESPONSE_NAVIGATION);
+          RCLCPP_INFO(this->get_logger(), "Transitioned to RESPONSE_NAVIGATION for debris inspection");
+        }
+        
+        RCLCPP_INFO(this->get_logger(), 
+                   "Debris inspection started by self (incident: %s) - no coordination needed",
+                   incident_id.c_str());
+      } else {
+        mission_executor_->restoreMissionState(path_planner_.get());
+        RCLCPP_ERROR(this->get_logger(), "Failed to start debris inspection mission");
+      }
+      
+      return;  // Skip all coordination logic for debris
+    }
 
     // Check if this incident was recently resolved - prevents re-detection after resuming patrol
     {
