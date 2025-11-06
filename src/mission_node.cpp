@@ -2705,7 +2705,16 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       std::tm g{}; gmtime_r(&tt, &g);
       std::strftime(buf, sizeof(buf), "%FT%TZ", &g);
   #endif
-      return std::string(buf[0] ? buf : "1970-01-01T00:00:00Z");
+      // Fallback: use current time - 10 seconds instead of epoch (1970)
+      if (!buf[0]) {
+        auto fallback_time = this->now() - rclcpp::Duration::from_seconds(10.0);
+        auto fallback_ns = nanoseconds(fallback_time.nanoseconds());
+        auto fallback_tp = time_point<std::chrono::system_clock>(duration_cast<std::chrono::system_clock::duration>(fallback_ns));
+        std::time_t fallback_tt = std::chrono::system_clock::to_time_t(fallback_tp);
+        gmtime_r(&fallback_tt, &g);
+        std::strftime(buf, sizeof(buf), "%FT%TZ", &g);
+      }
+      return std::string(buf[0] ? buf : "ERROR-TIMESTAMP");
     };
 
     const int drone_num = drone_numeric_id_;              // MUST be numeric (see fix below)
