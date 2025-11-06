@@ -449,6 +449,18 @@ private:
   void alertIncidentGui(const std::optional<ScenarioEvent>& ev);
   
   /**
+   * @brief Send resolved incident notification to GUI
+   * @param location Location of the resolved incident
+   * @param scenario_name Name of the scenario (e.g., "WILDFIRE", "DEBRIS_OBSTRUCTION")
+   * @param resolved_at Time when incident was resolved
+   * 
+   * Formats and publishes resolved incident information in CSV format for GUI display
+   */
+  void alertResolvedIncidentGui(const geometry_msgs::msg::Point& location, 
+                                 const std::string& scenario_name,
+                                 const rclcpp::Time& resolved_at);
+  
+  /**
    * @brief Convert scenario enum to string representation
    * @param s Scenario type enum
    * @return String name of scenario (e.g., "WILDFIRE")
@@ -660,6 +672,7 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr target_pose_pub_;  ///< Target pose publisher for drone controller
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr mission_state_pub_;          ///< Mission state publisher
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr incident_pub_;               ///< Incident publisher for GUI
+  rclcpp::Publisher<std_msgs::msg::String>::SharedPtr resolved_incident_pub_;      ///< Resolved incident publisher for GUI
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr info_manifest_pub_;          ///< Info manifest publisher for status broadcasts
   rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr info_request_pub_;            ///< Info request publisher (unused)
   std::unordered_map<int, rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr> info_request_pubs_;  ///< Per-peer info request publishers

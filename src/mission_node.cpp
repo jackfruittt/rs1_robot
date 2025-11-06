@@ -96,6 +96,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     mission_state_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/mission_state", reliable_qos);
     info_manifest_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/info_manifest", reliable_qos);
     incident_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/incident", 10);
+    resolved_incident_pub_ = this->create_publisher<std_msgs::msg::String>("/" + drone_namespace_ + "/resolved_incident", 10);
     incident_dispatch_pub_ = this->create_publisher<std_msgs::msg::String>("/fleet/incident_dispatch", reliable_qos);
 
     //--- Srvs ---//
@@ -335,6 +336,9 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
                          resolved.scenario_name.c_str(),
                          resolved.location.x, resolved.location.y, resolved.location.z,
                          resolved_incident_ignore_duration_.seconds());
+              
+              // Notify GUI of resolved incident
+              alertResolvedIncidentGui(resolved.location, resolved.scenario_name, resolved.resolved_at);
             }
             
             fleet_incident_registry_.erase(it);
@@ -2586,6 +2590,47 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
         ""  // description (optional)
     );
     if (incident_pub_) incident_pub_->publish(msg);
+  }
+
+  void MissionPlannerNode::alertResolvedIncidentGui(const geometry_msgs::msg::Point& location, 
+                                                      const std::string& scenario_name,
+                                                      const rclcpp::Time& resolved_at) {
+    // Make ISO8601 (simple, thread-safe)
+    auto to_iso_utc = [&](const rclcpp::Time& t) {
+      using namespace std::chrono;
+      auto ns = nanoseconds(t.nanoseconds());
+      auto tp = time_point<std::chrono::system_clock>(duration_cast<std::chrono::system_clock::duration>(ns));
+      std::time_t tt = std::chrono::system_clock::to_time_t(tp);
+      char buf[32]{0};
+  #if defined(_WIN32) 
+      std::tm g{}; gmtime_s(&g, &tt);
+      std::strftime(buf, sizeof(buf), "%FT%TZ", &g);
+  #else
+      std::tm g{}; gmtime_r(&tt, &g);
+      std::strftime(buf, sizeof(buf), "%FT%TZ", &g);
+  #endif
+      // Fallback: use current time - 10 seconds instead of epoch (1970)
+      if (!buf[0]) {
+        auto fallback_time = this->now() - rclcpp::Duration::from_seconds(10.0);
+        auto fallback_ns = nanoseconds(fallback_time.nanoseconds());
+        auto fallback_tp = time_point<std::chrono::system_clock>(duration_cast<std::chrono::system_clock::duration>(fallback_ns));
+        std::time_t fallback_tt = std::chrono::system_clock::to_time_t(fallback_tp);
+        gmtime_r(&fallback_tt, &g);
+        std::strftime(buf, sizeof(buf), "%FT%TZ", &g);
+      }
+      return std::string(buf[0] ? buf : "ERROR-TIMESTAMP");
+    };
+
+    const int drone_num = drone_numeric_id_;
+    const std::string iso = to_iso_utc(resolved_at);
+
+    std_msgs::msg::String msg;
+    msg.data = make_incident_csv(
+        drone_num, "", scenario_name, 0, iso,
+        location.x, location.y, location.z,
+        "RESOLVED"
+    );
+    if (resolved_incident_pub_) resolved_incident_pub_->publish(msg);
   }
 
   const char* MissionPlannerNode::evTypeToString(Scenario s) const {
