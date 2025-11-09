@@ -464,9 +464,8 @@ namespace drone_swarm
       return true; // Complete due to timeout
     }
     
-    // Check if target altitude reached (or if sonar indicates ground proximity)
-    // Note: sonar may return ~5m when very close to ground due to minimum range limits
-    if (sonar_range <= target_altitude || sonar_range >= 4.5) {
+    // Check if target altitude reached
+    if (sonar_range <= 1.0) {
       RCLCPP_INFO(logger_, "Landing completed - reached %.2fm", sonar_range);
       
       // Stop descending
@@ -566,7 +565,7 @@ namespace drone_swarm
         }
       }
       
-      // Check if we've been climbing for too long (tall obstacle) - enter PANIC CLIMB
+      // Check if climbing duration is excessive (tall obstacle) - enter PANIC CLIMB
       auto climb_duration = std::chrono::steady_clock::now() - emergency_climb_start_;
       double climb_seconds = std::chrono::duration<double>(climb_duration).count();
       
@@ -581,7 +580,7 @@ namespace drone_swarm
       
       target_altitude = clearance_target_altitude_;
       
-      // Keep climbing if we haven't reached clearance altitude yet
+      // Keep climbing if clearance altitude not reached yet
       if (sonar_range < clearance_target_altitude_ - 0.5) {
         RCLCPP_DEBUG(logger_, "Climbing to clearance: %.2fm / %.2fm (obstacle at %.2fm)", 
                      sonar_range, clearance_target_altitude_, min_obstacle_distance);
@@ -599,7 +598,7 @@ namespace drone_swarm
                     EXTRA_CLIMB_AFTER_CLEAR, clearance_target_altitude_);
       }
       
-      // Check if we've completed the extra climb
+      // Check if the extra climb has been completed
       if (sonar_range >= clearance_target_altitude_ - 0.5) {
         // Extra climb complete - now return to normal
         emergency_climb_active_ = false;

@@ -666,6 +666,7 @@ private:
   std::unordered_map<int, rclcpp::Subscription<std_msgs::msg::String>::SharedPtr> info_manifest_subs_;  ///< Per-peer info manifest subscriptions
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr reset_mission_sub_;       ///< Mission reset subscription
   rclcpp::Subscription<std_msgs::msg::String>::SharedPtr incident_dispatch_sub_;   ///< Fleet-wide incident dispatch subscription
+  rclcpp::Subscription<std_msgs::msg::Empty>::SharedPtr landing_complete_sub_;     ///< Landing completion subscription from drone controller
   
   // Publishers
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr cmd_vel_pub_;            ///< Velocity command publisher
@@ -731,6 +732,8 @@ private:
   std::chrono::steady_clock::time_point landing_start_time_; ///< Time when landing initiated
   double target_landing_altitude_;                 ///< Target altitude for landing (0.2m)
   bool landing_complete_;                          ///< Flag indicating landing completion
+  bool landing_completion_detected_;               ///< Flag to prevent repeated completion checks
+  std::chrono::steady_clock::time_point landing_complete_time_; ///< Time when landing completion detected
   
   mutable std::mutex sonar_mutex_;                 ///< Mutex for sonar data thread safety
 
@@ -895,6 +898,14 @@ private:
    * Format: "DISPATCH,<id>,<type>,<x>,<y>,<z>,<responder_id>,<timestamp>"
    */
   void incidentDispatchCallback(const std::shared_ptr<std_msgs::msg::String> msg);
+
+  /**
+   * @brief Handle landing completion notification from drone controller
+   * @param msg Empty message indicating landing is complete
+   * 
+   * Immediately transitions state to IDLE when landing completion is detected.
+   */
+  void landingCompleteCallback(const std::shared_ptr<std_msgs::msg::Empty> msg);
   
   /**
    * @brief Generate deterministic incident ID from scenario data

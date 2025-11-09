@@ -8,7 +8,8 @@ namespace drone_swarm
   // DroneControllerNode Implementation
   DroneControllerNode::DroneControllerNode(const rclcpp::NodeOptions &options, const std::string & name)
       : Node( (name.empty() ? std::string("drone_controller_") + std::to_string(getpid()) : name), rclcpp::NodeOptions(options).automatically_declare_parameters_from_overrides(true)),
-        current_flight_mode_(FlightMode::DISARMED), current_sonar_range_(0.0), armed_(false)
+        current_flight_mode_(FlightMode::DISARMED), current_sonar_range_(0.0), armed_(false),
+        landing_complete_notified_(false)
   {
     // Initialise ROS parameters for drone configuration
     std::string drone_namespace;
@@ -18,7 +19,7 @@ namespace drone_swarm
       drone_namespace = "rs1_drone";  // fallback default
     }
     
-    // Store the namespace (without leading slash since we're already namespaced)
+    // Store the namespace (without leading slash since already namespaced)
     drone_namespace_ = drone_namespace;
 
     // Initialise control components for flight management
@@ -73,6 +74,8 @@ namespace drone_swarm
         "/" + drone_namespace_ + "/velocity", 10);
     flight_mode_pub_ = this->create_publisher<std_msgs::msg::String>(
         "/" + drone_namespace_ + "/flight_mode", 10);
+    landing_complete_pub_ = this->create_publisher<std_msgs::msg::Empty>(
+        "/" + drone_namespace_ + "/landing_complete", 10);
 
     // Configure DroneControl with publisher and logger
     drone_control_->setCmdVelPublisher(cmd_vel_pub_);
@@ -165,6 +168,7 @@ namespace drone_swarm
         // Prepare for landing
         current_flight_mode_ = FlightMode::GUIDED;
         landing_start_time_ = this->get_clock()->now();
+        landing_complete_notified_ = false;  // Reset notification flag for new landing
 
         RCLCPP_INFO(this->get_logger(), "Initiating landing sequence");
       }
@@ -354,11 +358,14 @@ namespace drone_swarm
     double target_landing_altitude = 0.2;  // 0.2m above ground
     this->get_parameter_or("landing_altitude", target_landing_altitude, 0.2);
     
-    bool landing_complete = drone_control_->land(
-        target_landing_altitude, current_altitude, elapsed_seconds);
+    // Check if landing is complete and publish completion message once
+    bool landing_complete = drone_control_->land(target_landing_altitude, current_altitude, elapsed_seconds);
     
-    if (landing_complete) {
-      RCLCPP_INFO(this->get_logger(), "Landing sequence completed - on ground");
+    if (landing_complete && !landing_complete_notified_) {
+      RCLCPP_INFO(this->get_logger(), "Landing completed - notifying mission node");
+      std_msgs::msg::Empty msg;
+      landing_complete_pub_->publish(msg);
+      landing_complete_notified_ = true;
     }
   }
 

@@ -84,6 +84,9 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     incident_dispatch_sub_ = this->create_subscription<std_msgs::msg::String>(
       "/fleet/incident_dispatch", reliable_qos, 
       std::bind(&MissionPlannerNode::incidentDispatchCallback, this, std::placeholders::_1));
+    landing_complete_sub_ = this->create_subscription<std_msgs::msg::Empty>(
+      "/" + drone_namespace_ + "/landing_complete", 10,
+      std::bind(&MissionPlannerNode::landingCompleteCallback, this, std::placeholders::_1));
 
     //--- Pubs ---//
     cmd_vel_pub_ = this->create_publisher<geometry_msgs::msg::Twist>("/" + drone_namespace_ + "/cmd_vel", 10);
@@ -191,7 +194,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
                     drone_id);
       }
     }
-    // Record when we sent pings so we only accept responses after this
+    // Record when pings were sent so only responses after this are accepted
     auto ping_start_time = this->now();
 
     auto send_ping = [&](int id){
@@ -309,7 +312,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     (void)path_planner_->getNextWaypoint();
     if (!path_planner_->hasNextWaypoint()) {
       
-      // Check if we just completed a scenario reaction mission
+      // Check if scenario reaction mission just completed
       if (in_scenario_reaction_) {
         RCLCPP_INFO(get_logger(), "Scenario reaction mission complete (%s). Restoring previous mission.", 
                     active_scenario_type_.c_str());
@@ -405,13 +408,13 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       RCLCPP_INFO(get_logger(), "Final waypoint reached. Mission complete. Hovering.");
       state_machine_->setState(MissionState::HOVERING);
     } else {
-      // Check if we just reached depot waypoint in a scenario mission (waypoint index 0)
+      // Check if depot waypoint was just reached in scenario mission (waypoint index 0)
       // Need to descend and collect payload (retardant or medkit)
       if (in_scenario_reaction_ && !payload_collected_ && 
           path_planner_->getCurrentWaypointIndex() == 0) {
         RCLCPP_INFO(get_logger(), "Reached depot location - descending to collect payload (checking sonar < 1m)");
         
-        // Check if we've descended enough (sonar reading < 1m = close to ground)
+        // Check if descent is sufficient (sonar reading < 1m = close to ground)
         double current_altitude = 0.0;
         {
           std::lock_guard<std::mutex> lock(sonar_mutex_);
@@ -433,7 +436,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
         return;
       }
       
-      // Check if we just reached the fire/hiker waypoint (waypoint index 1, after depot)
+      // Check if fire/hiker waypoint was just reached (waypoint index 1, after depot)
       if (in_scenario_reaction_ && active_scenario_type_ == "WILDFIRE" && 
           path_planner_->getCurrentWaypointIndex() == 1) {
         RCLCPP_INFO(get_logger(), "Reached fire location - extinguishing fire for 2 seconds");
@@ -451,31 +454,15 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
   /******************* JACKSON ********************************/
   void MissionPlannerNode::landing() {
     // Mission planner delegates actual flight execution to drone controller
-    // We only monitor completion and handle mission-specific logic
+    // Landing completion is handled by landingCompleteCallback when drone controller signals completion
     
     if (landing_in_progress_) {
-      // Monitor altitude to determine when landing is complete
-      double current_altitude = 0.0;
-      {
-        std::lock_guard<std::mutex> lock(sonar_mutex_);
-        current_altitude = current_sonar_range_;
+      // Log progress occasionally while waiting for drone controller to complete landing
+      static int landing_log_counter = 0;
+      if (landing_log_counter % 25 == 0) { // Every ~5 seconds at 5Hz
+        RCLCPP_INFO(this->get_logger(), "Waiting for drone controller to complete landing...");
       }
-      
-      // Check if landing is complete (drone_controller handles the actual flight)
-      if (current_altitude <= target_landing_altitude_ + 0.2) {
-        landing_complete_ = true;
-        landing_in_progress_ = false;
-        
-        // Transition to IDLE when landing complete
-        state_machine_->setState(MissionState::IDLE);
-        path_planner_->reset();
-        // Reset flags
-        in_hiker_rescue_ = false;
-        in_hiker_rescue_awaiting_takeoff_ = false;
-        RCLCPP_INFO(this->get_logger(), "Landing complete - transitioning to IDLE");
-        return;
-      }
-      return; // Exit early for sonar-based landing
+      landing_log_counter++;
     }
   }
 
@@ -559,7 +546,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     
     MissionState required_state = targetStateForScenario(scenarioFromString(scenario.scenario_name));
 
-    // Make sure we’ve done a recent discovery pass
+    // Make sure a recent discovery pass was done
     discoverPeerDrones();
     
     // DEBUG: Log peer_info_ cache state
@@ -776,6 +763,24 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
                 incident.location.y, incident.location.z, incident.responder_id);
   }
 
+  void MissionPlannerNode::landingCompleteCallback(const std::shared_ptr<std_msgs::msg::Empty> msg) {
+    (void)msg;  // Suppress unused parameter warning
+    
+    RCLCPP_INFO(this->get_logger(), "Landing completion received from drone controller - setting state to IDLE");
+    
+    // Immediately transition to IDLE state
+    state_machine_->setState(MissionState::IDLE);
+    
+    // Clean up landing state
+    landing_in_progress_ = false;
+    landing_complete_ = true;
+    
+    // Reset mission flags
+    path_planner_->reset();
+    in_hiker_rescue_ = false;
+    in_hiker_rescue_awaiting_takeoff_ = false;
+  }
+
   bool MissionPlannerNode::isIncidentAlreadyManaged(const ScenarioData& scenario) {
     std::lock_guard<std::mutex> lock(registry_mutex_);
     
@@ -836,7 +841,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
   void MissionPlannerNode::loadWaypointsFromParams() {
     RCLCPP_INFO(get_logger(), "Loading waypoint params (enumerate-style) for %s", drone_id_.c_str());
 
-    // List parameter names we can see under the "waypoints." prefix
+    // List parameter names visible under the "waypoints." prefix
     auto result = this->list_parameters({"waypoints"}, 10000); // depth large enough
     const auto& names = result.names;
 
@@ -955,7 +960,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     
     RCLCPP_INFO(this->get_logger(), "Start mission service called for %s", drone_id_.c_str());
     
-    // Check if we can start mission (must be in IDLE state)
+    // Check if mission can start (must be in IDLE state)
     if (state_machine_->getCurrentState() != MissionState::IDLE) {
       response->success = false;
       response->message = "Cannot start mission - drone not in IDLE state. Current state: " + 
@@ -1015,7 +1020,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     
     RCLCPP_INFO(this->get_logger(), "Takeoff service called for %s", drone_id_.c_str());
     
-    // Check if we can takeoff (must be in IDLE state)
+    // Check if takeoff is possible (must be in IDLE state)
     if (state_machine_->getCurrentState() != MissionState::IDLE) {
       response->success = false;
       response->message = "Cannot takeoff - drone not in IDLE state. Current state: " + 
@@ -1061,7 +1066,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     
     RCLCPP_INFO(this->get_logger(), "Landing service called for %s", drone_id_.c_str());
     
-    // Check if we can land (must not be in IDLE or LANDING state already)
+    // Check if landing is possible (must not be in IDLE or LANDING state already)
     MissionState current_state = state_machine_->getCurrentState();
     if (current_state == MissionState::IDLE) {
       response->success = false;
@@ -1085,11 +1090,28 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       landing_start_time_ = std::chrono::steady_clock::now();
     }
     
-    // Publish landing command multiple times to ensure reception
-    std_msgs::msg::Empty land_msg;
+    // Set target pose for landing at current position but ground level
+    geometry_msgs::msg::PoseStamped landing_target;
+    landing_target.header.frame_id = "map";
+    landing_target.header.stamp = this->get_clock()->now();
+    
+    // Use current position but set Z to 0 for ground level landing
+    landing_target.pose.position.x = current_pose_.pose.position.x;
+    landing_target.pose.position.y = current_pose_.pose.position.y;
+    landing_target.pose.position.z = 0.0;  // Ground level
+    landing_target.pose.orientation = current_pose_.pose.orientation;
+    
+    // Publish landing target pose multiple times to ensure reception
     for (int i = 0; i < 5; i++) {
-      land_pub_->publish(land_msg);
+      target_pose_pub_->publish(landing_target);
       std::this_thread::sleep_for(std::chrono::milliseconds(100));
+    }
+    
+    // Publish landing command
+    std_msgs::msg::Empty land_msg;
+    for (int i = 0; i < 3; i++) {
+      land_pub_->publish(land_msg);
+      std::this_thread::sleep_for(std::chrono::milliseconds(50));
     }
     
     // Transition to landing state
@@ -1134,12 +1156,12 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
         fire_location, depot_location, helipad_location_, path_planner_.get());
     
     if (success) {
-      // Mark that we're in a scenario reaction mission
+      // Mark that system is in a scenario reaction mission
       in_scenario_reaction_ = true;
       active_scenario_type_ = "WILDFIRE";
       active_scenario_incident_id_ = request->incident_id;  // Store incident ID for resolution
       
-      // Track if drone was IDLE before mission (so we can return to IDLE after)
+      // Track if drone was IDLE before mission (so can return to IDLE after)
       was_idle_before_reaction_ = (state_machine_->getCurrentState() == MissionState::IDLE);
       
       // If drone is IDLE, need to initiate takeoff first
@@ -1210,12 +1232,12 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
         hiker_location, depot_location, path_planner_.get());
     
     if (success) {
-      // Mark that we're in a scenario reaction mission
+      // Mark that system is in a scenario reaction mission
       in_scenario_reaction_ = true;
       active_scenario_type_ = "STRANDED_HIKER";
       active_scenario_incident_id_ = request->incident_id;  // Store incident ID for resolution
       
-      // Track if drone was IDLE before mission (so we can return to IDLE after)
+      // Track if drone was IDLE before mission (so system can return to IDLE after)
       was_idle_before_reaction_ = (state_machine_->getCurrentState() == MissionState::IDLE);
       
       // If drone is IDLE, need to initiate takeoff first
@@ -1282,7 +1304,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     bool success = mission_executor_->executeDebrisReaction(debris_location, path_planner_.get());
     
     if (success) {
-      // Mark that we're in a scenario reaction mission
+      // Mark that system is in a scenario reaction mission
       in_scenario_reaction_ = true;
       active_scenario_type_ = "DEBRIS_OBSTRUCTION";
       active_scenario_incident_id_ = request->incident_id;
@@ -1562,7 +1584,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
 
   void MissionPlannerNode::takeoff() {
     // Mission planner delegates actual flight execution to drone controller
-    // We only monitor completion via time-based approach (not altitude)
+    // Only monitor completion via time-based approach (not altitude)
     // This prevents issues with invalid sonar readings during ground drooping
     
     if (!takeoff_in_progress_) {
@@ -1633,7 +1655,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
                   current_waypoint.pose.position.z);
     } else {
         // Mission planner doesn't publish velocity commands - that's drone_controller's job
-        // We only manage state transitions here
+        // Only manage state transitions here
     }
   }
 
@@ -1813,7 +1835,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
    */
   ScenarioData parseScenarioMessage(const std::string& message_data) {
     ScenarioData result;
-    result.valid = false;  // Assume failure until we succeed
+    result.valid = false;  // Assume failure until success
     
     // Split the message by commas
     std::vector<std::string> parts;
@@ -1828,7 +1850,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     }
     parts.push_back(current_part);  // Add the last part
     
-    // Check we have exactly 6 parts (updated from 7)
+    // Check exactly 6 parts are present (updated from 7)
     if (parts.size() != 6) {
       RCLCPP_WARN(rclcpp::get_logger("scenario_parser"),
                   "Expected 6 fields, got %zu in message: '%s'",
@@ -1867,7 +1889,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       // Set severity to a default value since it's not provided
       result.severity = 1;  // Default severity
       
-      // If we made it here, parsing succeeded
+      // If this point is reached, parsing succeeded
       result.valid = true;
       
       RCLCPP_INFO(rclcpp::get_logger("scenario_parser"),
@@ -2099,7 +2121,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
       }
     }
     
-    // Include self if we're actively patrolling
+    // Include self if actively patrolling
     auto my_state = state_machine_->getCurrentState();
     if (my_state == MissionState::WAYPOINT_NAVIGATION) {
       num_active_patrollers++;
@@ -2117,7 +2139,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     // 3. Small delay to let lower-ID drone broadcast if it detected simultaneously
     // 
     // Key: The delay is SHORT (50ms) - just enough for broadcast propagation
-    // If lower-ID drone detected it, we'll see the broadcast during the delay
+    // If lower-ID drone detected it, the broadcast will be seen during the delay
     // If lower-ID drone hasn't detected it yet, this drone becomes "first detector"
     if (num_active_patrollers > 1 && drone_numeric_id_ > lowest_patroller_id) {
       // Use minimal delay (50ms per ID difference) to allow broadcast propagation
@@ -2344,7 +2366,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     ev.target.x = x; ev.target.y = y; ev.target.z = z;
     ev.heading = heading;            // radians, as published
     ev.can_respond = can_respond;
-    ev.stamp = this->now();          // when we received it
+    ev.stamp = this->now();          // when received
     ev.raw = data;
 
     return ev;
@@ -2465,7 +2487,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
   void MissionPlannerNode::createPeerSubscriptionForId(int peer_id) {
     const std::string ns = "/rs1_drone_" + std::to_string(peer_id);
 
-    // If we already wired the critical subscription for this peer, we're done.
+    // If critical subscription for this peer is already wired, operation is complete.
     {
       std::lock_guard<std::mutex> lock(peers_mutex_);
       if (info_manifest_subs_.count(peer_id)) {
@@ -2501,7 +2523,7 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     {
       std::lock_guard<std::mutex> lock(peers_mutex_);
 
-      // Another thread may have finished wiring while we were creating handles.
+      // Another thread may have finished wiring while handles were being created.
       if (!info_manifest_subs_.count(peer_id)) {
         peer_odom_subs_[peer_id]     = std::move(odom_sub);
         assignment_pubs_[peer_id]    = std::move(assignment_pub);
@@ -2646,10 +2668,10 @@ MissionPlannerNode::MissionPlannerNode(const rclcpp::NodeOptions& options, const
     // Get all topic names/types currently visible in the graph.
     const auto topic_names_and_types = this->get_topic_names_and_types();
 
-    // We consider any topic matching /rs1_drone_<ID>/odom to indicate a peer drone.
+    // Consider any topic matching /rs1_drone_<ID>/odom to indicate a peer drone.
     const std::regex odom_topic_regex(R"(^/rs1_drone_([0-9]+)/odom$)");
 
-    // Collect the set of peer IDs we detect from the topic list (excluding ourselves).
+    // Collect the set of peer IDs detected from the topic list (excluding self).
     std::set<int> detected_peer_ids;
 
     for (const auto &entry : topic_names_and_types) {

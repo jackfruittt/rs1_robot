@@ -233,7 +233,7 @@ namespace drone_swarm
     const auto& segment_start = existing_path.back();
     
     // Check if new segment intersects with any existing segment
-    // We check up to size()-2 because we don't check against the segment
+    // Check up to size()-2 because the segment
     // that shares the starting point (the last segment)
     for (size_t i = 0; i + 1 < existing_path.size() - 1; ++i) {
       const auto& seg_p1 = existing_path[i];

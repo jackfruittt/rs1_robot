@@ -26,6 +26,7 @@
 #include "sensor_msgs/msg/range.hpp"
 #include "nav_msgs/msg/odometry.hpp"
 #include "std_msgs/msg/string.hpp"
+#include "std_msgs/msg/empty.hpp"
 #include "std_srvs/srv/trigger.hpp"
 #include "drone_control.h"
 
@@ -206,6 +207,7 @@ private:
   rclcpp::Publisher<geometry_msgs::msg::PoseStamped>::SharedPtr pose_pub_;         ///< Current pose publisher
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr velocity_pub_;           ///< Current velocity publisher
   rclcpp::Publisher<std_msgs::msg::String>::SharedPtr flight_mode_pub_;            ///< Flight mode publisher
+  rclcpp::Publisher<std_msgs::msg::Empty>::SharedPtr landing_complete_pub_;        ///< Landing completion publisher
 
   // Timer for control loop
   rclcpp::TimerBase::SharedPtr control_timer_;                                     ///< Main control timer
@@ -224,6 +226,10 @@ private:
   sensor_msgs::msg::LaserScan current_lidar_data_; ///< Current LiDAR data for obstacle detection
   std::mutex sensor_mutex_;                        ///< Mutex for thread-safe sensor access
   
+  // Status flags (order matches constructor initialization)
+  bool armed_;                                     ///< Drone armed status
+  bool landing_complete_notified_;                 ///< Flag to prevent repeated landing completion notifications
+  
   // Mission timing variables
   rclcpp::Time takeoff_start_time_;                ///< Takeoff sequence start time
   rclcpp::Time landing_start_time_;                ///< Landing sequence start time
@@ -232,7 +238,6 @@ private:
   std::string drone_namespace_;                    ///< ROS namespace for this drone
   double control_frequency_;                       ///< Control loop frequency in Hz
   double telemetry_frequency_;                     ///< Telemetry publishing frequency in Hz
-  bool armed_;                                     ///< Drone armed status
   std::chrono::steady_clock::time_point last_control_update_;  ///< Last control update timestamp
 };
 
