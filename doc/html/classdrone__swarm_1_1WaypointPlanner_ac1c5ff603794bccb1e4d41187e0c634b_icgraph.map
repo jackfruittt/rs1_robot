@@ -1,0 +1,6 @@
+<map id="drone_swarm::WaypointPlanner::hasNextWaypoint" name="drone_swarm::WaypointPlanner::hasNextWaypoint">
+<area shape="rect" id="node1" title="Check if more waypoints are available." alt="" coords="281,71,509,112"/>
+<area shape="rect" id="node2" href="$classdrone__swarm_1_1WaypointPlanner.html#a41313d9868fb6a937d4a245684c4d486" title="Get current waypoint without advancing index." alt="" coords="5,5,233,47"/>
+<area shape="rect" id="node3" href="$classdrone__swarm_1_1WaypointPlanner.html#ad3bbc8213f6d9898cbdd03a6766b7e02" title="Calculate distance to current waypoint." alt="" coords="5,71,233,112"/>
+<area shape="rect" id="node4" href="$classdrone__swarm_1_1WaypointPlanner.html#a175340c431af723b88bd0736ade141ad" title="Get next waypoint and advance index." alt="" coords="5,136,233,177"/>
+</map>

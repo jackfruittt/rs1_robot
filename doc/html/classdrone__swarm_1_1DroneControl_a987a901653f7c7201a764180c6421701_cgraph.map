@@ -1,0 +1,5 @@
+<map id="drone_swarm::DroneControl::calculateAdvancedPositionControl" name="drone_swarm::DroneControl::calculateAdvancedPositionControl">
+<area shape="rect" id="node1" title="Enhanced position control with advanced features." alt="" coords="5,39,257,80"/>
+<area shape="rect" id="node2" href="$classdrone__swarm_1_1DroneControl.html#a5daa42996119115c1874f8f00b3ca3dc" title="Calculate yaw control command." alt="" coords="305,5,509,47"/>
+<area shape="rect" id="node3" href="$classdrone__swarm_1_1DroneControl.html#ad41e34dd67d09b987becab1e72cebdc9" title="Calculate desired yaw angle towards target." alt="" coords="305,71,509,112"/>
+</map>

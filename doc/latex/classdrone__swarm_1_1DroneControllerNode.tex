@@ -1,0 +1,77 @@
+\hypertarget{classdrone__swarm_1_1DroneControllerNode}{}\doxysection{drone\+\_\+swarm\+::Drone\+Controller\+Node Class Reference}
+\label{classdrone__swarm_1_1DroneControllerNode}\index{drone\_swarm::DroneControllerNode@{drone\_swarm::DroneControllerNode}}
+
+
+ROS 2 node for comprehensive drone flight control.  
+
+
+
+
+{\ttfamily \#include $<$drone\+\_\+node.\+h$>$}
+
+
+
+Inheritance diagram for drone\+\_\+swarm\+::Drone\+Controller\+Node\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=271pt]{classdrone__swarm_1_1DroneControllerNode__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for drone\+\_\+swarm\+::Drone\+Controller\+Node\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=271pt]{classdrone__swarm_1_1DroneControllerNode__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classdrone__swarm_1_1DroneControllerNode_a8cd9becf46785f443c675cd17cc551be}{Drone\+Controller\+Node}} (const rclcpp\+::\+Node\+Options \&options=rclcpp\+::\+Node\+Options(), const std\+::string \&name=\char`\"{}\char`\"{})
+\begin{DoxyCompactList}\small\item\em Constructor with configurable node options. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+ROS 2 node for comprehensive drone flight control. 
+
+Manages drone flight operations including takeoff, waypoint navigation, hovering, and landing. Integrates with mission planner and provides low-\/level flight control with safety monitoring capabilities. 
+
+Definition at line 62 of file drone\+\_\+node.\+h.
+
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControllerNode_a8cd9becf46785f443c675cd17cc551be}\label{classdrone__swarm_1_1DroneControllerNode_a8cd9becf46785f443c675cd17cc551be}} 
+\index{drone\_swarm::DroneControllerNode@{drone\_swarm::DroneControllerNode}!DroneControllerNode@{DroneControllerNode}}
+\index{DroneControllerNode@{DroneControllerNode}!drone\_swarm::DroneControllerNode@{drone\_swarm::DroneControllerNode}}
+\doxysubsubsection{\texorpdfstring{DroneControllerNode()}{DroneControllerNode()}}
+{\footnotesize\ttfamily drone\+\_\+swarm\+::\+Drone\+Controller\+Node\+::\+Drone\+Controller\+Node (\begin{DoxyParamCaption}\item[{const rclcpp\+::\+Node\+Options \&}]{options = {\ttfamily rclcpp\+:\+:NodeOptions()},  }\item[{const std\+::string \&}]{name = {\ttfamily \char`\"{}\char`\"{}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [explicit]}}
+
+
+
+Constructor with configurable node options. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em options} & ROS 2 node options for composition and configuration \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 9 of file drone\+\_\+node.\+cpp.
+
+
+
+References drone\+\_\+swarm\+::\+DISARMED.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{drone__node_8h}{drone\+\_\+node.\+h}}\item 
+src/\mbox{\hyperlink{drone__node_8cpp}{drone\+\_\+node.\+cpp}}\end{DoxyCompactItemize}

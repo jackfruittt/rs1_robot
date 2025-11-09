@@ -1,0 +1,349 @@
+\hypertarget{classdrone__swarm_1_1PIDController}{}\doxysection{drone\+\_\+swarm\+::PIDController Class Reference}
+\label{classdrone__swarm_1_1PIDController}\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+
+
+Enhanced PID Controller with advanced features for precise drone control.  
+
+
+
+
+{\ttfamily \#include $<$pid.\+h$>$}
+
+
+
+Collaboration diagram for drone\+\_\+swarm\+::PIDController\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=268pt]{classdrone__swarm_1_1PIDController__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classdrone__swarm_1_1PIDController_ad9bc9ecfd84c3626481730ab3eebd536}{PIDController}} ()
+\begin{DoxyCompactList}\small\item\em Default constructor. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{classdrone__swarm_1_1PIDController_a5758341f7ff8c9fc619fcdba28b19a8a}{PIDController}} (double kp, double ki, double kd)
+\begin{DoxyCompactList}\small\item\em Parameterised constructor. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1PIDController_a1b5c30e4ac1e16962d07c701e6e34206}{set\+Gains}} (double kp, double ki, double kd)
+\begin{DoxyCompactList}\small\item\em Set PID gains. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1PIDController_a7f1aeda982db1ceed6327224ea705837}{set\+Limits}} (double min\+\_\+output, double max\+\_\+output)
+\begin{DoxyCompactList}\small\item\em Set output limits to prevent actuator saturation. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1PIDController_a2673f0e6b71ff7889ca2df0ae2e72508}{set\+Integral\+Limits}} (double min\+\_\+integral, double max\+\_\+integral)
+\begin{DoxyCompactList}\small\item\em Set integral term limits to prevent windup. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1PIDController_a402f1d443ec14bb0eba0e022f23c1431}{set\+Integral\+Threshold}} (double threshold)
+\begin{DoxyCompactList}\small\item\em Set threshold for conditional integration. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classdrone__swarm_1_1PIDController_acb4e15be0787a6846062598765c71baa}{calculate}} (double setpoint, double process\+\_\+variable, double dt)
+\begin{DoxyCompactList}\small\item\em Standard PID calculation. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1PIDController_a8caee3af2592bb4c66c8142f92b01a87}{reset}} ()
+\begin{DoxyCompactList}\small\item\em Reset PID controller state. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classdrone__swarm_1_1PIDController_a32e1180f47f19a1e8855e3071a7e0756}{calculate\+With\+Windup\+Protection}} (double setpoint, double process\+\_\+variable, double dt, double windup\+\_\+threshold=2.\+0)
+\begin{DoxyCompactList}\small\item\em Advanced PID calculation with enhanced windup protection. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classdrone__swarm_1_1PIDController_a3e93830eda577a20de2e87d0d01915b1}{get\+Proportional}} () const
+\begin{DoxyCompactList}\small\item\em Get current proportional term value. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classdrone__swarm_1_1PIDController_a91ac2d5bd4aa81cab69dc4420f179d68}{get\+Integral}} () const
+\begin{DoxyCompactList}\small\item\em Get current integral term value. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classdrone__swarm_1_1PIDController_af0ced8623e74db60701cdd230c89294e}{get\+Derivative}} () const
+\begin{DoxyCompactList}\small\item\em Get current derivative term value. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classdrone__swarm_1_1PIDController_ab08e381306869cc4ebf77ff62f01e47e}{get\+Last\+Error}} () const
+\begin{DoxyCompactList}\small\item\em Get last error value. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classdrone__swarm_1_1PIDController_a16569ff06a2851fb1fee4ba0544869e8}{get\+Integral\+Accumulator}} () const
+\begin{DoxyCompactList}\small\item\em Get integral accumulator value. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Enhanced PID Controller with advanced features for precise drone control. 
+
+This PID controller includes windup protection, conditional integration, and configurable limits for robust drone flight control applications. Designed for high-\/frequency control loops. 
+
+Definition at line 22 of file pid.\+h.
+
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1PIDController_ad9bc9ecfd84c3626481730ab3eebd536}\label{classdrone__swarm_1_1PIDController_ad9bc9ecfd84c3626481730ab3eebd536}} 
+\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}!PIDController@{PIDController}}
+\index{PIDController@{PIDController}!drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+\doxysubsubsection{\texorpdfstring{PIDController()}{PIDController()}\hspace{0.1cm}{\footnotesize\ttfamily [1/2]}}
+{\footnotesize\ttfamily drone\+\_\+swarm\+::\+PIDController\+::\+PIDController (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Default constructor. 
+
+Initialises PID controller with default gains (all zeros). Must call \mbox{\hyperlink{classdrone__swarm_1_1PIDController_a1b5c30e4ac1e16962d07c701e6e34206}{set\+Gains()}} before use. 
+
+Definition at line 8 of file pid.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1PIDController_a5758341f7ff8c9fc619fcdba28b19a8a}\label{classdrone__swarm_1_1PIDController_a5758341f7ff8c9fc619fcdba28b19a8a}} 
+\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}!PIDController@{PIDController}}
+\index{PIDController@{PIDController}!drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+\doxysubsubsection{\texorpdfstring{PIDController()}{PIDController()}\hspace{0.1cm}{\footnotesize\ttfamily [2/2]}}
+{\footnotesize\ttfamily drone\+\_\+swarm\+::\+PIDController\+::\+PIDController (\begin{DoxyParamCaption}\item[{double}]{kp,  }\item[{double}]{ki,  }\item[{double}]{kd }\end{DoxyParamCaption})}
+
+
+
+Parameterised constructor. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em kp} & Proportional gain \\
+\hline
+{\em ki} & Integral gain ~\newline
+ \\
+\hline
+{\em kd} & Derivative gain \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 20 of file pid.\+cpp.
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1PIDController_acb4e15be0787a6846062598765c71baa}\label{classdrone__swarm_1_1PIDController_acb4e15be0787a6846062598765c71baa}} 
+\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}!calculate@{calculate}}
+\index{calculate@{calculate}!drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+\doxysubsubsection{\texorpdfstring{calculate()}{calculate()}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+PIDController\+::calculate (\begin{DoxyParamCaption}\item[{double}]{setpoint,  }\item[{double}]{process\+\_\+variable,  }\item[{double}]{dt }\end{DoxyParamCaption})}
+
+
+
+Standard PID calculation. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em setpoint} & Desired value \\
+\hline
+{\em process\+\_\+variable} & Current measured value \\
+\hline
+{\em dt} & Time step since last calculation (seconds) \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Control output value 
+\end{DoxyReturn}
+
+
+Definition at line 56 of file pid.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1PIDController_a32e1180f47f19a1e8855e3071a7e0756}\label{classdrone__swarm_1_1PIDController_a32e1180f47f19a1e8855e3071a7e0756}} 
+\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}!calculateWithWindupProtection@{calculateWithWindupProtection}}
+\index{calculateWithWindupProtection@{calculateWithWindupProtection}!drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+\doxysubsubsection{\texorpdfstring{calculateWithWindupProtection()}{calculateWithWindupProtection()}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+PIDController\+::calculate\+With\+Windup\+Protection (\begin{DoxyParamCaption}\item[{double}]{setpoint,  }\item[{double}]{process\+\_\+variable,  }\item[{double}]{dt,  }\item[{double}]{windup\+\_\+threshold = {\ttfamily 2.0} }\end{DoxyParamCaption})}
+
+
+
+Advanced PID calculation with enhanced windup protection. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em setpoint} & Desired value \\
+\hline
+{\em process\+\_\+variable} & Current measured value ~\newline
+ \\
+\hline
+{\em dt} & Time step since last calculation (seconds) \\
+\hline
+{\em windup\+\_\+threshold} & Threshold for windup protection (default\+: 2.\+0) \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Control output value
+\end{DoxyReturn}
+This method includes advanced windup protection mechanisms optimised for drone flight control applications. 
+
+Definition at line 86 of file pid.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1PIDController_af0ced8623e74db60701cdd230c89294e}\label{classdrone__swarm_1_1PIDController_af0ced8623e74db60701cdd230c89294e}} 
+\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}!getDerivative@{getDerivative}}
+\index{getDerivative@{getDerivative}!drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+\doxysubsubsection{\texorpdfstring{getDerivative()}{getDerivative()}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+PIDController\+::get\+Derivative (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get current derivative term value. 
+
+\begin{DoxyReturn}{Returns}
+Current derivative contribution to output 
+\end{DoxyReturn}
+
+
+Definition at line 119 of file pid.\+h.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1PIDController_a91ac2d5bd4aa81cab69dc4420f179d68}\label{classdrone__swarm_1_1PIDController_a91ac2d5bd4aa81cab69dc4420f179d68}} 
+\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}!getIntegral@{getIntegral}}
+\index{getIntegral@{getIntegral}!drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+\doxysubsubsection{\texorpdfstring{getIntegral()}{getIntegral()}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+PIDController\+::get\+Integral (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get current integral term value. 
+
+\begin{DoxyReturn}{Returns}
+Current integral contribution to output 
+\end{DoxyReturn}
+
+
+Definition at line 113 of file pid.\+h.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1PIDController_a16569ff06a2851fb1fee4ba0544869e8}\label{classdrone__swarm_1_1PIDController_a16569ff06a2851fb1fee4ba0544869e8}} 
+\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}!getIntegralAccumulator@{getIntegralAccumulator}}
+\index{getIntegralAccumulator@{getIntegralAccumulator}!drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+\doxysubsubsection{\texorpdfstring{getIntegralAccumulator()}{getIntegralAccumulator()}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+PIDController\+::get\+Integral\+Accumulator (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get integral accumulator value. 
+
+\begin{DoxyReturn}{Returns}
+Current integral accumulator for debugging 
+\end{DoxyReturn}
+
+
+Definition at line 131 of file pid.\+h.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1PIDController_ab08e381306869cc4ebf77ff62f01e47e}\label{classdrone__swarm_1_1PIDController_ab08e381306869cc4ebf77ff62f01e47e}} 
+\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}!getLastError@{getLastError}}
+\index{getLastError@{getLastError}!drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+\doxysubsubsection{\texorpdfstring{getLastError()}{getLastError()}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+PIDController\+::get\+Last\+Error (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get last error value. 
+
+\begin{DoxyReturn}{Returns}
+Previous error for debugging 
+\end{DoxyReturn}
+
+
+Definition at line 125 of file pid.\+h.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1PIDController_a3e93830eda577a20de2e87d0d01915b1}\label{classdrone__swarm_1_1PIDController_a3e93830eda577a20de2e87d0d01915b1}} 
+\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}!getProportional@{getProportional}}
+\index{getProportional@{getProportional}!drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+\doxysubsubsection{\texorpdfstring{getProportional()}{getProportional()}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+PIDController\+::get\+Proportional (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Get current proportional term value. 
+
+\begin{DoxyReturn}{Returns}
+Current proportional contribution to output 
+\end{DoxyReturn}
+
+
+Definition at line 107 of file pid.\+h.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1PIDController_a8caee3af2592bb4c66c8142f92b01a87}\label{classdrone__swarm_1_1PIDController_a8caee3af2592bb4c66c8142f92b01a87}} 
+\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}!reset@{reset}}
+\index{reset@{reset}!drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+\doxysubsubsection{\texorpdfstring{reset()}{reset()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+PIDController\+::reset (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Reset PID controller state. 
+
+Clears integral accumulator, previous error, and resets first run flag. Use when changing setpoints or after control interruptions. 
+
+Definition at line 119 of file pid.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1PIDController_a1b5c30e4ac1e16962d07c701e6e34206}\label{classdrone__swarm_1_1PIDController_a1b5c30e4ac1e16962d07c701e6e34206}} 
+\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}!setGains@{setGains}}
+\index{setGains@{setGains}!drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+\doxysubsubsection{\texorpdfstring{setGains()}{setGains()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+PIDController\+::set\+Gains (\begin{DoxyParamCaption}\item[{double}]{kp,  }\item[{double}]{ki,  }\item[{double}]{kd }\end{DoxyParamCaption})}
+
+
+
+Set PID gains. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em kp} & Proportional gain -\/ immediate response to current error \\
+\hline
+{\em ki} & Integral gain -\/ eliminates steady-\/state error \\
+\hline
+{\em kd} & Derivative gain -\/ dampens oscillations and improves stability \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 32 of file pid.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1PIDController_a2673f0e6b71ff7889ca2df0ae2e72508}\label{classdrone__swarm_1_1PIDController_a2673f0e6b71ff7889ca2df0ae2e72508}} 
+\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}!setIntegralLimits@{setIntegralLimits}}
+\index{setIntegralLimits@{setIntegralLimits}!drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+\doxysubsubsection{\texorpdfstring{setIntegralLimits()}{setIntegralLimits()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+PIDController\+::set\+Integral\+Limits (\begin{DoxyParamCaption}\item[{double}]{min\+\_\+integral,  }\item[{double}]{max\+\_\+integral }\end{DoxyParamCaption})}
+
+
+
+Set integral term limits to prevent windup. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em min\+\_\+integral} & Minimum integral accumulator value \\
+\hline
+{\em max\+\_\+integral} & Maximum integral accumulator value \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 45 of file pid.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1PIDController_a402f1d443ec14bb0eba0e022f23c1431}\label{classdrone__swarm_1_1PIDController_a402f1d443ec14bb0eba0e022f23c1431}} 
+\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}!setIntegralThreshold@{setIntegralThreshold}}
+\index{setIntegralThreshold@{setIntegralThreshold}!drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+\doxysubsubsection{\texorpdfstring{setIntegralThreshold()}{setIntegralThreshold()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+PIDController\+::set\+Integral\+Threshold (\begin{DoxyParamCaption}\item[{double}]{threshold }\end{DoxyParamCaption})}
+
+
+
+Set threshold for conditional integration. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em threshold} & Only integrate when absolute error is below this value\\
+\hline
+\end{DoxyParams}
+This prevents integral windup during large transients while maintaining steady-\/state error elimination for small errors. 
+
+Definition at line 51 of file pid.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1PIDController_a7f1aeda982db1ceed6327224ea705837}\label{classdrone__swarm_1_1PIDController_a7f1aeda982db1ceed6327224ea705837}} 
+\index{drone\_swarm::PIDController@{drone\_swarm::PIDController}!setLimits@{setLimits}}
+\index{setLimits@{setLimits}!drone\_swarm::PIDController@{drone\_swarm::PIDController}}
+\doxysubsubsection{\texorpdfstring{setLimits()}{setLimits()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+PIDController\+::set\+Limits (\begin{DoxyParamCaption}\item[{double}]{min\+\_\+output,  }\item[{double}]{max\+\_\+output }\end{DoxyParamCaption})}
+
+
+
+Set output limits to prevent actuator saturation. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em min\+\_\+output} & Minimum output value \\
+\hline
+{\em max\+\_\+output} & Maximum output value \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 39 of file pid.\+cpp.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{pid_8h}{pid.\+h}}\item 
+src/\mbox{\hyperlink{pid_8cpp}{pid.\+cpp}}\end{DoxyCompactItemize}

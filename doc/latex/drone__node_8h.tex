@@ -1,0 +1,77 @@
+\hypertarget{drone__node_8h}{}\doxysection{include/drone\+\_\+node.h File Reference}
+\label{drone__node_8h}\index{include/drone\_node.h@{include/drone\_node.h}}
+
+
+Drone controller node for autonomous flight operations.  
+
+
+{\ttfamily \#include $<$memory$>$}\newline
+{\ttfamily \#include $<$string$>$}\newline
+{\ttfamily \#include $<$chrono$>$}\newline
+{\ttfamily \#include $<$mutex$>$}\newline
+{\ttfamily \#include \char`\"{}rclcpp/rclcpp.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}geometry\+\_\+msgs/msg/pose.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}geometry\+\_\+msgs/msg/pose\+\_\+array.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}geometry\+\_\+msgs/msg/pose\+\_\+stamped.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}geometry\+\_\+msgs/msg/twist.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}geometry\+\_\+msgs/msg/point.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}sensor\+\_\+msgs/msg/imu.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}sensor\+\_\+msgs/msg/nav\+\_\+sat\+\_\+fix.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}sensor\+\_\+msgs/msg/laser\+\_\+scan.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}sensor\+\_\+msgs/msg/range.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}nav\+\_\+msgs/msg/odometry.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}std\+\_\+msgs/msg/string.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}std\+\_\+msgs/msg/empty.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}std\+\_\+srvs/srv/trigger.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}drone\+\_\+control.\+h\char`\"{}}\newline
+Include dependency graph for drone\+\_\+node.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{drone__node_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{drone__node_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classdrone__swarm_1_1DroneControllerNode}{drone\+\_\+swarm\+::\+Drone\+Controller\+Node}}
+\begin{DoxyCompactList}\small\item\em ROS 2 node for comprehensive drone flight control. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespacedrone__swarm}{drone\+\_\+swarm}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum class \mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59}{drone\+\_\+swarm\+::\+Flight\+Mode}} \{ \newline
+\mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59a468609fdfdc3c06b2548578e5415da8e}{drone\+\_\+swarm\+::\+DISARMED}}
+, \mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59af40e2850f4c07c01444b5f2393f6eb4c}{drone\+\_\+swarm\+::\+ARMED}}
+, \mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59aa60a6a471c0681e5a49c4f5d00f6bc5a}{drone\+\_\+swarm\+::\+MANUAL}}
+, \mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59ad068274fa138f34fe09e76bab5f62336}{drone\+\_\+swarm\+::\+STABILISE}}
+, \newline
+\mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59a06f6aee1ecf4d427ff0cd2b8ff3c640a}{drone\+\_\+swarm\+::\+GUIDED}}
+, \mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59ae1f2d5134ed2543d38a0de9751cf75d9}{drone\+\_\+swarm\+::\+AUTO}}
+, \mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59ae6490f3976e3bbc0c283cdc144174a22}{drone\+\_\+swarm\+::\+EMERGENCY\+\_\+\+LAND}}
+ \}
+\begin{DoxyCompactList}\small\item\em Flight mode enumeration for drone operation states. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Drone controller node for autonomous flight operations. 
+
+\begin{DoxyAuthor}{Author}
+Jackson Russell ADD AUTHORS HERE AND BELOW 
+\end{DoxyAuthor}
+\begin{DoxyDate}{Date}
+Aug-\/2025 
+\end{DoxyDate}

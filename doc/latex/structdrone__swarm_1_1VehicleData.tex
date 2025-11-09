@@ -1,0 +1,143 @@
+\hypertarget{structdrone__swarm_1_1VehicleData}{}\doxysection{drone\+\_\+swarm\+::Vehicle\+Data Struct Reference}
+\label{structdrone__swarm_1_1VehicleData}\index{drone\_swarm::VehicleData@{drone\_swarm::VehicleData}}
+
+
+Structure to hold vehicle data for drone state management.  
+
+
+
+
+{\ttfamily \#include $<$drone\+\_\+control.\+h$>$}
+
+
+
+Collaboration diagram for drone\+\_\+swarm\+::Vehicle\+Data\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=227pt]{structdrone__swarm_1_1VehicleData__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{structdrone__swarm_1_1VehicleData_a0d47552396f7f98ecbbb2c3fad96eca9}{Vehicle\+Data}} ()
+\begin{DoxyCompactList}\small\item\em Default constructor Initialises mission\+\_\+active to false. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+std\+::string \mbox{\hyperlink{structdrone__swarm_1_1VehicleData_a528a9b215d012b08839d2f9aec342b68}{id}}
+\begin{DoxyCompactList}\small\item\em Unique drone identifier. \end{DoxyCompactList}\item 
+nav\+\_\+msgs\+::msg\+::\+Odometry \mbox{\hyperlink{structdrone__swarm_1_1VehicleData_a4d3b85ff97c6a5d205d1ff082578ab56}{current\+\_\+odom}}
+\begin{DoxyCompactList}\small\item\em Current odometry data. \end{DoxyCompactList}\item 
+std\+::mutex \mbox{\hyperlink{structdrone__swarm_1_1VehicleData_ae2c51bab390d25f7e05c90eefc7baf6e}{odom\+\_\+mutex}}
+\begin{DoxyCompactList}\small\item\em Thread-\/safe odometry access. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{structdrone__swarm_1_1VehicleData_ab37159662fd7ee7fa003fae589324879}{mission\+\_\+active}}
+\begin{DoxyCompactList}\small\item\em Mission status flag. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Structure to hold vehicle data for drone state management. 
+
+Contains odometry information and mission status for individual drones in the swarm with thread-\/safe access patterns. 
+
+Definition at line 33 of file drone\+\_\+control.\+h.
+
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{structdrone__swarm_1_1VehicleData_a0d47552396f7f98ecbbb2c3fad96eca9}\label{structdrone__swarm_1_1VehicleData_a0d47552396f7f98ecbbb2c3fad96eca9}} 
+\index{drone\_swarm::VehicleData@{drone\_swarm::VehicleData}!VehicleData@{VehicleData}}
+\index{VehicleData@{VehicleData}!drone\_swarm::VehicleData@{drone\_swarm::VehicleData}}
+\doxysubsubsection{\texorpdfstring{VehicleData()}{VehicleData()}}
+{\footnotesize\ttfamily drone\+\_\+swarm\+::\+Vehicle\+Data\+::\+Vehicle\+Data (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [inline]}}
+
+
+
+Default constructor Initialises mission\+\_\+active to false. 
+
+
+
+Definition at line 43 of file drone\+\_\+control.\+h.
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structdrone__swarm_1_1VehicleData_a4d3b85ff97c6a5d205d1ff082578ab56}\label{structdrone__swarm_1_1VehicleData_a4d3b85ff97c6a5d205d1ff082578ab56}} 
+\index{drone\_swarm::VehicleData@{drone\_swarm::VehicleData}!current\_odom@{current\_odom}}
+\index{current\_odom@{current\_odom}!drone\_swarm::VehicleData@{drone\_swarm::VehicleData}}
+\doxysubsubsection{\texorpdfstring{current\_odom}{current\_odom}}
+{\footnotesize\ttfamily nav\+\_\+msgs\+::msg\+::\+Odometry drone\+\_\+swarm\+::\+Vehicle\+Data\+::current\+\_\+odom}
+
+
+
+Current odometry data. 
+
+
+
+Definition at line 35 of file drone\+\_\+control.\+h.
+
+
+
+Referenced by drone\+\_\+swarm\+::\+Drone\+Control\+::fly\+To\+Goal().
+
+\mbox{\Hypertarget{structdrone__swarm_1_1VehicleData_a528a9b215d012b08839d2f9aec342b68}\label{structdrone__swarm_1_1VehicleData_a528a9b215d012b08839d2f9aec342b68}} 
+\index{drone\_swarm::VehicleData@{drone\_swarm::VehicleData}!id@{id}}
+\index{id@{id}!drone\_swarm::VehicleData@{drone\_swarm::VehicleData}}
+\doxysubsubsection{\texorpdfstring{id}{id}}
+{\footnotesize\ttfamily std\+::string drone\+\_\+swarm\+::\+Vehicle\+Data\+::id}
+
+
+
+Unique drone identifier. 
+
+
+
+Definition at line 34 of file drone\+\_\+control.\+h.
+
+
+
+Referenced by drone\+\_\+swarm\+::\+Drone\+Control\+::fly\+To\+Goal().
+
+\mbox{\Hypertarget{structdrone__swarm_1_1VehicleData_ab37159662fd7ee7fa003fae589324879}\label{structdrone__swarm_1_1VehicleData_ab37159662fd7ee7fa003fae589324879}} 
+\index{drone\_swarm::VehicleData@{drone\_swarm::VehicleData}!mission\_active@{mission\_active}}
+\index{mission\_active@{mission\_active}!drone\_swarm::VehicleData@{drone\_swarm::VehicleData}}
+\doxysubsubsection{\texorpdfstring{mission\_active}{mission\_active}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Vehicle\+Data\+::mission\+\_\+active}
+
+
+
+Mission status flag. 
+
+
+
+Definition at line 37 of file drone\+\_\+control.\+h.
+
+
+
+Referenced by drone\+\_\+swarm\+::\+Drone\+Control\+::fly\+To\+Goal().
+
+\mbox{\Hypertarget{structdrone__swarm_1_1VehicleData_ae2c51bab390d25f7e05c90eefc7baf6e}\label{structdrone__swarm_1_1VehicleData_ae2c51bab390d25f7e05c90eefc7baf6e}} 
+\index{drone\_swarm::VehicleData@{drone\_swarm::VehicleData}!odom\_mutex@{odom\_mutex}}
+\index{odom\_mutex@{odom\_mutex}!drone\_swarm::VehicleData@{drone\_swarm::VehicleData}}
+\doxysubsubsection{\texorpdfstring{odom\_mutex}{odom\_mutex}}
+{\footnotesize\ttfamily std\+::mutex drone\+\_\+swarm\+::\+Vehicle\+Data\+::odom\+\_\+mutex}
+
+
+
+Thread-\/safe odometry access. 
+
+
+
+Definition at line 36 of file drone\+\_\+control.\+h.
+
+
+
+Referenced by drone\+\_\+swarm\+::\+Drone\+Control\+::fly\+To\+Goal().
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{drone__control_8h}{drone\+\_\+control.\+h}}\end{DoxyCompactItemize}

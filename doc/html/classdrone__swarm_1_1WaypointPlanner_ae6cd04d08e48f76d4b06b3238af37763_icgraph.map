@@ -1,0 +1,7 @@
+<map id="drone_swarm::WaypointPlanner::setWaypoints" name="drone_swarm::WaypointPlanner::setWaypoints">
+<area shape="rect" id="node1" title="Set new waypoint sequence for mission." alt="" coords="277,104,505,145"/>
+<area shape="rect" id="node2" href="$classdrone__swarm_1_1MissionExecutor.html#a3a6b15b9f2f6bed51345c1cb27315ddf" title="Execute debris obstruction response mission." alt="" coords="5,5,229,47"/>
+<area shape="rect" id="node3" href="$classdrone__swarm_1_1MissionExecutor.html#a9d47e2949ef7fa34c3332b2628d3aad1" title="Execute stranded hiker rescue mission." alt="" coords="5,71,229,112"/>
+<area shape="rect" id="node4" href="$classdrone__swarm_1_1MissionExecutor.html#a86caeefa08b2d6121dea6952e9175b85" title="Execute wildfire response mission." alt="" coords="5,136,229,177"/>
+<area shape="rect" id="node5" href="$classdrone__swarm_1_1MissionExecutor.html#a65b44e72318c322519263f1fba0b6582" title="Restore previously saved mission state." alt="" coords="5,201,229,243"/>
+</map>

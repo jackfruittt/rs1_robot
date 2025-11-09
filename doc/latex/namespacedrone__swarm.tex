@@ -1,0 +1,287 @@
+\hypertarget{namespacedrone__swarm}{}\doxysection{drone\+\_\+swarm Namespace Reference}
+\label{namespacedrone__swarm}\index{drone\_swarm@{drone\_swarm}}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+class \mbox{\hyperlink{classdrone__swarm_1_1SafetyMonitor}{Safety\+Monitor}}
+\item 
+class \mbox{\hyperlink{classdrone__swarm_1_1SensorManager}{Sensor\+Manager}}
+\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1VehicleData}{Vehicle\+Data}}
+\begin{DoxyCompactList}\small\item\em Structure to hold vehicle data for drone state management. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classdrone__swarm_1_1DroneControl}{Drone\+Control}}
+\begin{DoxyCompactList}\small\item\em Advanced drone control system with multiple control modes. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classdrone__swarm_1_1DroneControllerNode}{Drone\+Controller\+Node}}
+\begin{DoxyCompactList}\small\item\em ROS 2 node for comprehensive drone flight control. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classdrone__swarm_1_1MissionExecutor}{Mission\+Executor}}
+\begin{DoxyCompactList}\small\item\em Advanced mission execution for complex autonomous operations. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classdrone__swarm_1_1StateMachine}{State\+Machine}}
+\begin{DoxyCompactList}\small\item\em Manages mission state transitions for autonomous drone operations. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner}{Waypoint\+Planner}}
+\begin{DoxyCompactList}\small\item\em Manages waypoint sequences for drone missions. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1DroneInfo}{Drone\+Info}}
+\begin{DoxyCompactList}\small\item\em Information about a drone in the fleet. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1DispatchCooldown}{Dispatch\+Cooldown}}
+\begin{DoxyCompactList}\small\item\em Cooldown tracking for incident dispatch. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1OrbitPoint}{Orbit\+Point}}
+\begin{DoxyCompactList}\small\item\em Point on an orbital trajectory around an incident. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1ScenarioData}{Scenario\+Data}}
+\begin{DoxyCompactList}\small\item\em Simple data structure to hold parsed scenario information. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1PeerInfo}{Peer\+Info}}
+\begin{DoxyCompactList}\small\item\em Cached information about a peer drone. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1ScenarioEvent}{Scenario\+Event}}
+\begin{DoxyCompactList}\small\item\em Decoded scenario event from perception system. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1ActiveIncident}{Active\+Incident}}
+\begin{DoxyCompactList}\small\item\em Active incident being managed by the fleet. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classdrone__swarm_1_1MissionPlannerNode}{Mission\+Planner\+Node}}
+\begin{DoxyCompactList}\small\item\em ROS 2 node for autonomous mission planning and execution. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classdrone__swarm_1_1PIDController}{PIDController}}
+\begin{DoxyCompactList}\small\item\em Enhanced PID Controller with advanced features for precise drone control. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum class \mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59}{Flight\+Mode}} \{ \newline
+\mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59a468609fdfdc3c06b2548578e5415da8e}{DISARMED}}
+, \mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59af40e2850f4c07c01444b5f2393f6eb4c}{ARMED}}
+, \mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59aa60a6a471c0681e5a49c4f5d00f6bc5a}{MANUAL}}
+, \mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59ad068274fa138f34fe09e76bab5f62336}{STABILISE}}
+, \newline
+\mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59a06f6aee1ecf4d427ff0cd2b8ff3c640a}{GUIDED}}
+, \mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59ae1f2d5134ed2543d38a0de9751cf75d9}{AUTO}}
+, \mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59ae6490f3976e3bbc0c283cdc144174a22}{EMERGENCY\+\_\+\+LAND}}
+ \}
+\begin{DoxyCompactList}\small\item\em Flight mode enumeration for drone operation states. \end{DoxyCompactList}\item 
+enum class \mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924}{Mission\+State}} \{ \newline
+\mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924aa5daf7f2ebbba4975d61dab1c40188c7}{IDLE}}
+, \mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a8fabc74a4ed0781d663336cbf8c9c53d}{TAKEOFF}}
+, \mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a397331a773b215cc9dcfa80032c08e36}{WAYPOINT\+\_\+\+NAVIGATION}}
+, \mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a7211ebf1bcb5184ec2a4ffd389dea7fa}{RESPONSE\+\_\+\+NAVIGATION}}
+, \newline
+\mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a69552f81f134f9d8a87140f3c88e2939}{HOVERING}}
+, \mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a7ab0a1cfd85cc3da16cd3e3ad7448524}{LANDING}}
+, \mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a135b41d7d111ad30c5e27b38dabe0852}{MANUAL\+\_\+\+CONTROL}}
+, \mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a1d9e8d5522fd3de1bbc21723300efd30}{EMERGENCY}}
+ \}
+\begin{DoxyCompactList}\small\item\em Enumeration of possible mission states for drone operations. \end{DoxyCompactList}\item 
+enum class \mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0}{Scenario}} \{ \mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0a696b031073e74bf2cb98e5ef201d4aa3}{UNKNOWN}} = 0
+, \mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0a2b50ee83d55f81070fdf00a9eaf9f110}{STRANDED\+\_\+\+HIKER}}
+, \mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0a670a7969a5b597f1e39e16d1eefd6c78}{WILDFIRE}}
+, \mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0af7d23cea5983ff915e1bf87da17b55b5}{DEBRIS\+\_\+\+OBSTRUCTION}}
+ \}
+\begin{DoxyCompactList}\small\item\em Scenario types that can be detected during missions. \end{DoxyCompactList}\item 
+enum class \mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662}{Reaction\+Phase}} \{ \newline
+\mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662ab50339a10e1de285ac99d4c3990b8693}{NONE}}
+, \mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662afaee4ca3c30ee18148ce3ada37466498}{INIT}}
+, \mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662ad3bc27ea620f6caaf3b8d332f8e7e0bf}{COLLECT\+\_\+\+INFO}}
+, \mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662ad913681e2dbb1e2f78cdf551e09c29e7}{ASSIGN\+\_\+\+PEER}}
+, \newline
+\mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662a7e123157c8bf8b2b723faf959243f0f7}{SELF\+\_\+\+ORBIT}}
+, \mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662a3de44296982e58199afc513a715b12ba}{COMPLETE}}
+ \}
+\begin{DoxyCompactList}\small\item\em Reaction phase for scenario response coordination. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{structdrone__swarm_1_1ScenarioData}{Scenario\+Data}} \mbox{\hyperlink{namespacedrone__swarm_a1473a0e7d7584e0c073e7b1f87f407d9}{parse\+Scenario\+Message}} (const std\+::string \&message\+\_\+data)
+\begin{DoxyCompactList}\small\item\em Parse scenario detection message from perception package. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Enumeration Type Documentation}
+\mbox{\Hypertarget{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59}\label{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59}} 
+\index{drone\_swarm@{drone\_swarm}!FlightMode@{FlightMode}}
+\index{FlightMode@{FlightMode}!drone\_swarm@{drone\_swarm}}
+\doxysubsubsection{\texorpdfstring{FlightMode}{FlightMode}}
+{\footnotesize\ttfamily enum \mbox{\hyperlink{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59}{drone\+\_\+swarm\+::\+Flight\+Mode}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+Flight mode enumeration for drone operation states. 
+
+Defines various flight modes for autonomous and manual control. Currently only basic modes are implemented. \begin{DoxyEnumFields}{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{DISARMED@{DISARMED}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!DISARMED@{DISARMED}}}\mbox{\Hypertarget{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59a468609fdfdc3c06b2548578e5415da8e}\label{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59a468609fdfdc3c06b2548578e5415da8e}} 
+DISARMED&Drone motors disarmed, safe state. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ARMED@{ARMED}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!ARMED@{ARMED}}}\mbox{\Hypertarget{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59af40e2850f4c07c01444b5f2393f6eb4c}\label{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59af40e2850f4c07c01444b5f2393f6eb4c}} 
+ARMED&Drone motors armed, ready for flight. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{MANUAL@{MANUAL}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!MANUAL@{MANUAL}}}\mbox{\Hypertarget{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59aa60a6a471c0681e5a49c4f5d00f6bc5a}\label{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59aa60a6a471c0681e5a49c4f5d00f6bc5a}} 
+MANUAL&Manual control mode (future implementation) \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STABILISE@{STABILISE}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!STABILISE@{STABILISE}}}\mbox{\Hypertarget{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59ad068274fa138f34fe09e76bab5f62336}\label{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59ad068274fa138f34fe09e76bab5f62336}} 
+STABILISE&Stabilised flight mode (future implementation) ~\newline
+ \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{GUIDED@{GUIDED}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!GUIDED@{GUIDED}}}\mbox{\Hypertarget{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59a06f6aee1ecf4d427ff0cd2b8ff3c640a}\label{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59a06f6aee1ecf4d427ff0cd2b8ff3c640a}} 
+GUIDED&Guided autonomous mode. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{AUTO@{AUTO}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!AUTO@{AUTO}}}\mbox{\Hypertarget{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59ae1f2d5134ed2543d38a0de9751cf75d9}\label{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59ae1f2d5134ed2543d38a0de9751cf75d9}} 
+AUTO&Full autonomous mode (future implementation) \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EMERGENCY\_LAND@{EMERGENCY\_LAND}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!EMERGENCY\_LAND@{EMERGENCY\_LAND}}}\mbox{\Hypertarget{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59ae6490f3976e3bbc0c283cdc144174a22}\label{namespacedrone__swarm_ab86adac429301e34f848572be23ddf59ae6490f3976e3bbc0c283cdc144174a22}} 
+EMERGENCY\+\_\+\+LAND&Emergency landing mode. \\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line 43 of file drone\+\_\+node.\+h.
+
+\mbox{\Hypertarget{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924}\label{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924}} 
+\index{drone\_swarm@{drone\_swarm}!MissionState@{MissionState}}
+\index{MissionState@{MissionState}!drone\_swarm@{drone\_swarm}}
+\doxysubsubsection{\texorpdfstring{MissionState}{MissionState}}
+{\footnotesize\ttfamily enum \mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924}{drone\+\_\+swarm\+::\+Mission\+State}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+Enumeration of possible mission states for drone operations. 
+
+Defines the core state machine for autonomous drone flight operations. Scenario reactions (wildfire, hiker rescue, debris) are now handled via services rather than states, allowing clean preservation and restoration of mission progress. \begin{DoxyEnumFields}{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{IDLE@{IDLE}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!IDLE@{IDLE}}}\mbox{\Hypertarget{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924aa5daf7f2ebbba4975d61dab1c40188c7}\label{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924aa5daf7f2ebbba4975d61dab1c40188c7}} 
+IDLE&Drone on ground, ready for mission start. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{TAKEOFF@{TAKEOFF}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!TAKEOFF@{TAKEOFF}}}\mbox{\Hypertarget{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a8fabc74a4ed0781d663336cbf8c9c53d}\label{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a8fabc74a4ed0781d663336cbf8c9c53d}} 
+TAKEOFF&Ascending to mission altitude. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{WAYPOINT\_NAVIGATION@{WAYPOINT\_NAVIGATION}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!WAYPOINT\_NAVIGATION@{WAYPOINT\_NAVIGATION}}}\mbox{\Hypertarget{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a397331a773b215cc9dcfa80032c08e36}\label{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a397331a773b215cc9dcfa80032c08e36}} 
+WAYPOINT\+\_\+\+NAVIGATION&Actively navigating between waypoints. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{RESPONSE\_NAVIGATION@{RESPONSE\_NAVIGATION}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!RESPONSE\_NAVIGATION@{RESPONSE\_NAVIGATION}}}\mbox{\Hypertarget{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a7211ebf1bcb5184ec2a4ffd389dea7fa}\label{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a7211ebf1bcb5184ec2a4ffd389dea7fa}} 
+RESPONSE\+\_\+\+NAVIGATION&Navigating waypoints for scenario response mission. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{HOVERING@{HOVERING}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!HOVERING@{HOVERING}}}\mbox{\Hypertarget{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a69552f81f134f9d8a87140f3c88e2939}\label{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a69552f81f134f9d8a87140f3c88e2939}} 
+HOVERING&Maintaining position, awaiting next command. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{LANDING@{LANDING}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!LANDING@{LANDING}}}\mbox{\Hypertarget{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a7ab0a1cfd85cc3da16cd3e3ad7448524}\label{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a7ab0a1cfd85cc3da16cd3e3ad7448524}} 
+LANDING&Descending to ground. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{MANUAL\_CONTROL@{MANUAL\_CONTROL}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!MANUAL\_CONTROL@{MANUAL\_CONTROL}}}\mbox{\Hypertarget{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a135b41d7d111ad30c5e27b38dabe0852}\label{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a135b41d7d111ad30c5e27b38dabe0852}} 
+MANUAL\+\_\+\+CONTROL&External manual control mode. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{EMERGENCY@{EMERGENCY}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!EMERGENCY@{EMERGENCY}}}\mbox{\Hypertarget{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a1d9e8d5522fd3de1bbc21723300efd30}\label{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924a1d9e8d5522fd3de1bbc21723300efd30}} 
+EMERGENCY&Emergency state requiring immediate attention. \\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line 25 of file mission\+\_\+state.\+h.
+
+\mbox{\Hypertarget{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662}\label{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662}} 
+\index{drone\_swarm@{drone\_swarm}!ReactionPhase@{ReactionPhase}}
+\index{ReactionPhase@{ReactionPhase}!drone\_swarm@{drone\_swarm}}
+\doxysubsubsection{\texorpdfstring{ReactionPhase}{ReactionPhase}}
+{\footnotesize\ttfamily enum \mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662}{drone\+\_\+swarm\+::\+Reaction\+Phase}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+Reaction phase for scenario response coordination. 
+
+Tracks the progression of multi-\/drone coordination for scenario responses \begin{DoxyEnumFields}{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{NONE@{NONE}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!NONE@{NONE}}}\mbox{\Hypertarget{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662ab50339a10e1de285ac99d4c3990b8693}\label{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662ab50339a10e1de285ac99d4c3990b8693}} 
+NONE&No active reaction. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{INIT@{INIT}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!INIT@{INIT}}}\mbox{\Hypertarget{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662afaee4ca3c30ee18148ce3ada37466498}\label{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662afaee4ca3c30ee18148ce3ada37466498}} 
+INIT&Initialisation phase. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{COLLECT\_INFO@{COLLECT\_INFO}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!COLLECT\_INFO@{COLLECT\_INFO}}}\mbox{\Hypertarget{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662ad3bc27ea620f6caaf3b8d332f8e7e0bf}\label{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662ad3bc27ea620f6caaf3b8d332f8e7e0bf}} 
+COLLECT\+\_\+\+INFO&Collecting information from peer drones. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{ASSIGN\_PEER@{ASSIGN\_PEER}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!ASSIGN\_PEER@{ASSIGN\_PEER}}}\mbox{\Hypertarget{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662ad913681e2dbb1e2f78cdf551e09c29e7}\label{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662ad913681e2dbb1e2f78cdf551e09c29e7}} 
+ASSIGN\+\_\+\+PEER&Assigning peer drone for response. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{SELF\_ORBIT@{SELF\_ORBIT}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!SELF\_ORBIT@{SELF\_ORBIT}}}\mbox{\Hypertarget{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662a7e123157c8bf8b2b723faf959243f0f7}\label{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662a7e123157c8bf8b2b723faf959243f0f7}} 
+SELF\+\_\+\+ORBIT&Self-\/executing orbital inspection. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{COMPLETE@{COMPLETE}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!COMPLETE@{COMPLETE}}}\mbox{\Hypertarget{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662a3de44296982e58199afc513a715b12ba}\label{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662a3de44296982e58199afc513a715b12ba}} 
+COMPLETE&Reaction complete. \\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line 71 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0}\label{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0}} 
+\index{drone\_swarm@{drone\_swarm}!Scenario@{Scenario}}
+\index{Scenario@{Scenario}!drone\_swarm@{drone\_swarm}}
+\doxysubsubsection{\texorpdfstring{Scenario}{Scenario}}
+{\footnotesize\ttfamily enum \mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0}{drone\+\_\+swarm\+::\+Scenario}}\hspace{0.3cm}{\ttfamily [strong]}}
+
+
+
+Scenario types that can be detected during missions. 
+
+Matches scenario names published by the perception system \begin{DoxyEnumFields}{Enumerator}
+\raisebox{\heightof{T}}[0pt][0pt]{\index{UNKNOWN@{UNKNOWN}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!UNKNOWN@{UNKNOWN}}}\mbox{\Hypertarget{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0a696b031073e74bf2cb98e5ef201d4aa3}\label{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0a696b031073e74bf2cb98e5ef201d4aa3}} 
+UNKNOWN&Unknown or unrecognised scenario type. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{STRANDED\_HIKER@{STRANDED\_HIKER}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!STRANDED\_HIKER@{STRANDED\_HIKER}}}\mbox{\Hypertarget{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0a2b50ee83d55f81070fdf00a9eaf9f110}\label{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0a2b50ee83d55f81070fdf00a9eaf9f110}} 
+STRANDED\+\_\+\+HIKER&Stranded hiker requiring rescue. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{WILDFIRE@{WILDFIRE}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!WILDFIRE@{WILDFIRE}}}\mbox{\Hypertarget{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0a670a7969a5b597f1e39e16d1eefd6c78}\label{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0a670a7969a5b597f1e39e16d1eefd6c78}} 
+WILDFIRE&Wildfire requiring suppression. \\
+\hline
+
+\raisebox{\heightof{T}}[0pt][0pt]{\index{DEBRIS\_OBSTRUCTION@{DEBRIS\_OBSTRUCTION}!drone\_swarm@{drone\_swarm}}\index{drone\_swarm@{drone\_swarm}!DEBRIS\_OBSTRUCTION@{DEBRIS\_OBSTRUCTION}}}\mbox{\Hypertarget{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0af7d23cea5983ff915e1bf87da17b55b5}\label{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0af7d23cea5983ff915e1bf87da17b55b5}} 
+DEBRIS\+\_\+\+OBSTRUCTION&Debris obstruction requiring inspection. \\
+\hline
+
+\end{DoxyEnumFields}
+
+
+Definition at line 59 of file mission\+\_\+node.\+h.
+
+
+
+\doxysubsection{Function Documentation}
+\mbox{\Hypertarget{namespacedrone__swarm_a1473a0e7d7584e0c073e7b1f87f407d9}\label{namespacedrone__swarm_a1473a0e7d7584e0c073e7b1f87f407d9}} 
+\index{drone\_swarm@{drone\_swarm}!parseScenarioMessage@{parseScenarioMessage}}
+\index{parseScenarioMessage@{parseScenarioMessage}!drone\_swarm@{drone\_swarm}}
+\doxysubsubsection{\texorpdfstring{parseScenarioMessage()}{parseScenarioMessage()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{structdrone__swarm_1_1ScenarioData}{Scenario\+Data}} drone\+\_\+swarm\+::parse\+Scenario\+Message (\begin{DoxyParamCaption}\item[{const std\+::string \&}]{message\+\_\+data }\end{DoxyParamCaption})}
+
+
+
+Parse scenario detection message from perception package. 
+
+Takes a string in the format\+: \char`\"{}\+SCENARIO\+\_\+\+NAME,severity,x,y,z,yaw,respond\+:1\char`\"{}
+
+Example input\+: \char`\"{}\+STRANDED\+\_\+\+HIKER,4,10.\+5,5.\+2,2.\+1,1.\+57,respond\+:1\char`\"{}
+
+
+\begin{DoxyParams}{Parameters}
+{\em message\+\_\+data} & The raw string from /scenario\+\_\+detection topic \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+\mbox{\hyperlink{structdrone__swarm_1_1ScenarioData}{Scenario\+Data}} struct with parsed values (check .valid field for success) 
+\end{DoxyReturn}
+
+
+Definition at line 1836 of file mission\+\_\+node.\+cpp.
+
+
+
+References drone\+\_\+swarm\+::\+Scenario\+Data\+::can\+\_\+respond, drone\+\_\+swarm\+::\+Scenario\+Data\+::scenario\+\_\+name, drone\+\_\+swarm\+::\+Scenario\+Data\+::severity, drone\+\_\+swarm\+::\+Scenario\+Data\+::valid, drone\+\_\+swarm\+::\+Scenario\+Data\+::x, drone\+\_\+swarm\+::\+Scenario\+Data\+::y, drone\+\_\+swarm\+::\+Scenario\+Data\+::yaw, and drone\+\_\+swarm\+::\+Scenario\+Data\+::z.
+

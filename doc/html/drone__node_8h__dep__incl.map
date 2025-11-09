@@ -1,0 +1,5 @@
+<map id="include/drone_node.h" name="include/drone_node.h">
+<area shape="rect" id="node1" title="Drone controller node for autonomous flight operations." alt="" coords="96,5,257,32"/>
+<area shape="rect" id="node2" href="$drone__node_8cpp.html" title=" " alt="" coords="5,80,153,107"/>
+<area shape="rect" id="node3" href="$main__composition_8cpp.html" title=" " alt="" coords="178,80,370,107"/>
+</map>

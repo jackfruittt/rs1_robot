@@ -1,0 +1,180 @@
+\hypertarget{classdrone__swarm_1_1StateMachine}{}\doxysection{drone\+\_\+swarm\+::State\+Machine Class Reference}
+\label{classdrone__swarm_1_1StateMachine}\index{drone\_swarm::StateMachine@{drone\_swarm::StateMachine}}
+
+
+Manages mission state transitions for autonomous drone operations.  
+
+
+
+
+{\ttfamily \#include $<$state\+\_\+machine.\+h$>$}
+
+
+
+Collaboration diagram for drone\+\_\+swarm\+::State\+Machine\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=235pt]{classdrone__swarm_1_1StateMachine__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classdrone__swarm_1_1StateMachine_ad0e6c869a5d0366e8c7f557d7f6ae615}{State\+Machine}} ()
+\begin{DoxyCompactList}\small\item\em Default constructor Initialises state machine in IDLE state with current timestamp. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1StateMachine_afc3561a3fea3832f8f5d45d9c8b14612}{set\+State}} (\mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924}{Mission\+State}} new\+\_\+state)
+\begin{DoxyCompactList}\small\item\em Set new mission state. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924}{Mission\+State}} \mbox{\hyperlink{classdrone__swarm_1_1StateMachine_aaf874ec9511436dde26e1843af794d18}{get\+Current\+State}} () const
+\begin{DoxyCompactList}\small\item\em Get current mission state. \end{DoxyCompactList}\item 
+std\+::string \mbox{\hyperlink{classdrone__swarm_1_1StateMachine_a40458f18a3a8e7bef7746194b9322318}{get\+State\+String}} () const
+\begin{DoxyCompactList}\small\item\em Get human-\/readable state string. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classdrone__swarm_1_1StateMachine_a5be7f982fcfd2c25759f5f0a59e828b7}{can\+Transition}} (\mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924}{Mission\+State}} target\+\_\+state) const
+\begin{DoxyCompactList}\small\item\em Check if transition to target state is valid. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Manages mission state transitions for autonomous drone operations. 
+
+Provides safe state transitions with validation and timing information for mission planning and execution. Ensures proper state sequences and prevents invalid transitions that could compromise flight safety. 
+
+Definition at line 28 of file state\+\_\+machine.\+h.
+
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1StateMachine_ad0e6c869a5d0366e8c7f557d7f6ae615}\label{classdrone__swarm_1_1StateMachine_ad0e6c869a5d0366e8c7f557d7f6ae615}} 
+\index{drone\_swarm::StateMachine@{drone\_swarm::StateMachine}!StateMachine@{StateMachine}}
+\index{StateMachine@{StateMachine}!drone\_swarm::StateMachine@{drone\_swarm::StateMachine}}
+\doxysubsubsection{\texorpdfstring{StateMachine()}{StateMachine()}}
+{\footnotesize\ttfamily drone\+\_\+swarm\+::\+State\+Machine\+::\+State\+Machine (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Default constructor Initialises state machine in IDLE state with current timestamp. 
+
+
+
+Definition at line 7 of file state\+\_\+machine.\+cpp.
+
+
+
+References drone\+\_\+swarm\+::\+IDLE.
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1StateMachine_a5be7f982fcfd2c25759f5f0a59e828b7}\label{classdrone__swarm_1_1StateMachine_a5be7f982fcfd2c25759f5f0a59e828b7}} 
+\index{drone\_swarm::StateMachine@{drone\_swarm::StateMachine}!canTransition@{canTransition}}
+\index{canTransition@{canTransition}!drone\_swarm::StateMachine@{drone\_swarm::StateMachine}}
+\doxysubsubsection{\texorpdfstring{canTransition()}{canTransition()}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+State\+Machine\+::can\+Transition (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924}{Mission\+State}}}]{target\+\_\+state }\end{DoxyParamCaption}) const}
+
+
+
+Check if transition to target state is valid. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target\+\_\+state} & Desired state to transition to \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if transition is allowed, false otherwise
+\end{DoxyReturn}
+Validates state transitions according to mission safety rules. Prevents invalid transitions that could compromise flight safety. 
+
+Definition at line 45 of file state\+\_\+machine.\+cpp.
+
+
+
+References drone\+\_\+swarm\+::\+EMERGENCY, drone\+\_\+swarm\+::\+HOVERING, drone\+\_\+swarm\+::\+IDLE, drone\+\_\+swarm\+::\+LANDING, drone\+\_\+swarm\+::\+MANUAL\+\_\+\+CONTROL, drone\+\_\+swarm\+::\+RESPONSE\+\_\+\+NAVIGATION, drone\+\_\+swarm\+::\+TAKEOFF, and drone\+\_\+swarm\+::\+WAYPOINT\+\_\+\+NAVIGATION.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1StateMachine_aaf874ec9511436dde26e1843af794d18}\label{classdrone__swarm_1_1StateMachine_aaf874ec9511436dde26e1843af794d18}} 
+\index{drone\_swarm::StateMachine@{drone\_swarm::StateMachine}!getCurrentState@{getCurrentState}}
+\index{getCurrentState@{getCurrentState}!drone\_swarm::StateMachine@{drone\_swarm::StateMachine}}
+\doxysubsubsection{\texorpdfstring{getCurrentState()}{getCurrentState()}}
+{\footnotesize\ttfamily \mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924}{Mission\+State}} drone\+\_\+swarm\+::\+State\+Machine\+::get\+Current\+State (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get current mission state. 
+
+\begin{DoxyReturn}{Returns}
+Current mission state enumeration 
+\end{DoxyReturn}
+
+
+Definition at line 26 of file state\+\_\+machine.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1StateMachine_a40458f18a3a8e7bef7746194b9322318}\label{classdrone__swarm_1_1StateMachine_a40458f18a3a8e7bef7746194b9322318}} 
+\index{drone\_swarm::StateMachine@{drone\_swarm::StateMachine}!getStateString@{getStateString}}
+\index{getStateString@{getStateString}!drone\_swarm::StateMachine@{drone\_swarm::StateMachine}}
+\doxysubsubsection{\texorpdfstring{getStateString()}{getStateString()}}
+{\footnotesize\ttfamily std\+::string drone\+\_\+swarm\+::\+State\+Machine\+::get\+State\+String (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get human-\/readable state string. 
+
+\begin{DoxyReturn}{Returns}
+String representation of current state
+\end{DoxyReturn}
+Useful for logging and debugging mission state information. 
+
+Definition at line 30 of file state\+\_\+machine.\+cpp.
+
+
+
+References drone\+\_\+swarm\+::\+EMERGENCY, drone\+\_\+swarm\+::\+HOVERING, drone\+\_\+swarm\+::\+IDLE, drone\+\_\+swarm\+::\+LANDING, drone\+\_\+swarm\+::\+MANUAL\+\_\+\+CONTROL, drone\+\_\+swarm\+::\+RESPONSE\+\_\+\+NAVIGATION, drone\+\_\+swarm\+::\+TAKEOFF, and drone\+\_\+swarm\+::\+WAYPOINT\+\_\+\+NAVIGATION.
+
+
+
+Referenced by set\+State().
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1StateMachine_a40458f18a3a8e7bef7746194b9322318_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1StateMachine_afc3561a3fea3832f8f5d45d9c8b14612}\label{classdrone__swarm_1_1StateMachine_afc3561a3fea3832f8f5d45d9c8b14612}} 
+\index{drone\_swarm::StateMachine@{drone\_swarm::StateMachine}!setState@{setState}}
+\index{setState@{setState}!drone\_swarm::StateMachine@{drone\_swarm::StateMachine}}
+\doxysubsubsection{\texorpdfstring{setState()}{setState()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+State\+Machine\+::set\+State (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924}{Mission\+State}}}]{new\+\_\+state }\end{DoxyParamCaption})}
+
+
+
+Set new mission state. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em new\+\_\+state} & Target state to transition to\\
+\hline
+\end{DoxyParams}
+Updates current state and records entry time for transition tracking. Does not validate transition -\/ use \mbox{\hyperlink{classdrone__swarm_1_1StateMachine_a5be7f982fcfd2c25759f5f0a59e828b7}{can\+Transition()}} for safety checks. 
+
+Definition at line 12 of file state\+\_\+machine.\+cpp.
+
+
+
+References get\+State\+String().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1StateMachine_afc3561a3fea3832f8f5d45d9c8b14612_cgraph}
+\end{center}
+\end{figure}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/mission/\mbox{\hyperlink{state__machine_8h}{state\+\_\+machine.\+h}}\item 
+src/\mbox{\hyperlink{state__machine_8cpp}{state\+\_\+machine.\+cpp}}\end{DoxyCompactItemize}

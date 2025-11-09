@@ -1,0 +1,346 @@
+\hypertarget{classdrone__swarm_1_1MissionExecutor}{}\doxysection{drone\+\_\+swarm\+::Mission\+Executor Class Reference}
+\label{classdrone__swarm_1_1MissionExecutor}\index{drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}}
+
+
+Advanced mission execution for complex autonomous operations.  
+
+
+
+
+{\ttfamily \#include $<$mission\+\_\+executor.\+h$>$}
+
+
+
+Collaboration diagram for drone\+\_\+swarm\+::Mission\+Executor\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=248pt]{classdrone__swarm_1_1MissionExecutor__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classdrone__swarm_1_1MissionExecutor_aeecda6f54c8c30caf3832bc7542a58db}{Mission\+Executor}} ()
+\begin{DoxyCompactList}\small\item\em Default constructor Initialises mission executor with default parameters. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1MissionExecutor_a6da61defb9ac838c3ca1e5c65ffd6eee}{set\+Logger}} (rclcpp\+::\+Logger logger)
+\begin{DoxyCompactList}\small\item\em Set ROS 2 logger for debugging output. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1MissionExecutor_a82a8bf210ed90e3baf6447841364c586}{set\+Cmd\+Vel\+Publisher}} (rclcpp\+::\+Publisher$<$ geometry\+\_\+msgs\+::msg\+::\+Twist $>$\+::Shared\+Ptr pub)
+\begin{DoxyCompactList}\small\item\em Set command velocity publisher. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classdrone__swarm_1_1MissionExecutor_a86caeefa08b2d6121dea6952e9175b85}{execute\+Wildfire\+Reaction}} (const geometry\+\_\+msgs\+::msg\+::\+Point \&fire\+\_\+location, const geometry\+\_\+msgs\+::msg\+::\+Point \&depot\+\_\+location, const geometry\+\_\+msgs\+::msg\+::\+Point \&helipad\+\_\+location, \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner}{Waypoint\+Planner}} $\ast$path\+\_\+planner)
+\begin{DoxyCompactList}\small\item\em Execute wildfire response mission. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classdrone__swarm_1_1MissionExecutor_a9d47e2949ef7fa34c3332b2628d3aad1}{execute\+Hiker\+Rescue}} (const geometry\+\_\+msgs\+::msg\+::\+Point \&hiker\+\_\+location, const geometry\+\_\+msgs\+::msg\+::\+Point \&depot\+\_\+location, \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner}{Waypoint\+Planner}} $\ast$path\+\_\+planner)
+\begin{DoxyCompactList}\small\item\em Execute stranded hiker rescue mission. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classdrone__swarm_1_1MissionExecutor_a3a6b15b9f2f6bed51345c1cb27315ddf}{execute\+Debris\+Reaction}} (const geometry\+\_\+msgs\+::msg\+::\+Point \&debris\+\_\+location, \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner}{Waypoint\+Planner}} $\ast$path\+\_\+planner)
+\begin{DoxyCompactList}\small\item\em Execute debris obstruction response mission. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1MissionExecutor_a8055bc1f37d70df43b365f14a5e2aa7b}{save\+Mission\+State}} (\mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner}{Waypoint\+Planner}} $\ast$path\+\_\+planner)
+\begin{DoxyCompactList}\small\item\em Save current mission state for later restoration. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classdrone__swarm_1_1MissionExecutor_a65b44e72318c322519263f1fba0b6582}{restore\+Mission\+State}} (\mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner}{Waypoint\+Planner}} $\ast$path\+\_\+planner)
+\begin{DoxyCompactList}\small\item\em Restore previously saved mission state. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classdrone__swarm_1_1MissionExecutor_abb4772a758a5af4d06fd4c2d5653f491}{is\+Mission\+Cancelled}} () const
+\begin{DoxyCompactList}\small\item\em Check if mission has been cancelled or aborted. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1MissionExecutor_a9e5213fa3b212da5aa835ebbe8a3f1be}{cancel\+Mission}} ()
+\begin{DoxyCompactList}\small\item\em Cancel current mission operations Sets internal flag to stop mission execution. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1MissionExecutor_a477b59e677bb047fadb1d469cef6310b}{reset}} ()
+\begin{DoxyCompactList}\small\item\em Reset mission executor for new mission Clears all internal state and prepares for new operations. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Advanced mission execution for complex autonomous operations. 
+
+Placeholder for future implementation of advanced mission types including formation flying, collaborative tasks, and dynamic mission replanning. Currently provides basic structure for mission state management.
+
+\begin{DoxyNote}{Note}
+Most functionality is commented out for future development 
+\end{DoxyNote}
+
+
+Definition at line 35 of file mission\+\_\+executor.\+h.
+
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1MissionExecutor_aeecda6f54c8c30caf3832bc7542a58db}\label{classdrone__swarm_1_1MissionExecutor_aeecda6f54c8c30caf3832bc7542a58db}} 
+\index{drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}!MissionExecutor@{MissionExecutor}}
+\index{MissionExecutor@{MissionExecutor}!drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}}
+\doxysubsubsection{\texorpdfstring{MissionExecutor()}{MissionExecutor()}}
+{\footnotesize\ttfamily drone\+\_\+swarm\+::\+Mission\+Executor\+::\+Mission\+Executor (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Default constructor Initialises mission executor with default parameters. 
+
+
+
+Definition at line 7 of file mission\+\_\+executor.\+cpp.
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1MissionExecutor_a9e5213fa3b212da5aa835ebbe8a3f1be}\label{classdrone__swarm_1_1MissionExecutor_a9e5213fa3b212da5aa835ebbe8a3f1be}} 
+\index{drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}!cancelMission@{cancelMission}}
+\index{cancelMission@{cancelMission}!drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}}
+\doxysubsubsection{\texorpdfstring{cancelMission()}{cancelMission()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Mission\+Executor\+::cancel\+Mission (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Cancel current mission operations Sets internal flag to stop mission execution. 
+
+
+
+Definition at line 35 of file mission\+\_\+executor.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1MissionExecutor_a3a6b15b9f2f6bed51345c1cb27315ddf}\label{classdrone__swarm_1_1MissionExecutor_a3a6b15b9f2f6bed51345c1cb27315ddf}} 
+\index{drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}!executeDebrisReaction@{executeDebrisReaction}}
+\index{executeDebrisReaction@{executeDebrisReaction}!drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}}
+\doxysubsubsection{\texorpdfstring{executeDebrisReaction()}{executeDebrisReaction()}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Mission\+Executor\+::execute\+Debris\+Reaction (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::msg\+::\+Point \&}]{debris\+\_\+location,  }\item[{\mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner}{Waypoint\+Planner}} $\ast$}]{path\+\_\+planner }\end{DoxyParamCaption})}
+
+
+
+Execute debris obstruction response mission. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em debris\+\_\+location} & Location of debris \\
+\hline
+{\em path\+\_\+planner} & Path planner for waypoint management \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if mission completed successfully
+\end{DoxyReturn}
+Generates circular orbit waypoints around debris for visual inspection Allows drone to survey the obstruction from multiple angles 
+
+Definition at line 216 of file mission\+\_\+executor.\+cpp.
+
+
+
+References drone\+\_\+swarm\+::\+Waypoint\+Planner\+::set\+Waypoints().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1MissionExecutor_a3a6b15b9f2f6bed51345c1cb27315ddf_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1MissionExecutor_a9d47e2949ef7fa34c3332b2628d3aad1}\label{classdrone__swarm_1_1MissionExecutor_a9d47e2949ef7fa34c3332b2628d3aad1}} 
+\index{drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}!executeHikerRescue@{executeHikerRescue}}
+\index{executeHikerRescue@{executeHikerRescue}!drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}}
+\doxysubsubsection{\texorpdfstring{executeHikerRescue()}{executeHikerRescue()}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Mission\+Executor\+::execute\+Hiker\+Rescue (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::msg\+::\+Point \&}]{hiker\+\_\+location,  }\item[{const geometry\+\_\+msgs\+::msg\+::\+Point \&}]{depot\+\_\+location,  }\item[{\mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner}{Waypoint\+Planner}} $\ast$}]{path\+\_\+planner }\end{DoxyParamCaption})}
+
+
+
+Execute stranded hiker rescue mission. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em hiker\+\_\+location} & Location of stranded hiker \\
+\hline
+{\em depot\+\_\+location} & Location of medkit depot \\
+\hline
+{\em path\+\_\+planner} & Path planner for waypoint management \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if mission completed successfully
+\end{DoxyReturn}
+Sequence\+: Navigate to depot -\/$>$ Land -\/$>$ Collect medkit -\/$>$ Takeoff -\/$>$ Navigate to hiker -\/$>$ Deploy medkit -\/$>$ Return to previous mission 
+
+Definition at line 163 of file mission\+\_\+executor.\+cpp.
+
+
+
+References drone\+\_\+swarm\+::\+Waypoint\+Planner\+::set\+Waypoints().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1MissionExecutor_a9d47e2949ef7fa34c3332b2628d3aad1_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1MissionExecutor_a86caeefa08b2d6121dea6952e9175b85}\label{classdrone__swarm_1_1MissionExecutor_a86caeefa08b2d6121dea6952e9175b85}} 
+\index{drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}!executeWildfireReaction@{executeWildfireReaction}}
+\index{executeWildfireReaction@{executeWildfireReaction}!drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}}
+\doxysubsubsection{\texorpdfstring{executeWildfireReaction()}{executeWildfireReaction()}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Mission\+Executor\+::execute\+Wildfire\+Reaction (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::msg\+::\+Point \&}]{fire\+\_\+location,  }\item[{const geometry\+\_\+msgs\+::msg\+::\+Point \&}]{depot\+\_\+location,  }\item[{const geometry\+\_\+msgs\+::msg\+::\+Point \&}]{helipad\+\_\+location,  }\item[{\mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner}{Waypoint\+Planner}} $\ast$}]{path\+\_\+planner }\end{DoxyParamCaption})}
+
+
+
+Execute wildfire response mission. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em fire\+\_\+location} & Location of the fire \\
+\hline
+{\em depot\+\_\+location} & Location of retardant depot \\
+\hline
+{\em path\+\_\+planner} & Path planner for waypoint management \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if mission completed successfully
+\end{DoxyReturn}
+Sequence\+: Navigate to depot -\/$>$ Land -\/$>$ Collect retardant -\/$>$ Takeoff -\/$>$ Navigate to fire -\/$>$ Deploy retardant -\/$>$ Return to previous mission 
+
+Definition at line 86 of file mission\+\_\+executor.\+cpp.
+
+
+
+References drone\+\_\+swarm\+::\+Waypoint\+Planner\+::set\+Waypoints().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1MissionExecutor_a86caeefa08b2d6121dea6952e9175b85_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1MissionExecutor_abb4772a758a5af4d06fd4c2d5653f491}\label{classdrone__swarm_1_1MissionExecutor_abb4772a758a5af4d06fd4c2d5653f491}} 
+\index{drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}!isMissionCancelled@{isMissionCancelled}}
+\index{isMissionCancelled@{isMissionCancelled}!drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}}
+\doxysubsubsection{\texorpdfstring{isMissionCancelled()}{isMissionCancelled()}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Mission\+Executor\+::is\+Mission\+Cancelled (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Check if mission has been cancelled or aborted. 
+
+\begin{DoxyReturn}{Returns}
+True if mission should be terminated 
+\end{DoxyReturn}
+
+
+Definition at line 31 of file mission\+\_\+executor.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1MissionExecutor_a477b59e677bb047fadb1d469cef6310b}\label{classdrone__swarm_1_1MissionExecutor_a477b59e677bb047fadb1d469cef6310b}} 
+\index{drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}!reset@{reset}}
+\index{reset@{reset}!drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}}
+\doxysubsubsection{\texorpdfstring{reset()}{reset()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Mission\+Executor\+::reset (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Reset mission executor for new mission Clears all internal state and prepares for new operations. 
+
+
+
+Definition at line 40 of file mission\+\_\+executor.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1MissionExecutor_a65b44e72318c322519263f1fba0b6582}\label{classdrone__swarm_1_1MissionExecutor_a65b44e72318c322519263f1fba0b6582}} 
+\index{drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}!restoreMissionState@{restoreMissionState}}
+\index{restoreMissionState@{restoreMissionState}!drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}}
+\doxysubsubsection{\texorpdfstring{restoreMissionState()}{restoreMissionState()}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Mission\+Executor\+::restore\+Mission\+State (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner}{Waypoint\+Planner}} $\ast$}]{path\+\_\+planner }\end{DoxyParamCaption})}
+
+
+
+Restore previously saved mission state. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em path\+\_\+planner} & Path planner to restore waypoints to \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if state was restored successfully
+\end{DoxyReturn}
+Restores waypoint progress after scenario reaction completes 
+
+Definition at line 66 of file mission\+\_\+executor.\+cpp.
+
+
+
+References drone\+\_\+swarm\+::\+Waypoint\+Planner\+::set\+Current\+Waypoint\+Index(), and drone\+\_\+swarm\+::\+Waypoint\+Planner\+::set\+Waypoints().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1MissionExecutor_a65b44e72318c322519263f1fba0b6582_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1MissionExecutor_a8055bc1f37d70df43b365f14a5e2aa7b}\label{classdrone__swarm_1_1MissionExecutor_a8055bc1f37d70df43b365f14a5e2aa7b}} 
+\index{drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}!saveMissionState@{saveMissionState}}
+\index{saveMissionState@{saveMissionState}!drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}}
+\doxysubsubsection{\texorpdfstring{saveMissionState()}{saveMissionState()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Mission\+Executor\+::save\+Mission\+State (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner}{Waypoint\+Planner}} $\ast$}]{path\+\_\+planner }\end{DoxyParamCaption})}
+
+
+
+Save current mission state for later restoration. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em path\+\_\+planner} & Path planner with current waypoints\\
+\hline
+\end{DoxyParams}
+Stores waypoint progress and mission state before scenario reaction 
+
+Definition at line 51 of file mission\+\_\+executor.\+cpp.
+
+
+
+References drone\+\_\+swarm\+::\+Waypoint\+Planner\+::get\+All\+Waypoints(), and drone\+\_\+swarm\+::\+Waypoint\+Planner\+::get\+Current\+Waypoint\+Index().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1MissionExecutor_a8055bc1f37d70df43b365f14a5e2aa7b_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1MissionExecutor_a82a8bf210ed90e3baf6447841364c586}\label{classdrone__swarm_1_1MissionExecutor_a82a8bf210ed90e3baf6447841364c586}} 
+\index{drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}!setCmdVelPublisher@{setCmdVelPublisher}}
+\index{setCmdVelPublisher@{setCmdVelPublisher}!drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}}
+\doxysubsubsection{\texorpdfstring{setCmdVelPublisher()}{setCmdVelPublisher()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Mission\+Executor\+::set\+Cmd\+Vel\+Publisher (\begin{DoxyParamCaption}\item[{rclcpp\+::\+Publisher$<$ geometry\+\_\+msgs\+::msg\+::\+Twist $>$\+::Shared\+Ptr}]{pub }\end{DoxyParamCaption})}
+
+
+
+Set command velocity publisher. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pub} & ROS 2 publisher for geometry\+\_\+msgs\+::msg\+::\+Twist \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 24 of file mission\+\_\+executor.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1MissionExecutor_a6da61defb9ac838c3ca1e5c65ffd6eee}\label{classdrone__swarm_1_1MissionExecutor_a6da61defb9ac838c3ca1e5c65ffd6eee}} 
+\index{drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}!setLogger@{setLogger}}
+\index{setLogger@{setLogger}!drone\_swarm::MissionExecutor@{drone\_swarm::MissionExecutor}}
+\doxysubsubsection{\texorpdfstring{setLogger()}{setLogger()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Mission\+Executor\+::set\+Logger (\begin{DoxyParamCaption}\item[{rclcpp\+::\+Logger}]{logger }\end{DoxyParamCaption})}
+
+
+
+Set ROS 2 logger for debugging output. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em logger} & ROS 2 logger instance \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 17 of file mission\+\_\+executor.\+cpp.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/mission/\mbox{\hyperlink{mission__executor_8h}{mission\+\_\+executor.\+h}}\item 
+src/\mbox{\hyperlink{mission__executor_8cpp}{mission\+\_\+executor.\+cpp}}\end{DoxyCompactItemize}

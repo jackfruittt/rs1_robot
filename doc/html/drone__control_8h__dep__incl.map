@@ -1,0 +1,11 @@
+<map id="include/drone_control.h" name="include/drone_control.h">
+<area shape="rect" id="node1" title="Advanced drone control class with PID controllers and flight navigation." alt="" coords="365,5,540,32"/>
+<area shape="rect" id="node2" href="$drone__node_8h.html" title="Drone controller node for autonomous flight operations." alt="" coords="111,87,272,114"/>
+<area shape="rect" id="node5" href="$mission__executor_8h.html" title="Mission execution class for simple and complex autonomous operations." alt="" coords="301,80,479,121"/>
+<area shape="rect" id="node8" href="$mission__executor_8cpp.html" title=" " alt="" coords="428,169,613,196"/>
+<area shape="rect" id="node9" href="$drone__control_8cpp.html" title=" " alt="" coords="555,87,716,114"/>
+<area shape="rect" id="node3" href="$drone__node_8cpp.html" title=" " alt="" coords="5,169,153,196"/>
+<area shape="rect" id="node4" href="$main__composition_8cpp.html" title=" " alt="" coords="95,244,287,271"/>
+<area shape="rect" id="node6" href="$mission__node_8h.html" title="Mission planning and coordination node for autonomous drone operations." alt="" coords="229,169,404,196"/>
+<area shape="rect" id="node7" href="$mission__node_8cpp.html" title=" " alt="" coords="311,244,474,271"/>
+</map>

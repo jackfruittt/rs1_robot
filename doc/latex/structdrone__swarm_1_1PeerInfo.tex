@@ -1,0 +1,105 @@
+\hypertarget{structdrone__swarm_1_1PeerInfo}{}\doxysection{drone\+\_\+swarm\+::Peer\+Info Struct Reference}
+\label{structdrone__swarm_1_1PeerInfo}\index{drone\_swarm::PeerInfo@{drone\_swarm::PeerInfo}}
+
+
+Cached information about a peer drone.  
+
+
+
+
+{\ttfamily \#include $<$mission\+\_\+node.\+h$>$}
+
+
+
+Collaboration diagram for drone\+\_\+swarm\+::Peer\+Info\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=209pt]{structdrone__swarm_1_1PeerInfo__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+double \mbox{\hyperlink{structdrone__swarm_1_1PeerInfo_af8f227603dde2084681d9e4397b19dd6}{battery}} \{0.\+0\}
+\begin{DoxyCompactList}\small\item\em Battery level (0.\+0 to 1.\+0) \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924}{Mission\+State}} \mbox{\hyperlink{structdrone__swarm_1_1PeerInfo_a5046ca09a3287cd835ed76a4ba19b07c}{state}} \{\mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924aa5daf7f2ebbba4975d61dab1c40188c7}{Mission\+State\+::\+IDLE}}\}
+\begin{DoxyCompactList}\small\item\em Current mission state. \end{DoxyCompactList}\item 
+geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \mbox{\hyperlink{structdrone__swarm_1_1PeerInfo_a0ac8dc06cad0ef0bee56e638cf575809}{pose}} \{\}
+\begin{DoxyCompactList}\small\item\em Current position and orientation. \end{DoxyCompactList}\item 
+rclcpp\+::\+Time \mbox{\hyperlink{structdrone__swarm_1_1PeerInfo_a6ba25197f4248e5637c9fcbabe77a2ce}{stamp}} \{\}
+\begin{DoxyCompactList}\small\item\em Time of last update. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Cached information about a peer drone. 
+
+Continuously updated from peer broadcasts for non-\/blocking coordination 
+
+Definition at line 140 of file mission\+\_\+node.\+h.
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structdrone__swarm_1_1PeerInfo_af8f227603dde2084681d9e4397b19dd6}\label{structdrone__swarm_1_1PeerInfo_af8f227603dde2084681d9e4397b19dd6}} 
+\index{drone\_swarm::PeerInfo@{drone\_swarm::PeerInfo}!battery@{battery}}
+\index{battery@{battery}!drone\_swarm::PeerInfo@{drone\_swarm::PeerInfo}}
+\doxysubsubsection{\texorpdfstring{battery}{battery}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Peer\+Info\+::battery \{0.\+0\}}
+
+
+
+Battery level (0.\+0 to 1.\+0) 
+
+
+
+Definition at line 141 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1PeerInfo_a0ac8dc06cad0ef0bee56e638cf575809}\label{structdrone__swarm_1_1PeerInfo_a0ac8dc06cad0ef0bee56e638cf575809}} 
+\index{drone\_swarm::PeerInfo@{drone\_swarm::PeerInfo}!pose@{pose}}
+\index{pose@{pose}!drone\_swarm::PeerInfo@{drone\_swarm::PeerInfo}}
+\doxysubsubsection{\texorpdfstring{pose}{pose}}
+{\footnotesize\ttfamily geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped drone\+\_\+swarm\+::\+Peer\+Info\+::pose \{\}}
+
+
+
+Current position and orientation. 
+
+
+
+Definition at line 143 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1PeerInfo_a6ba25197f4248e5637c9fcbabe77a2ce}\label{structdrone__swarm_1_1PeerInfo_a6ba25197f4248e5637c9fcbabe77a2ce}} 
+\index{drone\_swarm::PeerInfo@{drone\_swarm::PeerInfo}!stamp@{stamp}}
+\index{stamp@{stamp}!drone\_swarm::PeerInfo@{drone\_swarm::PeerInfo}}
+\doxysubsubsection{\texorpdfstring{stamp}{stamp}}
+{\footnotesize\ttfamily rclcpp\+::\+Time drone\+\_\+swarm\+::\+Peer\+Info\+::stamp \{\}}
+
+
+
+Time of last update. 
+
+
+
+Definition at line 144 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1PeerInfo_a5046ca09a3287cd835ed76a4ba19b07c}\label{structdrone__swarm_1_1PeerInfo_a5046ca09a3287cd835ed76a4ba19b07c}} 
+\index{drone\_swarm::PeerInfo@{drone\_swarm::PeerInfo}!state@{state}}
+\index{state@{state}!drone\_swarm::PeerInfo@{drone\_swarm::PeerInfo}}
+\doxysubsubsection{\texorpdfstring{state}{state}}
+{\footnotesize\ttfamily \mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924}{Mission\+State}} drone\+\_\+swarm\+::\+Peer\+Info\+::state \{\mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924aa5daf7f2ebbba4975d61dab1c40188c7}{Mission\+State\+::\+IDLE}}\}}
+
+
+
+Current mission state. 
+
+
+
+Definition at line 142 of file mission\+\_\+node.\+h.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{mission__node_8h}{mission\+\_\+node.\+h}}\end{DoxyCompactItemize}

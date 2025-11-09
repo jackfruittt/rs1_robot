@@ -1,0 +1,4 @@
+<map id="drone_swarm::WaypointPlanner::getCurrentWaypointIndex" name="drone_swarm::WaypointPlanner::getCurrentWaypointIndex">
+<area shape="rect" id="node1" title="Get current waypoint index." alt="" coords="277,5,505,47"/>
+<area shape="rect" id="node2" href="$classdrone__swarm_1_1MissionExecutor.html#a8055bc1f37d70df43b365f14a5e2aa7b" title="Save current mission state for later restoration." alt="" coords="5,5,229,47"/>
+</map>

@@ -1,0 +1,733 @@
+\hypertarget{classdrone__swarm_1_1DroneControl}{}\doxysection{drone\+\_\+swarm\+::Drone\+Control Class Reference}
+\label{classdrone__swarm_1_1DroneControl}\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+
+
+Advanced drone control system with multiple control modes.  
+
+
+
+
+{\ttfamily \#include $<$drone\+\_\+control.\+h$>$}
+
+
+
+Collaboration diagram for drone\+\_\+swarm\+::Drone\+Control\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=239pt]{classdrone__swarm_1_1DroneControl__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classdrone__swarm_1_1DroneControl_ae99d1bf37e9c25838b28f6a789b54f81}{Drone\+Control}} ()
+\begin{DoxyCompactList}\small\item\em Default constructor Initialises PID controllers and sets default parameters. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_ae618450b27e4b9e1e48376544695c402}{initialise}} (double mass, double max\+\_\+thrust)
+\begin{DoxyCompactList}\small\item\em Initialise physical parameters. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_a890584671df94b65d68170928d3339a1}{set\+Logger}} (rclcpp\+::\+Logger logger)
+\begin{DoxyCompactList}\small\item\em Set ROS 2 logger for debugging output. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_afd24542bbe35098a853dc584e5bc87e0}{set\+Cmd\+Vel\+Publisher}} (rclcpp\+::\+Publisher$<$ geometry\+\_\+msgs\+::msg\+::\+Twist $>$\+::Shared\+Ptr pub)
+\begin{DoxyCompactList}\small\item\em Set command velocity publisher. \end{DoxyCompactList}\item 
+geometry\+\_\+msgs\+::msg\+::\+Twist \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_a1ed0fd64d680c92d499f861e54fbb9b6}{calculate\+Control\+Output}} (const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&current\+\_\+pose, const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&target\+\_\+pose, const geometry\+\_\+msgs\+::msg\+::\+Twist \&current\+\_\+velocity, double dt)
+\begin{DoxyCompactList}\small\item\em Calculate control output for position tracking. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_a93e1ec0e5e372e31ded08430ad035bea}{update\+Position\+PIDGains}} (double kp, double ki, double kd)
+\begin{DoxyCompactList}\small\item\em Update position PID controller gains. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_ac999f4c458de70b9cbe458339c9fbcd3}{set\+Control\+Limits}} (double max\+\_\+velocity, double max\+\_\+angular\+\_\+velocity)
+\begin{DoxyCompactList}\small\item\em Set control output limits. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_ab4736267eb5c8c10ba58f85bc908b42c}{reset\+Controllers}} ()
+\begin{DoxyCompactList}\small\item\em Reset all PID controllers Clears integral accumulators and error history. \end{DoxyCompactList}\item 
+geometry\+\_\+msgs\+::msg\+::\+Twist \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_a987a901653f7c7201a764180c6421701}{calculate\+Advanced\+Position\+Control}} (const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&current\+\_\+pose, const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&target\+\_\+pose, double dt, bool use\+\_\+manual\+\_\+altitude=true)
+\begin{DoxyCompactList}\small\item\em Enhanced position control with advanced features. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_a7bfdc1b6e600b594da6444c6fdb85537}{fly\+To\+Goal}} (\mbox{\hyperlink{structdrone__swarm_1_1VehicleData}{Vehicle\+Data}} \&vehicle, const geometry\+\_\+msgs\+::msg\+::\+Pose \&goal)
+\begin{DoxyCompactList}\small\item\em High-\/level navigation to goal pose. \end{DoxyCompactList}\item 
+geometry\+\_\+msgs\+::msg\+::\+Twist \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_a8287886eb5f79f7f5ed7db5e730546a3}{navigate\+To\+Waypoint\+With\+Altitude\+Control}} (const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&current\+\_\+pose, const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&target\+\_\+waypoint, double sonar\+\_\+range, const sensor\+\_\+msgs\+::msg\+::\+Laser\+Scan \&lidar\+\_\+data, double dt=0.\+1, bool allow\+\_\+descent=false)
+\begin{DoxyCompactList}\small\item\em Navigate to 2D waypoint using terrain-\/following altitude control. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_aabee50b515fa0a678b885786ba9633c1}{set\+Terrain\+Following\+Altitude}} (double altitude)
+\begin{DoxyCompactList}\small\item\em Set target altitude above ground for terrain following. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_acc744c125264ccf2a6b091e02b76489a}{set\+Emergency\+Climb\+Params}} (double detection\+\_\+distance, double climb\+\_\+altitude)
+\begin{DoxyCompactList}\small\item\em Set emergency climb parameters for obstacle avoidance. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_abb6937226c4621c0b9ebb7ca5f7528ca}{takeoff}} (double target\+\_\+altitude, double sonar\+\_\+range, double elapsed\+\_\+seconds, double max\+\_\+timeout\+\_\+seconds=10.\+0)
+\begin{DoxyCompactList}\small\item\em Execute takeoff maneuver using sonar feedback. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_a1226dc08a89dc37a3d07b3e02de68798}{land}} (double target\+\_\+altitude, double sonar\+\_\+range, double elapsed\+\_\+seconds, double max\+\_\+timeout\+\_\+seconds=20.\+0)
+\begin{DoxyCompactList}\small\item\em Execute landing maneuver using sonar feedback. \end{DoxyCompactList}\item 
+geometry\+\_\+msgs\+::msg\+::\+Twist \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_af2646a93010d6fc9ec406df3d4b677c8}{calculate\+Position\+Control}} (const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&current\+\_\+pose, const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&target\+\_\+pose, double dt)
+\begin{DoxyCompactList}\small\item\em Basic position control mode. \end{DoxyCompactList}\item 
+geometry\+\_\+msgs\+::msg\+::\+Twist \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_a1e0cfb2bbcd0345f2a5d9250d4471b5b}{calculate\+Velocity\+Control}} (const geometry\+\_\+msgs\+::msg\+::\+Twist \&current\+\_\+velocity, const geometry\+\_\+msgs\+::msg\+::\+Twist \&target\+\_\+velocity, double dt)
+\begin{DoxyCompactList}\small\item\em Velocity control mode. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_abc564ad43dcf3be4b8bf20b7c2412fb3}{calculate\+XControl}} (double target\+\_\+x, double current\+\_\+x, double dt)
+\begin{DoxyCompactList}\small\item\em X-\/axis position control. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_a8bec3fb3916107fd7da346d2e9172f11}{calculate\+YControl}} (double target\+\_\+y, double current\+\_\+y, double dt)
+\begin{DoxyCompactList}\small\item\em Y-\/axis position control ~\newline
+ \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_a65eb947aef925b7740daa08aae8d1ad0}{calculate\+ZControl}} (double target\+\_\+z, double current\+\_\+z, double dt)
+\begin{DoxyCompactList}\small\item\em Z-\/axis position control. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_a28d40dc0cd799803d1969c10bf35227b}{update\+Current\+Yaw}} (double yaw)
+\begin{DoxyCompactList}\small\item\em Update current yaw angle from IMU data. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_ad41e34dd67d09b987becab1e72cebdc9}{calculate\+Yaw\+To\+Target}} (const geometry\+\_\+msgs\+::msg\+::\+Point \&current\+\_\+pos, const geometry\+\_\+msgs\+::msg\+::\+Point \&target\+\_\+pos)
+\begin{DoxyCompactList}\small\item\em Calculate desired yaw angle towards target. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classdrone__swarm_1_1DroneControl_a5daa42996119115c1874f8f00b3ca3dc}{calculate\+Yaw\+Control}} (double target\+\_\+yaw, double current\+\_\+yaw, double dt)
+\begin{DoxyCompactList}\small\item\em Calculate yaw control command. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Advanced drone control system with multiple control modes. 
+
+Provides comprehensive flight control including position control, velocity control, and high-\/level navigation capabilities with enhanced fly\+To\+Goal functionality for autonomous missions. 
+
+Definition at line 54 of file drone\+\_\+control.\+h.
+
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_ae99d1bf37e9c25838b28f6a789b54f81}\label{classdrone__swarm_1_1DroneControl_ae99d1bf37e9c25838b28f6a789b54f81}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!DroneControl@{DroneControl}}
+\index{DroneControl@{DroneControl}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{DroneControl()}{DroneControl()}}
+{\footnotesize\ttfamily drone\+\_\+swarm\+::\+Drone\+Control\+::\+Drone\+Control (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Default constructor Initialises PID controllers and sets default parameters. 
+
+
+
+Definition at line 12 of file drone\+\_\+control.\+cpp.
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_a987a901653f7c7201a764180c6421701}\label{classdrone__swarm_1_1DroneControl_a987a901653f7c7201a764180c6421701}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!calculateAdvancedPositionControl@{calculateAdvancedPositionControl}}
+\index{calculateAdvancedPositionControl@{calculateAdvancedPositionControl}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{calculateAdvancedPositionControl()}{calculateAdvancedPositionControl()}}
+{\footnotesize\ttfamily geometry\+\_\+msgs\+::msg\+::\+Twist drone\+\_\+swarm\+::\+Drone\+Control\+::calculate\+Advanced\+Position\+Control (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&}]{current\+\_\+pose,  }\item[{const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&}]{target\+\_\+pose,  }\item[{double}]{dt,  }\item[{bool}]{use\+\_\+manual\+\_\+altitude = {\ttfamily true} }\end{DoxyParamCaption})}
+
+
+
+Enhanced position control with advanced features. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em current\+\_\+pose} & Current drone pose \\
+\hline
+{\em target\+\_\+pose} & Desired target pose ~\newline
+ \\
+\hline
+{\em dt} & Time step since last calculation \\
+\hline
+{\em use\+\_\+manual\+\_\+altitude} & Enable manual altitude control mode \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Twist command optimised for smooth flight 
+\end{DoxyReturn}
+
+
+Definition at line 78 of file drone\+\_\+control.\+cpp.
+
+
+
+References calculate\+Yaw\+Control(), and calculate\+Yaw\+To\+Target().
+
+
+
+Referenced by calculate\+Control\+Output(), calculate\+Position\+Control(), fly\+To\+Goal(), and navigate\+To\+Waypoint\+With\+Altitude\+Control().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1DroneControl_a987a901653f7c7201a764180c6421701_cgraph}
+\end{center}
+\end{figure}
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1DroneControl_a987a901653f7c7201a764180c6421701_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_a1ed0fd64d680c92d499f861e54fbb9b6}\label{classdrone__swarm_1_1DroneControl_a1ed0fd64d680c92d499f861e54fbb9b6}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!calculateControlOutput@{calculateControlOutput}}
+\index{calculateControlOutput@{calculateControlOutput}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{calculateControlOutput()}{calculateControlOutput()}}
+{\footnotesize\ttfamily geometry\+\_\+msgs\+::msg\+::\+Twist drone\+\_\+swarm\+::\+Drone\+Control\+::calculate\+Control\+Output (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&}]{current\+\_\+pose,  }\item[{const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&}]{target\+\_\+pose,  }\item[{const geometry\+\_\+msgs\+::msg\+::\+Twist \&}]{current\+\_\+velocity,  }\item[{double}]{dt }\end{DoxyParamCaption})}
+
+
+
+Calculate control output for position tracking. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em current\+\_\+pose} & Current drone pose \\
+\hline
+{\em target\+\_\+pose} & Desired target pose \\
+\hline
+{\em current\+\_\+velocity} & Current velocity for feedforward control \\
+\hline
+{\em dt} & Time step since last calculation \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Twist command for drone actuation 
+\end{DoxyReturn}
+
+
+Definition at line 334 of file drone\+\_\+control.\+cpp.
+
+
+
+References calculate\+Advanced\+Position\+Control().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1DroneControl_a1ed0fd64d680c92d499f861e54fbb9b6_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_af2646a93010d6fc9ec406df3d4b677c8}\label{classdrone__swarm_1_1DroneControl_af2646a93010d6fc9ec406df3d4b677c8}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!calculatePositionControl@{calculatePositionControl}}
+\index{calculatePositionControl@{calculatePositionControl}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{calculatePositionControl()}{calculatePositionControl()}}
+{\footnotesize\ttfamily geometry\+\_\+msgs\+::msg\+::\+Twist drone\+\_\+swarm\+::\+Drone\+Control\+::calculate\+Position\+Control (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&}]{current\+\_\+pose,  }\item[{const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&}]{target\+\_\+pose,  }\item[{double}]{dt }\end{DoxyParamCaption})}
+
+
+
+Basic position control mode. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em current\+\_\+pose} & Current drone pose \\
+\hline
+{\em target\+\_\+pose} & Desired target pose \\
+\hline
+{\em dt} & Time step since last calculation ~\newline
+ \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Twist command for position tracking 
+\end{DoxyReturn}
+
+
+Definition at line 344 of file drone\+\_\+control.\+cpp.
+
+
+
+References calculate\+Advanced\+Position\+Control().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1DroneControl_af2646a93010d6fc9ec406df3d4b677c8_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_a1e0cfb2bbcd0345f2a5d9250d4471b5b}\label{classdrone__swarm_1_1DroneControl_a1e0cfb2bbcd0345f2a5d9250d4471b5b}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!calculateVelocityControl@{calculateVelocityControl}}
+\index{calculateVelocityControl@{calculateVelocityControl}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{calculateVelocityControl()}{calculateVelocityControl()}}
+{\footnotesize\ttfamily geometry\+\_\+msgs\+::msg\+::\+Twist drone\+\_\+swarm\+::\+Drone\+Control\+::calculate\+Velocity\+Control (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::msg\+::\+Twist \&}]{current\+\_\+velocity,  }\item[{const geometry\+\_\+msgs\+::msg\+::\+Twist \&}]{target\+\_\+velocity,  }\item[{double}]{dt }\end{DoxyParamCaption})}
+
+
+
+Velocity control mode. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em current\+\_\+velocity} & Current measured velocity \\
+\hline
+{\em target\+\_\+velocity} & Desired target velocity \\
+\hline
+{\em dt} & Time step since last calculation \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Twist command for velocity tracking 
+\end{DoxyReturn}
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_abc564ad43dcf3be4b8bf20b7c2412fb3}\label{classdrone__swarm_1_1DroneControl_abc564ad43dcf3be4b8bf20b7c2412fb3}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!calculateXControl@{calculateXControl}}
+\index{calculateXControl@{calculateXControl}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{calculateXControl()}{calculateXControl()}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Drone\+Control\+::calculate\+XControl (\begin{DoxyParamCaption}\item[{double}]{target\+\_\+x,  }\item[{double}]{current\+\_\+x,  }\item[{double}]{dt }\end{DoxyParamCaption})}
+
+
+
+X-\/axis position control. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target\+\_\+x} & Desired X position \\
+\hline
+{\em current\+\_\+x} & Current X position \\
+\hline
+{\em dt} & Time step \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+X velocity command 
+\end{DoxyReturn}
+
+
+Definition at line 351 of file drone\+\_\+control.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_a5daa42996119115c1874f8f00b3ca3dc}\label{classdrone__swarm_1_1DroneControl_a5daa42996119115c1874f8f00b3ca3dc}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!calculateYawControl@{calculateYawControl}}
+\index{calculateYawControl@{calculateYawControl}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{calculateYawControl()}{calculateYawControl()}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Drone\+Control\+::calculate\+Yaw\+Control (\begin{DoxyParamCaption}\item[{double}]{target\+\_\+yaw,  }\item[{double}]{current\+\_\+yaw,  }\item[{double}]{dt }\end{DoxyParamCaption})}
+
+
+
+Calculate yaw control command. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target\+\_\+yaw} & Desired yaw angle \\
+\hline
+{\em current\+\_\+yaw} & Current yaw angle \\
+\hline
+{\em dt} & Time step \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Angular velocity command 
+\end{DoxyReturn}
+
+
+Definition at line 374 of file drone\+\_\+control.\+cpp.
+
+
+
+Referenced by calculate\+Advanced\+Position\+Control().
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1DroneControl_a5daa42996119115c1874f8f00b3ca3dc_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_ad41e34dd67d09b987becab1e72cebdc9}\label{classdrone__swarm_1_1DroneControl_ad41e34dd67d09b987becab1e72cebdc9}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!calculateYawToTarget@{calculateYawToTarget}}
+\index{calculateYawToTarget@{calculateYawToTarget}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{calculateYawToTarget()}{calculateYawToTarget()}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Drone\+Control\+::calculate\+Yaw\+To\+Target (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::msg\+::\+Point \&}]{current\+\_\+pos,  }\item[{const geometry\+\_\+msgs\+::msg\+::\+Point \&}]{target\+\_\+pos }\end{DoxyParamCaption})}
+
+
+
+Calculate desired yaw angle towards target. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em current\+\_\+pos} & Current position \\
+\hline
+{\em target\+\_\+pos} & Target position \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Desired yaw angle in radians 
+\end{DoxyReturn}
+
+
+Definition at line 368 of file drone\+\_\+control.\+cpp.
+
+
+
+Referenced by calculate\+Advanced\+Position\+Control().
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1DroneControl_ad41e34dd67d09b987becab1e72cebdc9_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_a8bec3fb3916107fd7da346d2e9172f11}\label{classdrone__swarm_1_1DroneControl_a8bec3fb3916107fd7da346d2e9172f11}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!calculateYControl@{calculateYControl}}
+\index{calculateYControl@{calculateYControl}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{calculateYControl()}{calculateYControl()}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Drone\+Control\+::calculate\+YControl (\begin{DoxyParamCaption}\item[{double}]{target\+\_\+y,  }\item[{double}]{current\+\_\+y,  }\item[{double}]{dt }\end{DoxyParamCaption})}
+
+
+
+Y-\/axis position control ~\newline
+ 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target\+\_\+y} & Desired Y position \\
+\hline
+{\em current\+\_\+y} & Current Y position \\
+\hline
+{\em dt} & Time step \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Y velocity command 
+\end{DoxyReturn}
+
+
+Definition at line 355 of file drone\+\_\+control.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_a65eb947aef925b7740daa08aae8d1ad0}\label{classdrone__swarm_1_1DroneControl_a65eb947aef925b7740daa08aae8d1ad0}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!calculateZControl@{calculateZControl}}
+\index{calculateZControl@{calculateZControl}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{calculateZControl()}{calculateZControl()}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Drone\+Control\+::calculate\+ZControl (\begin{DoxyParamCaption}\item[{double}]{target\+\_\+z,  }\item[{double}]{current\+\_\+z,  }\item[{double}]{dt }\end{DoxyParamCaption})}
+
+
+
+Z-\/axis position control. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target\+\_\+z} & Desired Z position \\
+\hline
+{\em current\+\_\+z} & Current Z position ~\newline
+ \\
+\hline
+{\em dt} & Time step \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Z velocity command 
+\end{DoxyReturn}
+
+
+Definition at line 359 of file drone\+\_\+control.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_a7bfdc1b6e600b594da6444c6fdb85537}\label{classdrone__swarm_1_1DroneControl_a7bfdc1b6e600b594da6444c6fdb85537}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!flyToGoal@{flyToGoal}}
+\index{flyToGoal@{flyToGoal}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{flyToGoal()}{flyToGoal()}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Drone\+Control\+::fly\+To\+Goal (\begin{DoxyParamCaption}\item[{\mbox{\hyperlink{structdrone__swarm_1_1VehicleData}{Vehicle\+Data}} \&}]{vehicle,  }\item[{const geometry\+\_\+msgs\+::msg\+::\+Pose \&}]{goal }\end{DoxyParamCaption})}
+
+
+
+High-\/level navigation to goal pose. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em vehicle} & Vehicle data structure with current state \\
+\hline
+{\em goal} & Target pose to reach \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if goal reached, false if still navigating
+\end{DoxyReturn}
+Implements advanced fly\+To\+Goal algorithm with obstacle avoidance and smooth trajectory following for autonomous missions. 
+
+Definition at line 181 of file drone\+\_\+control.\+cpp.
+
+
+
+References calculate\+Advanced\+Position\+Control(), drone\+\_\+swarm\+::\+Vehicle\+Data\+::current\+\_\+odom, drone\+\_\+swarm\+::\+Vehicle\+Data\+::id, drone\+\_\+swarm\+::\+Vehicle\+Data\+::mission\+\_\+active, drone\+\_\+swarm\+::\+Vehicle\+Data\+::odom\+\_\+mutex, and reset\+Controllers().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1DroneControl_a7bfdc1b6e600b594da6444c6fdb85537_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_ae618450b27e4b9e1e48376544695c402}\label{classdrone__swarm_1_1DroneControl_ae618450b27e4b9e1e48376544695c402}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!initialise@{initialise}}
+\index{initialise@{initialise}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{initialise()}{initialise()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Drone\+Control\+::initialise (\begin{DoxyParamCaption}\item[{double}]{mass,  }\item[{double}]{max\+\_\+thrust }\end{DoxyParamCaption})}
+
+
+
+Initialise physical parameters. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em mass} & Drone mass in kilograms \\
+\hline
+{\em max\+\_\+thrust} & Maximum thrust capability in Newtons \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 38 of file drone\+\_\+control.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_a1226dc08a89dc37a3d07b3e02de68798}\label{classdrone__swarm_1_1DroneControl_a1226dc08a89dc37a3d07b3e02de68798}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!land@{land}}
+\index{land@{land}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{land()}{land()}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Drone\+Control\+::land (\begin{DoxyParamCaption}\item[{double}]{target\+\_\+altitude,  }\item[{double}]{sonar\+\_\+range,  }\item[{double}]{elapsed\+\_\+seconds,  }\item[{double}]{max\+\_\+timeout\+\_\+seconds = {\ttfamily 20.0} }\end{DoxyParamCaption})}
+
+
+
+Execute landing maneuver using sonar feedback. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target\+\_\+altitude} & Target landing altitude in metres (typically 0.\+2m) \\
+\hline
+{\em sonar\+\_\+range} & Current sonar reading in metres \\
+\hline
+{\em elapsed\+\_\+seconds} & Time elapsed since landing started \\
+\hline
+{\em max\+\_\+timeout\+\_\+seconds} & Maximum time allowed for landing \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if landing complete (success or timeout), false if still in progress
+\end{DoxyReturn}
+Handles complete landing logic including velocity command publishing, progress monitoring, and completion detection using sonar feedback. Publishes descent commands until target altitude is reached. 
+
+Definition at line 451 of file drone\+\_\+control.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_a8287886eb5f79f7f5ed7db5e730546a3}\label{classdrone__swarm_1_1DroneControl_a8287886eb5f79f7f5ed7db5e730546a3}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!navigateToWaypointWithAltitudeControl@{navigateToWaypointWithAltitudeControl}}
+\index{navigateToWaypointWithAltitudeControl@{navigateToWaypointWithAltitudeControl}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{navigateToWaypointWithAltitudeControl()}{navigateToWaypointWithAltitudeControl()}}
+{\footnotesize\ttfamily geometry\+\_\+msgs\+::msg\+::\+Twist drone\+\_\+swarm\+::\+Drone\+Control\+::navigate\+To\+Waypoint\+With\+Altitude\+Control (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&}]{current\+\_\+pose,  }\item[{const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&}]{target\+\_\+waypoint,  }\item[{double}]{sonar\+\_\+range,  }\item[{const sensor\+\_\+msgs\+::msg\+::\+Laser\+Scan \&}]{lidar\+\_\+data,  }\item[{double}]{dt = {\ttfamily 0.1},  }\item[{bool}]{allow\+\_\+descent = {\ttfamily false} }\end{DoxyParamCaption})}
+
+
+
+Navigate to 2D waypoint using terrain-\/following altitude control. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em current\+\_\+pose} & Current drone position from odometry \\
+\hline
+{\em target\+\_\+waypoint} & Target waypoint (only X,Y used, Z ignored) \\
+\hline
+{\em sonar\+\_\+range} & Current sonar altitude reading \\
+\hline
+{\em lidar\+\_\+data} & Current Li\+DAR scan for obstacle detection \\
+\hline
+{\em dt} & Time step for control calculations \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Twist command for waypoint navigation with terrain following
+\end{DoxyReturn}
+Navigates to X,Y coordinates while maintaining constant altitude above ground using sonar feedback. Uses Li\+DAR to detect obstacles and climb over them. 
+
+Definition at line 499 of file drone\+\_\+control.\+cpp.
+
+
+
+References calculate\+Advanced\+Position\+Control().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1DroneControl_a8287886eb5f79f7f5ed7db5e730546a3_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_ab4736267eb5c8c10ba58f85bc908b42c}\label{classdrone__swarm_1_1DroneControl_ab4736267eb5c8c10ba58f85bc908b42c}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!resetControllers@{resetControllers}}
+\index{resetControllers@{resetControllers}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{resetControllers()}{resetControllers()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Drone\+Control\+::reset\+Controllers (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Reset all PID controllers Clears integral accumulators and error history. 
+
+
+
+Definition at line 67 of file drone\+\_\+control.\+cpp.
+
+
+
+Referenced by fly\+To\+Goal().
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1DroneControl_ab4736267eb5c8c10ba58f85bc908b42c_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_afd24542bbe35098a853dc584e5bc87e0}\label{classdrone__swarm_1_1DroneControl_afd24542bbe35098a853dc584e5bc87e0}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!setCmdVelPublisher@{setCmdVelPublisher}}
+\index{setCmdVelPublisher@{setCmdVelPublisher}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{setCmdVelPublisher()}{setCmdVelPublisher()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Drone\+Control\+::set\+Cmd\+Vel\+Publisher (\begin{DoxyParamCaption}\item[{rclcpp\+::\+Publisher$<$ geometry\+\_\+msgs\+::msg\+::\+Twist $>$\+::Shared\+Ptr}]{pub }\end{DoxyParamCaption})}
+
+
+
+Set command velocity publisher. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em pub} & ROS 2 publisher for geometry\+\_\+msgs\+::msg\+::\+Twist \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 49 of file drone\+\_\+control.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_ac999f4c458de70b9cbe458339c9fbcd3}\label{classdrone__swarm_1_1DroneControl_ac999f4c458de70b9cbe458339c9fbcd3}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!setControlLimits@{setControlLimits}}
+\index{setControlLimits@{setControlLimits}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{setControlLimits()}{setControlLimits()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Drone\+Control\+::set\+Control\+Limits (\begin{DoxyParamCaption}\item[{double}]{max\+\_\+velocity,  }\item[{double}]{max\+\_\+angular\+\_\+velocity }\end{DoxyParamCaption})}
+
+
+
+Set control output limits. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em max\+\_\+velocity} & Maximum linear velocity (m/s) \\
+\hline
+{\em max\+\_\+angular\+\_\+velocity} & Maximum angular velocity (rad/s) \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 61 of file drone\+\_\+control.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_acc744c125264ccf2a6b091e02b76489a}\label{classdrone__swarm_1_1DroneControl_acc744c125264ccf2a6b091e02b76489a}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!setEmergencyClimbParams@{setEmergencyClimbParams}}
+\index{setEmergencyClimbParams@{setEmergencyClimbParams}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{setEmergencyClimbParams()}{setEmergencyClimbParams()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Drone\+Control\+::set\+Emergency\+Climb\+Params (\begin{DoxyParamCaption}\item[{double}]{detection\+\_\+distance,  }\item[{double}]{climb\+\_\+altitude }\end{DoxyParamCaption})}
+
+
+
+Set emergency climb parameters for obstacle avoidance. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em detection\+\_\+distance} & Distance ahead to scan for obstacles (default 5m) \\
+\hline
+{\em climb\+\_\+altitude} & Additional altitude to climb over obstacles (default 5m) \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 659 of file drone\+\_\+control.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_a890584671df94b65d68170928d3339a1}\label{classdrone__swarm_1_1DroneControl_a890584671df94b65d68170928d3339a1}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!setLogger@{setLogger}}
+\index{setLogger@{setLogger}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{setLogger()}{setLogger()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Drone\+Control\+::set\+Logger (\begin{DoxyParamCaption}\item[{rclcpp\+::\+Logger}]{logger }\end{DoxyParamCaption})}
+
+
+
+Set ROS 2 logger for debugging output. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em logger} & ROS 2 logger instance \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 44 of file drone\+\_\+control.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_aabee50b515fa0a678b885786ba9633c1}\label{classdrone__swarm_1_1DroneControl_aabee50b515fa0a678b885786ba9633c1}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!setTerrainFollowingAltitude@{setTerrainFollowingAltitude}}
+\index{setTerrainFollowingAltitude@{setTerrainFollowingAltitude}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{setTerrainFollowingAltitude()}{setTerrainFollowingAltitude()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Drone\+Control\+::set\+Terrain\+Following\+Altitude (\begin{DoxyParamCaption}\item[{double}]{altitude }\end{DoxyParamCaption})}
+
+
+
+Set target altitude above ground for terrain following. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em altitude} & Target altitude in metres above ground (default 13m) \\
+\hline
+\end{DoxyParams}
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_abb6937226c4621c0b9ebb7ca5f7528ca}\label{classdrone__swarm_1_1DroneControl_abb6937226c4621c0b9ebb7ca5f7528ca}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!takeoff@{takeoff}}
+\index{takeoff@{takeoff}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{takeoff()}{takeoff()}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Drone\+Control\+::takeoff (\begin{DoxyParamCaption}\item[{double}]{target\+\_\+altitude,  }\item[{double}]{sonar\+\_\+range,  }\item[{double}]{elapsed\+\_\+seconds,  }\item[{double}]{max\+\_\+timeout\+\_\+seconds = {\ttfamily 10.0} }\end{DoxyParamCaption})}
+
+
+
+Execute takeoff maneuver using sonar feedback. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em target\+\_\+altitude} & Target altitude in metres \\
+\hline
+{\em sonar\+\_\+range} & Current sonar reading in metres \\
+\hline
+{\em elapsed\+\_\+seconds} & Time elapsed since takeoff started \\
+\hline
+{\em max\+\_\+timeout\+\_\+seconds} & Maximum time allowed for takeoff \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+True if takeoff complete (success or timeout), false if still in progress
+\end{DoxyReturn}
+Handles complete takeoff logic including velocity command publishing, progress monitoring, and completion detection using sonar feedback. Publishes climb commands until target altitude is reached. 
+
+Definition at line 386 of file drone\+\_\+control.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_a28d40dc0cd799803d1969c10bf35227b}\label{classdrone__swarm_1_1DroneControl_a28d40dc0cd799803d1969c10bf35227b}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!updateCurrentYaw@{updateCurrentYaw}}
+\index{updateCurrentYaw@{updateCurrentYaw}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{updateCurrentYaw()}{updateCurrentYaw()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Drone\+Control\+::update\+Current\+Yaw (\begin{DoxyParamCaption}\item[{double}]{yaw }\end{DoxyParamCaption})}
+
+
+
+Update current yaw angle from IMU data. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em yaw} & Current yaw angle in radians \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 363 of file drone\+\_\+control.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1DroneControl_a93e1ec0e5e372e31ded08430ad035bea}\label{classdrone__swarm_1_1DroneControl_a93e1ec0e5e372e31ded08430ad035bea}} 
+\index{drone\_swarm::DroneControl@{drone\_swarm::DroneControl}!updatePositionPIDGains@{updatePositionPIDGains}}
+\index{updatePositionPIDGains@{updatePositionPIDGains}!drone\_swarm::DroneControl@{drone\_swarm::DroneControl}}
+\doxysubsubsection{\texorpdfstring{updatePositionPIDGains()}{updatePositionPIDGains()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Drone\+Control\+::update\+Position\+PIDGains (\begin{DoxyParamCaption}\item[{double}]{kp,  }\item[{double}]{ki,  }\item[{double}]{kd }\end{DoxyParamCaption})}
+
+
+
+Update position PID controller gains. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em kp} & Proportional gain \\
+\hline
+{\em ki} & Integral gain ~\newline
+ \\
+\hline
+{\em kd} & Derivative gain \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 54 of file drone\+\_\+control.\+cpp.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{drone__control_8h}{drone\+\_\+control.\+h}}\item 
+src/\mbox{\hyperlink{drone__control_8cpp}{drone\+\_\+control.\+cpp}}\end{DoxyCompactItemize}

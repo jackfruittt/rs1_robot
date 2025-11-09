@@ -1,0 +1,121 @@
+\hypertarget{structdrone__swarm_1_1ActiveIncident}{}\doxysection{drone\+\_\+swarm\+::Active\+Incident Struct Reference}
+\label{structdrone__swarm_1_1ActiveIncident}\index{drone\_swarm::ActiveIncident@{drone\_swarm::ActiveIncident}}
+
+
+Active incident being managed by the fleet.  
+
+
+
+
+{\ttfamily \#include $<$mission\+\_\+node.\+h$>$}
+
+
+
+Collaboration diagram for drone\+\_\+swarm\+::Active\+Incident\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=238pt]{structdrone__swarm_1_1ActiveIncident__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+std\+::string \mbox{\hyperlink{structdrone__swarm_1_1ActiveIncident_a525cb9c63397a8e377cfd488db7a3b20}{scenario\+\_\+name}}
+\begin{DoxyCompactList}\small\item\em Type of scenario (e.\+g., \char`\"{}\+WILDFIRE\char`\"{}) \end{DoxyCompactList}\item 
+geometry\+\_\+msgs\+::msg\+::\+Point \mbox{\hyperlink{structdrone__swarm_1_1ActiveIncident_a79c5d42369ca6d1bd86c4ae711559438}{location}}
+\begin{DoxyCompactList}\small\item\em Location in world coordinates (metres) \end{DoxyCompactList}\item 
+int \mbox{\hyperlink{structdrone__swarm_1_1ActiveIncident_a43d0a2fca66e24b8d83483038f29ffeb}{responder\+\_\+id}}
+\begin{DoxyCompactList}\small\item\em ID of drone assigned to respond. \end{DoxyCompactList}\item 
+rclcpp\+::\+Time \mbox{\hyperlink{structdrone__swarm_1_1ActiveIncident_a31d56049f508a76fe11d83f42a9d32f4}{dispatch\+\_\+time}}
+\begin{DoxyCompactList}\small\item\em Time when incident was dispatched. \end{DoxyCompactList}\item 
+rclcpp\+::\+Time \mbox{\hyperlink{structdrone__swarm_1_1ActiveIncident_a4489f93deef8977390a80f19de713b96}{expires\+\_\+at}}
+\begin{DoxyCompactList}\small\item\em Time when incident expires (5 minutes) \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Active incident being managed by the fleet. 
+
+Fleet-\/wide registry entry for incident tracking and coordination 
+
+Definition at line 167 of file mission\+\_\+node.\+h.
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structdrone__swarm_1_1ActiveIncident_a31d56049f508a76fe11d83f42a9d32f4}\label{structdrone__swarm_1_1ActiveIncident_a31d56049f508a76fe11d83f42a9d32f4}} 
+\index{drone\_swarm::ActiveIncident@{drone\_swarm::ActiveIncident}!dispatch\_time@{dispatch\_time}}
+\index{dispatch\_time@{dispatch\_time}!drone\_swarm::ActiveIncident@{drone\_swarm::ActiveIncident}}
+\doxysubsubsection{\texorpdfstring{dispatch\_time}{dispatch\_time}}
+{\footnotesize\ttfamily rclcpp\+::\+Time drone\+\_\+swarm\+::\+Active\+Incident\+::dispatch\+\_\+time}
+
+
+
+Time when incident was dispatched. 
+
+
+
+Definition at line 171 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ActiveIncident_a4489f93deef8977390a80f19de713b96}\label{structdrone__swarm_1_1ActiveIncident_a4489f93deef8977390a80f19de713b96}} 
+\index{drone\_swarm::ActiveIncident@{drone\_swarm::ActiveIncident}!expires\_at@{expires\_at}}
+\index{expires\_at@{expires\_at}!drone\_swarm::ActiveIncident@{drone\_swarm::ActiveIncident}}
+\doxysubsubsection{\texorpdfstring{expires\_at}{expires\_at}}
+{\footnotesize\ttfamily rclcpp\+::\+Time drone\+\_\+swarm\+::\+Active\+Incident\+::expires\+\_\+at}
+
+
+
+Time when incident expires (5 minutes) 
+
+
+
+Definition at line 172 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ActiveIncident_a79c5d42369ca6d1bd86c4ae711559438}\label{structdrone__swarm_1_1ActiveIncident_a79c5d42369ca6d1bd86c4ae711559438}} 
+\index{drone\_swarm::ActiveIncident@{drone\_swarm::ActiveIncident}!location@{location}}
+\index{location@{location}!drone\_swarm::ActiveIncident@{drone\_swarm::ActiveIncident}}
+\doxysubsubsection{\texorpdfstring{location}{location}}
+{\footnotesize\ttfamily geometry\+\_\+msgs\+::msg\+::\+Point drone\+\_\+swarm\+::\+Active\+Incident\+::location}
+
+
+
+Location in world coordinates (metres) 
+
+
+
+Definition at line 169 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ActiveIncident_a43d0a2fca66e24b8d83483038f29ffeb}\label{structdrone__swarm_1_1ActiveIncident_a43d0a2fca66e24b8d83483038f29ffeb}} 
+\index{drone\_swarm::ActiveIncident@{drone\_swarm::ActiveIncident}!responder\_id@{responder\_id}}
+\index{responder\_id@{responder\_id}!drone\_swarm::ActiveIncident@{drone\_swarm::ActiveIncident}}
+\doxysubsubsection{\texorpdfstring{responder\_id}{responder\_id}}
+{\footnotesize\ttfamily int drone\+\_\+swarm\+::\+Active\+Incident\+::responder\+\_\+id}
+
+
+
+ID of drone assigned to respond. 
+
+
+
+Definition at line 170 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ActiveIncident_a525cb9c63397a8e377cfd488db7a3b20}\label{structdrone__swarm_1_1ActiveIncident_a525cb9c63397a8e377cfd488db7a3b20}} 
+\index{drone\_swarm::ActiveIncident@{drone\_swarm::ActiveIncident}!scenario\_name@{scenario\_name}}
+\index{scenario\_name@{scenario\_name}!drone\_swarm::ActiveIncident@{drone\_swarm::ActiveIncident}}
+\doxysubsubsection{\texorpdfstring{scenario\_name}{scenario\_name}}
+{\footnotesize\ttfamily std\+::string drone\+\_\+swarm\+::\+Active\+Incident\+::scenario\+\_\+name}
+
+
+
+Type of scenario (e.\+g., \char`\"{}\+WILDFIRE\char`\"{}) 
+
+
+
+Definition at line 168 of file mission\+\_\+node.\+h.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{mission__node_8h}{mission\+\_\+node.\+h}}\end{DoxyCompactItemize}

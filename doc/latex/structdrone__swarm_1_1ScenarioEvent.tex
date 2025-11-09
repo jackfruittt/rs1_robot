@@ -1,0 +1,153 @@
+\hypertarget{structdrone__swarm_1_1ScenarioEvent}{}\doxysection{drone\+\_\+swarm\+::Scenario\+Event Struct Reference}
+\label{structdrone__swarm_1_1ScenarioEvent}\index{drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}}
+
+
+Decoded scenario event from perception system.  
+
+
+
+
+{\ttfamily \#include $<$mission\+\_\+node.\+h$>$}
+
+
+
+Collaboration diagram for drone\+\_\+swarm\+::Scenario\+Event\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=238pt]{structdrone__swarm_1_1ScenarioEvent__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0}{Scenario}} \mbox{\hyperlink{structdrone__swarm_1_1ScenarioEvent_a3e484be7fbca50c1dbda52cbe040e089}{type}} \{\mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0a696b031073e74bf2cb98e5ef201d4aa3}{Scenario\+::\+UNKNOWN}}\}
+\begin{DoxyCompactList}\small\item\em Type of scenario detected. \end{DoxyCompactList}\item 
+\mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924}{Mission\+State}} \mbox{\hyperlink{structdrone__swarm_1_1ScenarioEvent_a7b476bdeba6b4cc543c38da6f7d4fcfc}{state}}
+\begin{DoxyCompactList}\small\item\em Recommended mission state for response. \end{DoxyCompactList}\item 
+geometry\+\_\+msgs\+::msg\+::\+Point \mbox{\hyperlink{structdrone__swarm_1_1ScenarioEvent_aac6d96d4d4f2e580bb1986fc0ec40990}{target}} \{\}
+\begin{DoxyCompactList}\small\item\em Location of scenario in world coordinates. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{structdrone__swarm_1_1ScenarioEvent_acc5396c8c29c014fcac96d5474468462}{heading}} \{0.\+0\}
+\begin{DoxyCompactList}\small\item\em Heading in radians (from perception/\+IMU) \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{structdrone__swarm_1_1ScenarioEvent_a3d731d68000b3052fe8e97dc412f8659}{can\+\_\+respond}} \{false\}
+\begin{DoxyCompactList}\small\item\em Whether response is recommended. \end{DoxyCompactList}\item 
+rclcpp\+::\+Time \mbox{\hyperlink{structdrone__swarm_1_1ScenarioEvent_ab295b4d41b3a3a8e637beee6b4b1b4b9}{stamp}} \{\}
+\begin{DoxyCompactList}\small\item\em Time when event was received. \end{DoxyCompactList}\item 
+std\+::string \mbox{\hyperlink{structdrone__swarm_1_1ScenarioEvent_a5edd5ebabc71652b2b6c324d33b33a3b}{raw}}
+\begin{DoxyCompactList}\small\item\em Original raw CSV string for audit logs. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Decoded scenario event from perception system. 
+
+Parsed and typed representation of a scenario detection message 
+
+Definition at line 152 of file mission\+\_\+node.\+h.
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioEvent_a3d731d68000b3052fe8e97dc412f8659}\label{structdrone__swarm_1_1ScenarioEvent_a3d731d68000b3052fe8e97dc412f8659}} 
+\index{drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}!can\_respond@{can\_respond}}
+\index{can\_respond@{can\_respond}!drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}}
+\doxysubsubsection{\texorpdfstring{can\_respond}{can\_respond}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Scenario\+Event\+::can\+\_\+respond \{false\}}
+
+
+
+Whether response is recommended. 
+
+
+
+Definition at line 157 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioEvent_acc5396c8c29c014fcac96d5474468462}\label{structdrone__swarm_1_1ScenarioEvent_acc5396c8c29c014fcac96d5474468462}} 
+\index{drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}!heading@{heading}}
+\index{heading@{heading}!drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}}
+\doxysubsubsection{\texorpdfstring{heading}{heading}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Scenario\+Event\+::heading \{0.\+0\}}
+
+
+
+Heading in radians (from perception/\+IMU) 
+
+
+
+Definition at line 156 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioEvent_a5edd5ebabc71652b2b6c324d33b33a3b}\label{structdrone__swarm_1_1ScenarioEvent_a5edd5ebabc71652b2b6c324d33b33a3b}} 
+\index{drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}!raw@{raw}}
+\index{raw@{raw}!drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}}
+\doxysubsubsection{\texorpdfstring{raw}{raw}}
+{\footnotesize\ttfamily std\+::string drone\+\_\+swarm\+::\+Scenario\+Event\+::raw}
+
+
+
+Original raw CSV string for audit logs. 
+
+
+
+Definition at line 159 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioEvent_ab295b4d41b3a3a8e637beee6b4b1b4b9}\label{structdrone__swarm_1_1ScenarioEvent_ab295b4d41b3a3a8e637beee6b4b1b4b9}} 
+\index{drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}!stamp@{stamp}}
+\index{stamp@{stamp}!drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}}
+\doxysubsubsection{\texorpdfstring{stamp}{stamp}}
+{\footnotesize\ttfamily rclcpp\+::\+Time drone\+\_\+swarm\+::\+Scenario\+Event\+::stamp \{\}}
+
+
+
+Time when event was received. 
+
+
+
+Definition at line 158 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioEvent_a7b476bdeba6b4cc543c38da6f7d4fcfc}\label{structdrone__swarm_1_1ScenarioEvent_a7b476bdeba6b4cc543c38da6f7d4fcfc}} 
+\index{drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}!state@{state}}
+\index{state@{state}!drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}}
+\doxysubsubsection{\texorpdfstring{state}{state}}
+{\footnotesize\ttfamily \mbox{\hyperlink{namespacedrone__swarm_a61533accbf0c9be529e0966bf2cd0924}{Mission\+State}} drone\+\_\+swarm\+::\+Scenario\+Event\+::state}
+
+
+
+Recommended mission state for response. 
+
+
+
+Definition at line 154 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioEvent_aac6d96d4d4f2e580bb1986fc0ec40990}\label{structdrone__swarm_1_1ScenarioEvent_aac6d96d4d4f2e580bb1986fc0ec40990}} 
+\index{drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}!target@{target}}
+\index{target@{target}!drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}}
+\doxysubsubsection{\texorpdfstring{target}{target}}
+{\footnotesize\ttfamily geometry\+\_\+msgs\+::msg\+::\+Point drone\+\_\+swarm\+::\+Scenario\+Event\+::target \{\}}
+
+
+
+Location of scenario in world coordinates. 
+
+
+
+Definition at line 155 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioEvent_a3e484be7fbca50c1dbda52cbe040e089}\label{structdrone__swarm_1_1ScenarioEvent_a3e484be7fbca50c1dbda52cbe040e089}} 
+\index{drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}!type@{type}}
+\index{type@{type}!drone\_swarm::ScenarioEvent@{drone\_swarm::ScenarioEvent}}
+\doxysubsubsection{\texorpdfstring{type}{type}}
+{\footnotesize\ttfamily \mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0}{Scenario}} drone\+\_\+swarm\+::\+Scenario\+Event\+::type \{\mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0a696b031073e74bf2cb98e5ef201d4aa3}{Scenario\+::\+UNKNOWN}}\}}
+
+
+
+Type of scenario detected. 
+
+
+
+Definition at line 153 of file mission\+\_\+node.\+h.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{mission__node_8h}{mission\+\_\+node.\+h}}\end{DoxyCompactItemize}

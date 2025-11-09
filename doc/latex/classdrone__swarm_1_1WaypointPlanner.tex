@@ -1,0 +1,376 @@
+\hypertarget{classdrone__swarm_1_1WaypointPlanner}{}\doxysection{drone\+\_\+swarm\+::Waypoint\+Planner Class Reference}
+\label{classdrone__swarm_1_1WaypointPlanner}\index{drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}}
+
+
+Manages waypoint sequences for drone missions.  
+
+
+
+
+{\ttfamily \#include $<$waypoint\+\_\+planner.\+h$>$}
+
+
+
+Collaboration diagram for drone\+\_\+swarm\+::Waypoint\+Planner\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=251pt]{classdrone__swarm_1_1WaypointPlanner__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner_a7c3b85c9b30a6a7029515458eb6bf5bb}{Waypoint\+Planner}} ()
+\begin{DoxyCompactList}\small\item\em Default constructor Initialises empty waypoint list with index at zero. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner_ae6cd04d08e48f76d4b06b3238af37763}{set\+Waypoints}} (const std\+::vector$<$ geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped $>$ \&waypoints)
+\begin{DoxyCompactList}\small\item\em Set new waypoint sequence for mission. \end{DoxyCompactList}\item 
+geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner_a175340c431af723b88bd0736ade141ad}{get\+Next\+Waypoint}} ()
+\begin{DoxyCompactList}\small\item\em Get next waypoint and advance index. \end{DoxyCompactList}\item 
+geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner_a41313d9868fb6a937d4a245684c4d486}{get\+Current\+Waypoint}} () const
+\begin{DoxyCompactList}\small\item\em Get current waypoint without advancing index. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner_ac1c5ff603794bccb1e4d41187e0c634b}{has\+Next\+Waypoint}} () const
+\begin{DoxyCompactList}\small\item\em Check if more waypoints are available. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner_a42d99b023ccbbe482ba36237fafa6a3b}{reset}} ()
+\begin{DoxyCompactList}\small\item\em Reset waypoint index to beginning. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner_ad3bbc8213f6d9898cbdd03a6766b7e02}{get\+Distance\+To\+Waypoint}} (const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&current\+\_\+pose) const
+\begin{DoxyCompactList}\small\item\em Calculate distance to current waypoint. \end{DoxyCompactList}\item 
+std\+::vector$<$ geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped $>$ \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner_a29bd32a263fd840d8d64302eb5fb15bf}{get\+All\+Waypoints}} () const
+\begin{DoxyCompactList}\small\item\em Get all waypoints in the current path. \end{DoxyCompactList}\item 
+size\+\_\+t \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner_a1c3c65c60e66a4ae7ee4cbf853704c05}{get\+Current\+Waypoint\+Index}} () const
+\begin{DoxyCompactList}\small\item\em Get current waypoint index. \end{DoxyCompactList}\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner_ab496b81cb775224630a29aef0bf528c6}{set\+Current\+Waypoint\+Index}} (size\+\_\+t index)
+\begin{DoxyCompactList}\small\item\em Set current waypoint index. \end{DoxyCompactList}\item 
+std\+::vector$<$ geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped $>$ \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner_acec1a6bf7e34438b7cea5b6356a3becc}{generate\+Random\+Waypoints}} (const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&start\+\_\+pose, int num\+\_\+waypoints=5, double min\+\_\+distance=1.\+0, double max\+\_\+distance=3.\+0, double altitude=15.\+0)
+\begin{DoxyCompactList}\small\item\em Generate random waypoints for autonomous patrol. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Manages waypoint sequences for drone missions. 
+
+Provides sequential waypoint navigation with distance calculations and waypoint management. Supports dynamic waypoint updates and mission replanning for autonomous drone operations. 
+
+Definition at line 26 of file waypoint\+\_\+planner.\+h.
+
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1WaypointPlanner_a7c3b85c9b30a6a7029515458eb6bf5bb}\label{classdrone__swarm_1_1WaypointPlanner_a7c3b85c9b30a6a7029515458eb6bf5bb}} 
+\index{drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}!WaypointPlanner@{WaypointPlanner}}
+\index{WaypointPlanner@{WaypointPlanner}!drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}}
+\doxysubsubsection{\texorpdfstring{WaypointPlanner()}{WaypointPlanner()}}
+{\footnotesize\ttfamily drone\+\_\+swarm\+::\+Waypoint\+Planner\+::\+Waypoint\+Planner (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Default constructor Initialises empty waypoint list with index at zero. 
+
+
+
+Definition at line 9 of file waypoint\+\_\+planner.\+cpp.
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1WaypointPlanner_acec1a6bf7e34438b7cea5b6356a3becc}\label{classdrone__swarm_1_1WaypointPlanner_acec1a6bf7e34438b7cea5b6356a3becc}} 
+\index{drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}!generateRandomWaypoints@{generateRandomWaypoints}}
+\index{generateRandomWaypoints@{generateRandomWaypoints}!drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}}
+\doxysubsubsection{\texorpdfstring{generateRandomWaypoints()}{generateRandomWaypoints()}}
+{\footnotesize\ttfamily std\+::vector$<$ geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped $>$ drone\+\_\+swarm\+::\+Waypoint\+Planner\+::generate\+Random\+Waypoints (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&}]{start\+\_\+pose,  }\item[{int}]{num\+\_\+waypoints = {\ttfamily 5},  }\item[{double}]{min\+\_\+distance = {\ttfamily 1.0},  }\item[{double}]{max\+\_\+distance = {\ttfamily 3.0},  }\item[{double}]{altitude = {\ttfamily 15.0} }\end{DoxyParamCaption})}
+
+
+
+Generate random waypoints for autonomous patrol. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em start\+\_\+pose} & Starting position for the new route \\
+\hline
+{\em num\+\_\+waypoints} & Number of waypoints to generate (default\+: 5) \\
+\hline
+{\em min\+\_\+distance} & Minimum distance between consecutive waypoints in metres (default\+: 1.\+0) \\
+\hline
+{\em max\+\_\+distance} & Maximum distance between consecutive waypoints in metres (default\+: 3.\+0) \\
+\hline
+{\em altitude} & Target altitude for waypoints in metres (default\+: 15.\+0) \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Vector of randomly generated waypoints
+\end{DoxyReturn}
+Generates a valid patrol route with the following constraints\+:
+\begin{DoxyItemize}
+\item Waypoints within map bounds (x\+: -\/50 to 50, y\+: -\/50 to 50)
+\item Consecutive points separated by min\+\_\+distance to max\+\_\+distance
+\item No path self-\/intersections (segments don\textquotesingle{}t cross)
+\item Smooth turns with angle constraints to prevent sharp reversals 
+\end{DoxyItemize}
+
+Definition at line 72 of file waypoint\+\_\+planner.\+cpp.
+
+
+
+References M\+\_\+\+PI.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1WaypointPlanner_a29bd32a263fd840d8d64302eb5fb15bf}\label{classdrone__swarm_1_1WaypointPlanner_a29bd32a263fd840d8d64302eb5fb15bf}} 
+\index{drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}!getAllWaypoints@{getAllWaypoints}}
+\index{getAllWaypoints@{getAllWaypoints}!drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}}
+\doxysubsubsection{\texorpdfstring{getAllWaypoints()}{getAllWaypoints()}}
+{\footnotesize\ttfamily std\+::vector$<$ geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped $>$ drone\+\_\+swarm\+::\+Waypoint\+Planner\+::get\+All\+Waypoints (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get all waypoints in the current path. 
+
+\begin{DoxyReturn}{Returns}
+Vector of all waypoints
+\end{DoxyReturn}
+Used for state preservation during scenario reactions 
+
+Definition at line 54 of file waypoint\+\_\+planner.\+cpp.
+
+
+
+Referenced by drone\+\_\+swarm\+::\+Mission\+Executor\+::save\+Mission\+State().
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1WaypointPlanner_a29bd32a263fd840d8d64302eb5fb15bf_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1WaypointPlanner_a41313d9868fb6a937d4a245684c4d486}\label{classdrone__swarm_1_1WaypointPlanner_a41313d9868fb6a937d4a245684c4d486}} 
+\index{drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}!getCurrentWaypoint@{getCurrentWaypoint}}
+\index{getCurrentWaypoint@{getCurrentWaypoint}!drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}}
+\doxysubsubsection{\texorpdfstring{getCurrentWaypoint()}{getCurrentWaypoint()}}
+{\footnotesize\ttfamily geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped drone\+\_\+swarm\+::\+Waypoint\+Planner\+::get\+Current\+Waypoint (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get current waypoint without advancing index. 
+
+\begin{DoxyReturn}{Returns}
+Current waypoint in sequence, or empty pose if none available
+\end{DoxyReturn}
+Does not modify internal state. Safe to call repeatedly. 
+
+Definition at line 26 of file waypoint\+\_\+planner.\+cpp.
+
+
+
+References has\+Next\+Waypoint().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1WaypointPlanner_a41313d9868fb6a937d4a245684c4d486_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1WaypointPlanner_a1c3c65c60e66a4ae7ee4cbf853704c05}\label{classdrone__swarm_1_1WaypointPlanner_a1c3c65c60e66a4ae7ee4cbf853704c05}} 
+\index{drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}!getCurrentWaypointIndex@{getCurrentWaypointIndex}}
+\index{getCurrentWaypointIndex@{getCurrentWaypointIndex}!drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}}
+\doxysubsubsection{\texorpdfstring{getCurrentWaypointIndex()}{getCurrentWaypointIndex()}}
+{\footnotesize\ttfamily size\+\_\+t drone\+\_\+swarm\+::\+Waypoint\+Planner\+::get\+Current\+Waypoint\+Index (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Get current waypoint index. 
+
+\begin{DoxyReturn}{Returns}
+Current index in waypoint sequence
+\end{DoxyReturn}
+Used for state preservation during scenario reactions 
+
+Definition at line 58 of file waypoint\+\_\+planner.\+cpp.
+
+
+
+Referenced by drone\+\_\+swarm\+::\+Mission\+Executor\+::save\+Mission\+State().
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1WaypointPlanner_a1c3c65c60e66a4ae7ee4cbf853704c05_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1WaypointPlanner_ad3bbc8213f6d9898cbdd03a6766b7e02}\label{classdrone__swarm_1_1WaypointPlanner_ad3bbc8213f6d9898cbdd03a6766b7e02}} 
+\index{drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}!getDistanceToWaypoint@{getDistanceToWaypoint}}
+\index{getDistanceToWaypoint@{getDistanceToWaypoint}!drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}}
+\doxysubsubsection{\texorpdfstring{getDistanceToWaypoint()}{getDistanceToWaypoint()}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Waypoint\+Planner\+::get\+Distance\+To\+Waypoint (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&}]{current\+\_\+pose }\end{DoxyParamCaption}) const}
+
+
+
+Calculate distance to current waypoint. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em current\+\_\+pose} & Current drone position \\
+\hline
+\end{DoxyParams}
+\begin{DoxyReturn}{Returns}
+Euclidean distance to current waypoint in metres
+\end{DoxyReturn}
+Returns 0.\+0 if no waypoints available. Uses 3D distance calculation including altitude differences. 
+
+Definition at line 42 of file waypoint\+\_\+planner.\+cpp.
+
+
+
+References has\+Next\+Waypoint().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1WaypointPlanner_ad3bbc8213f6d9898cbdd03a6766b7e02_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1WaypointPlanner_a175340c431af723b88bd0736ade141ad}\label{classdrone__swarm_1_1WaypointPlanner_a175340c431af723b88bd0736ade141ad}} 
+\index{drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}!getNextWaypoint@{getNextWaypoint}}
+\index{getNextWaypoint@{getNextWaypoint}!drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}}
+\doxysubsubsection{\texorpdfstring{getNextWaypoint()}{getNextWaypoint()}}
+{\footnotesize\ttfamily geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped drone\+\_\+swarm\+::\+Waypoint\+Planner\+::get\+Next\+Waypoint (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Get next waypoint and advance index. 
+
+\begin{DoxyReturn}{Returns}
+Next waypoint in sequence, or empty pose if none available
+\end{DoxyReturn}
+Advances internal index after returning waypoint. Check \mbox{\hyperlink{classdrone__swarm_1_1WaypointPlanner_ac1c5ff603794bccb1e4d41187e0c634b}{has\+Next\+Waypoint()}} before calling to avoid empty returns. 
+
+Definition at line 18 of file waypoint\+\_\+planner.\+cpp.
+
+
+
+References has\+Next\+Waypoint().
+
+Here is the call graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1WaypointPlanner_a175340c431af723b88bd0736ade141ad_cgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1WaypointPlanner_ac1c5ff603794bccb1e4d41187e0c634b}\label{classdrone__swarm_1_1WaypointPlanner_ac1c5ff603794bccb1e4d41187e0c634b}} 
+\index{drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}!hasNextWaypoint@{hasNextWaypoint}}
+\index{hasNextWaypoint@{hasNextWaypoint}!drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}}
+\doxysubsubsection{\texorpdfstring{hasNextWaypoint()}{hasNextWaypoint()}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Waypoint\+Planner\+::has\+Next\+Waypoint (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+
+
+Check if more waypoints are available. 
+
+\begin{DoxyReturn}{Returns}
+True if waypoints remain in sequence, false if at end 
+\end{DoxyReturn}
+
+
+Definition at line 34 of file waypoint\+\_\+planner.\+cpp.
+
+
+
+Referenced by get\+Current\+Waypoint(), get\+Distance\+To\+Waypoint(), and get\+Next\+Waypoint().
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1WaypointPlanner_ac1c5ff603794bccb1e4d41187e0c634b_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1WaypointPlanner_a42d99b023ccbbe482ba36237fafa6a3b}\label{classdrone__swarm_1_1WaypointPlanner_a42d99b023ccbbe482ba36237fafa6a3b}} 
+\index{drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}!reset@{reset}}
+\index{reset@{reset}!drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}}
+\doxysubsubsection{\texorpdfstring{reset()}{reset()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Waypoint\+Planner\+::reset (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+Reset waypoint index to beginning. 
+
+Allows restarting mission from first waypoint without changing the waypoint list. 
+
+Definition at line 38 of file waypoint\+\_\+planner.\+cpp.
+
+\mbox{\Hypertarget{classdrone__swarm_1_1WaypointPlanner_ab496b81cb775224630a29aef0bf528c6}\label{classdrone__swarm_1_1WaypointPlanner_ab496b81cb775224630a29aef0bf528c6}} 
+\index{drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}!setCurrentWaypointIndex@{setCurrentWaypointIndex}}
+\index{setCurrentWaypointIndex@{setCurrentWaypointIndex}!drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}}
+\doxysubsubsection{\texorpdfstring{setCurrentWaypointIndex()}{setCurrentWaypointIndex()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Waypoint\+Planner\+::set\+Current\+Waypoint\+Index (\begin{DoxyParamCaption}\item[{size\+\_\+t}]{index }\end{DoxyParamCaption})}
+
+
+
+Set current waypoint index. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em index} & Index to set as current waypoint\\
+\hline
+\end{DoxyParams}
+Used for state restoration after scenario reactions Clamped to valid range \mbox{[}0, waypoints.\+size()\mbox{]} 
+
+Definition at line 62 of file waypoint\+\_\+planner.\+cpp.
+
+
+
+Referenced by drone\+\_\+swarm\+::\+Mission\+Executor\+::restore\+Mission\+State().
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1WaypointPlanner_ab496b81cb775224630a29aef0bf528c6_icgraph}
+\end{center}
+\end{figure}
+\mbox{\Hypertarget{classdrone__swarm_1_1WaypointPlanner_ae6cd04d08e48f76d4b06b3238af37763}\label{classdrone__swarm_1_1WaypointPlanner_ae6cd04d08e48f76d4b06b3238af37763}} 
+\index{drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}!setWaypoints@{setWaypoints}}
+\index{setWaypoints@{setWaypoints}!drone\_swarm::WaypointPlanner@{drone\_swarm::WaypointPlanner}}
+\doxysubsubsection{\texorpdfstring{setWaypoints()}{setWaypoints()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Waypoint\+Planner\+::set\+Waypoints (\begin{DoxyParamCaption}\item[{const std\+::vector$<$ geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped $>$ \&}]{waypoints }\end{DoxyParamCaption})}
+
+
+
+Set new waypoint sequence for mission. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em waypoints} & Vector of stamped poses defining the path\\
+\hline
+\end{DoxyParams}
+Replaces current waypoint list and resets index to beginning. Waypoints should be ordered for sequential navigation. 
+
+Definition at line 11 of file waypoint\+\_\+planner.\+cpp.
+
+
+
+Referenced by drone\+\_\+swarm\+::\+Mission\+Executor\+::execute\+Debris\+Reaction(), drone\+\_\+swarm\+::\+Mission\+Executor\+::execute\+Hiker\+Rescue(), drone\+\_\+swarm\+::\+Mission\+Executor\+::execute\+Wildfire\+Reaction(), and drone\+\_\+swarm\+::\+Mission\+Executor\+::restore\+Mission\+State().
+
+Here is the caller graph for this function\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{classdrone__swarm_1_1WaypointPlanner_ae6cd04d08e48f76d4b06b3238af37763_icgraph}
+\end{center}
+\end{figure}
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/mission/\mbox{\hyperlink{waypoint__planner_8h}{waypoint\+\_\+planner.\+h}}\item 
+src/\mbox{\hyperlink{waypoint__planner_8cpp}{waypoint\+\_\+planner.\+cpp}}\end{DoxyCompactItemize}

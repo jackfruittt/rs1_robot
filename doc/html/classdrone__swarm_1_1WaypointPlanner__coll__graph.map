@@ -1,0 +1,3 @@
+<map id="drone_swarm::WaypointPlanner" name="drone_swarm::WaypointPlanner">
+<area shape="rect" id="node1" title="Manages waypoint sequences for drone missions." alt="" coords="5,5,233,229"/>
+</map>

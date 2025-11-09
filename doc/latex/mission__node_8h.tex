@@ -1,0 +1,113 @@
+\hypertarget{mission__node_8h}{}\doxysection{include/mission\+\_\+node.h File Reference}
+\label{mission__node_8h}\index{include/mission\_node.h@{include/mission\_node.h}}
+
+
+Mission planning and coordination node for autonomous drone operations.  
+
+
+{\ttfamily \#include $<$memory$>$}\newline
+{\ttfamily \#include $<$string$>$}\newline
+{\ttfamily \#include $<$vector$>$}\newline
+{\ttfamily \#include $<$chrono$>$}\newline
+{\ttfamily \#include $<$algorithm$>$}\newline
+{\ttfamily \#include $<$cctype$>$}\newline
+{\ttfamily \#include $<$cmath$>$}\newline
+{\ttfamily \#include $<$sstream$>$}\newline
+{\ttfamily \#include $<$iomanip$>$}\newline
+{\ttfamily \#include $<$ctime$>$}\newline
+{\ttfamily \#include $<$regex$>$}\newline
+{\ttfamily \#include $<$set$>$}\newline
+{\ttfamily \#include $<$mutex$>$}\newline
+{\ttfamily \#include $<$unordered\+\_\+map$>$}\newline
+{\ttfamily \#include $<$optional$>$}\newline
+{\ttfamily \#include $<$limits$>$}\newline
+{\ttfamily \#include \char`\"{}rclcpp/rclcpp.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}geometry\+\_\+msgs/msg/pose\+\_\+stamped.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}geometry\+\_\+msgs/msg/twist.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}sensor\+\_\+msgs/msg/range.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}nav\+\_\+msgs/msg/odometry.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}nav\+\_\+msgs/msg/path.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}sensor\+\_\+msgs/msg/laser\+\_\+scan.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}std\+\_\+msgs/msg/string.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}std\+\_\+srvs/srv/trigger.\+hpp\char`\"{}}\newline
+{\ttfamily \#include $<$std\+\_\+msgs/msg/empty.\+hpp$>$}\newline
+{\ttfamily \#include \char`\"{}rs1\+\_\+robot/srv/react\+\_\+to\+\_\+wildfire.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}rs1\+\_\+robot/srv/react\+\_\+to\+\_\+hiker.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}rs1\+\_\+robot/srv/react\+\_\+to\+\_\+debris.\+hpp\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}mission/state\+\_\+machine.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}mission/waypoint\+\_\+planner.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}mission/mission\+\_\+state.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}mission/mission\+\_\+executor.\+h\char`\"{}}\newline
+{\ttfamily \#include \char`\"{}rclcpp\+\_\+components/register\+\_\+node\+\_\+macro.\+hpp\char`\"{}}\newline
+Include dependency graph for mission\+\_\+node.\+h\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mission__node_8h__incl}
+\end{center}
+\end{figure}
+This graph shows which files directly or indirectly include this file\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=350pt]{mission__node_8h__dep__incl}
+\end{center}
+\end{figure}
+\doxysubsection*{Classes}
+\begin{DoxyCompactItemize}
+\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1DroneInfo}{drone\+\_\+swarm\+::\+Drone\+Info}}
+\begin{DoxyCompactList}\small\item\em Information about a drone in the fleet. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1DispatchCooldown}{drone\+\_\+swarm\+::\+Dispatch\+Cooldown}}
+\begin{DoxyCompactList}\small\item\em Cooldown tracking for incident dispatch. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1OrbitPoint}{drone\+\_\+swarm\+::\+Orbit\+Point}}
+\begin{DoxyCompactList}\small\item\em Point on an orbital trajectory around an incident. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1ScenarioData}{drone\+\_\+swarm\+::\+Scenario\+Data}}
+\begin{DoxyCompactList}\small\item\em Simple data structure to hold parsed scenario information. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1PeerInfo}{drone\+\_\+swarm\+::\+Peer\+Info}}
+\begin{DoxyCompactList}\small\item\em Cached information about a peer drone. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1ScenarioEvent}{drone\+\_\+swarm\+::\+Scenario\+Event}}
+\begin{DoxyCompactList}\small\item\em Decoded scenario event from perception system. \end{DoxyCompactList}\item 
+struct \mbox{\hyperlink{structdrone__swarm_1_1ActiveIncident}{drone\+\_\+swarm\+::\+Active\+Incident}}
+\begin{DoxyCompactList}\small\item\em Active incident being managed by the fleet. \end{DoxyCompactList}\item 
+class \mbox{\hyperlink{classdrone__swarm_1_1MissionPlannerNode}{drone\+\_\+swarm\+::\+Mission\+Planner\+Node}}
+\begin{DoxyCompactList}\small\item\em ROS 2 node for autonomous mission planning and execution. \end{DoxyCompactList}\end{DoxyCompactItemize}
+\doxysubsection*{Namespaces}
+\begin{DoxyCompactItemize}
+\item 
+ \mbox{\hyperlink{namespacedrone__swarm}{drone\+\_\+swarm}}
+\end{DoxyCompactItemize}
+\doxysubsection*{Enumerations}
+\begin{DoxyCompactItemize}
+\item 
+enum class \mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0}{drone\+\_\+swarm\+::\+Scenario}} \{ \mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0a696b031073e74bf2cb98e5ef201d4aa3}{drone\+\_\+swarm\+::\+UNKNOWN}} = 0
+, \mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0a2b50ee83d55f81070fdf00a9eaf9f110}{drone\+\_\+swarm\+::\+STRANDED\+\_\+\+HIKER}}
+, \mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0a670a7969a5b597f1e39e16d1eefd6c78}{drone\+\_\+swarm\+::\+WILDFIRE}}
+, \mbox{\hyperlink{namespacedrone__swarm_a4ffe99e7f9738c375d41fd8b49780cc0af7d23cea5983ff915e1bf87da17b55b5}{drone\+\_\+swarm\+::\+DEBRIS\+\_\+\+OBSTRUCTION}}
+ \}
+\begin{DoxyCompactList}\small\item\em Scenario types that can be detected during missions. \end{DoxyCompactList}\item 
+enum class \mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662}{drone\+\_\+swarm\+::\+Reaction\+Phase}} \{ \newline
+\mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662ab50339a10e1de285ac99d4c3990b8693}{drone\+\_\+swarm\+::\+NONE}}
+, \mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662afaee4ca3c30ee18148ce3ada37466498}{drone\+\_\+swarm\+::\+INIT}}
+, \mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662ad3bc27ea620f6caaf3b8d332f8e7e0bf}{drone\+\_\+swarm\+::\+COLLECT\+\_\+\+INFO}}
+, \mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662ad913681e2dbb1e2f78cdf551e09c29e7}{drone\+\_\+swarm\+::\+ASSIGN\+\_\+\+PEER}}
+, \newline
+\mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662a7e123157c8bf8b2b723faf959243f0f7}{drone\+\_\+swarm\+::\+SELF\+\_\+\+ORBIT}}
+, \mbox{\hyperlink{namespacedrone__swarm_aeb0313ddf6432e520e3cf45b02605662a3de44296982e58199afc513a715b12ba}{drone\+\_\+swarm\+::\+COMPLETE}}
+ \}
+\begin{DoxyCompactList}\small\item\em Reaction phase for scenario response coordination. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Mission planning and coordination node for autonomous drone operations. 
+
+\begin{DoxyAuthor}{Author}
+Jackson Russell 
+
+Matthew Chua ADD OTHER AUTHORS ADD HERE AND BELOW 
+\end{DoxyAuthor}
+\begin{DoxyDate}{Date}
+Aug-\/2025 
+\end{DoxyDate}

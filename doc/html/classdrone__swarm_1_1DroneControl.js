@@ -1,0 +1,26 @@
+var classdrone__swarm_1_1DroneControl =
+[
+    [ "DroneControl", "classdrone__swarm_1_1DroneControl.html#ae99d1bf37e9c25838b28f6a789b54f81", null ],
+    [ "calculateAdvancedPositionControl", "classdrone__swarm_1_1DroneControl.html#a987a901653f7c7201a764180c6421701", null ],
+    [ "calculateControlOutput", "classdrone__swarm_1_1DroneControl.html#a1ed0fd64d680c92d499f861e54fbb9b6", null ],
+    [ "calculatePositionControl", "classdrone__swarm_1_1DroneControl.html#af2646a93010d6fc9ec406df3d4b677c8", null ],
+    [ "calculateVelocityControl", "classdrone__swarm_1_1DroneControl.html#a1e0cfb2bbcd0345f2a5d9250d4471b5b", null ],
+    [ "calculateXControl", "classdrone__swarm_1_1DroneControl.html#abc564ad43dcf3be4b8bf20b7c2412fb3", null ],
+    [ "calculateYawControl", "classdrone__swarm_1_1DroneControl.html#a5daa42996119115c1874f8f00b3ca3dc", null ],
+    [ "calculateYawToTarget", "classdrone__swarm_1_1DroneControl.html#ad41e34dd67d09b987becab1e72cebdc9", null ],
+    [ "calculateYControl", "classdrone__swarm_1_1DroneControl.html#a8bec3fb3916107fd7da346d2e9172f11", null ],
+    [ "calculateZControl", "classdrone__swarm_1_1DroneControl.html#a65eb947aef925b7740daa08aae8d1ad0", null ],
+    [ "flyToGoal", "classdrone__swarm_1_1DroneControl.html#a7bfdc1b6e600b594da6444c6fdb85537", null ],
+    [ "initialise", "classdrone__swarm_1_1DroneControl.html#ae618450b27e4b9e1e48376544695c402", null ],
+    [ "land", "classdrone__swarm_1_1DroneControl.html#a1226dc08a89dc37a3d07b3e02de68798", null ],
+    [ "navigateToWaypointWithAltitudeControl", "classdrone__swarm_1_1DroneControl.html#a8287886eb5f79f7f5ed7db5e730546a3", null ],
+    [ "resetControllers", "classdrone__swarm_1_1DroneControl.html#ab4736267eb5c8c10ba58f85bc908b42c", null ],
+    [ "setCmdVelPublisher", "classdrone__swarm_1_1DroneControl.html#afd24542bbe35098a853dc584e5bc87e0", null ],
+    [ "setControlLimits", "classdrone__swarm_1_1DroneControl.html#ac999f4c458de70b9cbe458339c9fbcd3", null ],
+    [ "setEmergencyClimbParams", "classdrone__swarm_1_1DroneControl.html#acc744c125264ccf2a6b091e02b76489a", null ],
+    [ "setLogger", "classdrone__swarm_1_1DroneControl.html#a890584671df94b65d68170928d3339a1", null ],
+    [ "setTerrainFollowingAltitude", "classdrone__swarm_1_1DroneControl.html#aabee50b515fa0a678b885786ba9633c1", null ],
+    [ "takeoff", "classdrone__swarm_1_1DroneControl.html#abb6937226c4621c0b9ebb7ca5f7528ca", null ],
+    [ "updateCurrentYaw", "classdrone__swarm_1_1DroneControl.html#a28d40dc0cd799803d1969c10bf35227b", null ],
+    [ "updatePositionPIDGains", "classdrone__swarm_1_1DroneControl.html#a93e1ec0e5e372e31ded08430ad035bea", null ]
+];

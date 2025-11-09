@@ -1,0 +1,8 @@
+<map id="drone_swarm::DroneControl::calculateYawControl" name="drone_swarm::DroneControl::calculateYawControl">
+<area shape="rect" id="node1" title="Calculate yaw control command." alt="" coords="596,104,800,145"/>
+<area shape="rect" id="node2" href="$classdrone__swarm_1_1DroneControl.html#a987a901653f7c7201a764180c6421701" title="Enhanced position control with advanced features." alt="" coords="296,104,548,145"/>
+<area shape="rect" id="node3" href="$classdrone__swarm_1_1DroneControl.html#a1ed0fd64d680c92d499f861e54fbb9b6" title="Calculate control output for position tracking." alt="" coords="25,5,229,47"/>
+<area shape="rect" id="node4" href="$classdrone__swarm_1_1DroneControl.html#af2646a93010d6fc9ec406df3d4b677c8" title="Basic position control mode." alt="" coords="25,71,229,112"/>
+<area shape="rect" id="node5" href="$classdrone__swarm_1_1DroneControl.html#a7bfdc1b6e600b594da6444c6fdb85537" title="High&#45;level navigation to goal pose." alt="" coords="25,136,229,177"/>
+<area shape="rect" id="node6" href="$classdrone__swarm_1_1DroneControl.html#a8287886eb5f79f7f5ed7db5e730546a3" title="Navigate to 2D waypoint using terrain&#45;following altitude control." alt="" coords="5,202,248,258"/>
+</map>

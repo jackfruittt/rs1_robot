@@ -1,0 +1,4 @@
+<map id="drone_swarm::StateMachine::setState" name="drone_swarm::StateMachine::setState">
+<area shape="rect" id="node1" title="Set new mission state." alt="" coords="5,5,212,47"/>
+<area shape="rect" id="node2" href="$classdrone__swarm_1_1StateMachine.html#a40458f18a3a8e7bef7746194b9322318" title="Get human&#45;readable state string." alt="" coords="260,5,467,47"/>
+</map>

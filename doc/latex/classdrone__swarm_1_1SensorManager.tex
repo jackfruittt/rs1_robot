@@ -1,0 +1,117 @@
+\hypertarget{classdrone__swarm_1_1SensorManager}{}\doxysection{drone\+\_\+swarm\+::Sensor\+Manager Class Reference}
+\label{classdrone__swarm_1_1SensorManager}\index{drone\_swarm::SensorManager@{drone\_swarm::SensorManager}}
+
+
+{\ttfamily \#include $<$sensor\+\_\+manager.\+h$>$}
+
+
+
+Collaboration diagram for drone\+\_\+swarm\+::Sensor\+Manager\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=244pt]{classdrone__swarm_1_1SensorManager__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classdrone__swarm_1_1SensorManager_aac105ec1402a6d0273e9aec3bb3afaa3}{Sensor\+Manager}} ()
+\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1SensorManager_a5c3da2bf49a28db557fdd1740a7e4c17}{update\+Odometry}} (const nav\+\_\+msgs\+::msg\+::\+Odometry\+::\+Shared\+Ptr msg)
+\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1SensorManager_abfe312e38a46e76ea884c631271ab871}{update\+Laser}} (const sensor\+\_\+msgs\+::msg\+::\+Laser\+Scan\+::\+Shared\+Ptr msg)
+\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1SensorManager_a397a880a4c46b052cac927eebe9fccfb}{update\+Sonar}} (const sensor\+\_\+msgs\+::msg\+::\+Range\+::\+Shared\+Ptr msg)
+\item 
+geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \mbox{\hyperlink{classdrone__swarm_1_1SensorManager_ab4edaf6c93e571a34f8b702a2b778e0a}{get\+Current\+Pose}} () const
+\item 
+geometry\+\_\+msgs\+::msg\+::\+Twist \mbox{\hyperlink{classdrone__swarm_1_1SensorManager_a7db119715790f0632176f4d39b3d6bea}{get\+Current\+Velocity}} () const
+\item 
+sensor\+\_\+msgs\+::msg\+::\+Laser\+Scan\+::\+Shared\+Ptr \mbox{\hyperlink{classdrone__swarm_1_1SensorManager_a8790939f4e84fdfe813ca816a254dcf9}{get\+Latest\+Laser}} () const
+\item 
+sensor\+\_\+msgs\+::msg\+::\+Range\+::\+Shared\+Ptr \mbox{\hyperlink{classdrone__swarm_1_1SensorManager_a0832eb672ae94127663b520305d356d1}{get\+Latest\+Sonar}} () const
+\item 
+bool \mbox{\hyperlink{classdrone__swarm_1_1SensorManager_a718f2e836ef7690af7be0cd22bccf63e}{has\+Valid\+Pose}} () const
+\item 
+bool \mbox{\hyperlink{classdrone__swarm_1_1SensorManager_a295f655abc62bb6a3cf40e752029951c}{has\+Valid\+Odom}} () const
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line 22 of file sensor\+\_\+manager.\+h.
+
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1SensorManager_aac105ec1402a6d0273e9aec3bb3afaa3}\label{classdrone__swarm_1_1SensorManager_aac105ec1402a6d0273e9aec3bb3afaa3}} 
+\index{drone\_swarm::SensorManager@{drone\_swarm::SensorManager}!SensorManager@{SensorManager}}
+\index{SensorManager@{SensorManager}!drone\_swarm::SensorManager@{drone\_swarm::SensorManager}}
+\doxysubsubsection{\texorpdfstring{SensorManager()}{SensorManager()}}
+{\footnotesize\ttfamily drone\+\_\+swarm\+::\+Sensor\+Manager\+::\+Sensor\+Manager (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1SensorManager_ab4edaf6c93e571a34f8b702a2b778e0a}\label{classdrone__swarm_1_1SensorManager_ab4edaf6c93e571a34f8b702a2b778e0a}} 
+\index{drone\_swarm::SensorManager@{drone\_swarm::SensorManager}!getCurrentPose@{getCurrentPose}}
+\index{getCurrentPose@{getCurrentPose}!drone\_swarm::SensorManager@{drone\_swarm::SensorManager}}
+\doxysubsubsection{\texorpdfstring{getCurrentPose()}{getCurrentPose()}}
+{\footnotesize\ttfamily geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped drone\+\_\+swarm\+::\+Sensor\+Manager\+::get\+Current\+Pose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{classdrone__swarm_1_1SensorManager_a7db119715790f0632176f4d39b3d6bea}\label{classdrone__swarm_1_1SensorManager_a7db119715790f0632176f4d39b3d6bea}} 
+\index{drone\_swarm::SensorManager@{drone\_swarm::SensorManager}!getCurrentVelocity@{getCurrentVelocity}}
+\index{getCurrentVelocity@{getCurrentVelocity}!drone\_swarm::SensorManager@{drone\_swarm::SensorManager}}
+\doxysubsubsection{\texorpdfstring{getCurrentVelocity()}{getCurrentVelocity()}}
+{\footnotesize\ttfamily geometry\+\_\+msgs\+::msg\+::\+Twist drone\+\_\+swarm\+::\+Sensor\+Manager\+::get\+Current\+Velocity (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{classdrone__swarm_1_1SensorManager_a8790939f4e84fdfe813ca816a254dcf9}\label{classdrone__swarm_1_1SensorManager_a8790939f4e84fdfe813ca816a254dcf9}} 
+\index{drone\_swarm::SensorManager@{drone\_swarm::SensorManager}!getLatestLaser@{getLatestLaser}}
+\index{getLatestLaser@{getLatestLaser}!drone\_swarm::SensorManager@{drone\_swarm::SensorManager}}
+\doxysubsubsection{\texorpdfstring{getLatestLaser()}{getLatestLaser()}}
+{\footnotesize\ttfamily sensor\+\_\+msgs\+::msg\+::\+Laser\+Scan\+::\+Shared\+Ptr drone\+\_\+swarm\+::\+Sensor\+Manager\+::get\+Latest\+Laser (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{classdrone__swarm_1_1SensorManager_a0832eb672ae94127663b520305d356d1}\label{classdrone__swarm_1_1SensorManager_a0832eb672ae94127663b520305d356d1}} 
+\index{drone\_swarm::SensorManager@{drone\_swarm::SensorManager}!getLatestSonar@{getLatestSonar}}
+\index{getLatestSonar@{getLatestSonar}!drone\_swarm::SensorManager@{drone\_swarm::SensorManager}}
+\doxysubsubsection{\texorpdfstring{getLatestSonar()}{getLatestSonar()}}
+{\footnotesize\ttfamily sensor\+\_\+msgs\+::msg\+::\+Range\+::\+Shared\+Ptr drone\+\_\+swarm\+::\+Sensor\+Manager\+::get\+Latest\+Sonar (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{classdrone__swarm_1_1SensorManager_a295f655abc62bb6a3cf40e752029951c}\label{classdrone__swarm_1_1SensorManager_a295f655abc62bb6a3cf40e752029951c}} 
+\index{drone\_swarm::SensorManager@{drone\_swarm::SensorManager}!hasValidOdom@{hasValidOdom}}
+\index{hasValidOdom@{hasValidOdom}!drone\_swarm::SensorManager@{drone\_swarm::SensorManager}}
+\doxysubsubsection{\texorpdfstring{hasValidOdom()}{hasValidOdom()}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Sensor\+Manager\+::has\+Valid\+Odom (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{classdrone__swarm_1_1SensorManager_a718f2e836ef7690af7be0cd22bccf63e}\label{classdrone__swarm_1_1SensorManager_a718f2e836ef7690af7be0cd22bccf63e}} 
+\index{drone\_swarm::SensorManager@{drone\_swarm::SensorManager}!hasValidPose@{hasValidPose}}
+\index{hasValidPose@{hasValidPose}!drone\_swarm::SensorManager@{drone\_swarm::SensorManager}}
+\doxysubsubsection{\texorpdfstring{hasValidPose()}{hasValidPose()}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Sensor\+Manager\+::has\+Valid\+Pose (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{classdrone__swarm_1_1SensorManager_abfe312e38a46e76ea884c631271ab871}\label{classdrone__swarm_1_1SensorManager_abfe312e38a46e76ea884c631271ab871}} 
+\index{drone\_swarm::SensorManager@{drone\_swarm::SensorManager}!updateLaser@{updateLaser}}
+\index{updateLaser@{updateLaser}!drone\_swarm::SensorManager@{drone\_swarm::SensorManager}}
+\doxysubsubsection{\texorpdfstring{updateLaser()}{updateLaser()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Sensor\+Manager\+::update\+Laser (\begin{DoxyParamCaption}\item[{const sensor\+\_\+msgs\+::msg\+::\+Laser\+Scan\+::\+Shared\+Ptr}]{msg }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classdrone__swarm_1_1SensorManager_a5c3da2bf49a28db557fdd1740a7e4c17}\label{classdrone__swarm_1_1SensorManager_a5c3da2bf49a28db557fdd1740a7e4c17}} 
+\index{drone\_swarm::SensorManager@{drone\_swarm::SensorManager}!updateOdometry@{updateOdometry}}
+\index{updateOdometry@{updateOdometry}!drone\_swarm::SensorManager@{drone\_swarm::SensorManager}}
+\doxysubsubsection{\texorpdfstring{updateOdometry()}{updateOdometry()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Sensor\+Manager\+::update\+Odometry (\begin{DoxyParamCaption}\item[{const nav\+\_\+msgs\+::msg\+::\+Odometry\+::\+Shared\+Ptr}]{msg }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classdrone__swarm_1_1SensorManager_a397a880a4c46b052cac927eebe9fccfb}\label{classdrone__swarm_1_1SensorManager_a397a880a4c46b052cac927eebe9fccfb}} 
+\index{drone\_swarm::SensorManager@{drone\_swarm::SensorManager}!updateSonar@{updateSonar}}
+\index{updateSonar@{updateSonar}!drone\_swarm::SensorManager@{drone\_swarm::SensorManager}}
+\doxysubsubsection{\texorpdfstring{updateSonar()}{updateSonar()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Sensor\+Manager\+::update\+Sonar (\begin{DoxyParamCaption}\item[{const sensor\+\_\+msgs\+::msg\+::\+Range\+::\+Shared\+Ptr}]{msg }\end{DoxyParamCaption})}
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/drone/\mbox{\hyperlink{sensor__manager_8h}{sensor\+\_\+manager.\+h}}\end{DoxyCompactItemize}

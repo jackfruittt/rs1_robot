@@ -1,0 +1,4 @@
+<map id="drone_swarm::DroneControl::resetControllers" name="drone_swarm::DroneControl::resetControllers">
+<area shape="rect" id="node1" title="Reset all PID controllers Clears integral accumulators and error history." alt="" coords="257,5,461,47"/>
+<area shape="rect" id="node2" href="$classdrone__swarm_1_1DroneControl.html#a7bfdc1b6e600b594da6444c6fdb85537" title="High&#45;level navigation to goal pose." alt="" coords="5,5,209,47"/>
+</map>

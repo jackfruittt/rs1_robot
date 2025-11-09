@@ -1,0 +1,75 @@
+\hypertarget{classdrone__swarm_1_1MissionPlannerNode}{}\doxysection{drone\+\_\+swarm\+::Mission\+Planner\+Node Class Reference}
+\label{classdrone__swarm_1_1MissionPlannerNode}\index{drone\_swarm::MissionPlannerNode@{drone\_swarm::MissionPlannerNode}}
+
+
+ROS 2 node for autonomous mission planning and execution.  
+
+
+
+
+{\ttfamily \#include $<$mission\+\_\+node.\+h$>$}
+
+
+
+Inheritance diagram for drone\+\_\+swarm\+::Mission\+Planner\+Node\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=268pt]{classdrone__swarm_1_1MissionPlannerNode__inherit__graph}
+\end{center}
+\end{figure}
+
+
+Collaboration diagram for drone\+\_\+swarm\+::Mission\+Planner\+Node\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=268pt]{classdrone__swarm_1_1MissionPlannerNode__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classdrone__swarm_1_1MissionPlannerNode_a7a80e0d7acbff0b07dadc4a79eddeb0a}{Mission\+Planner\+Node}} (const rclcpp\+::\+Node\+Options \&options=rclcpp\+::\+Node\+Options(), const std\+::string \&name=\char`\"{}\char`\"{})
+\begin{DoxyCompactList}\small\item\em Constructor with configurable node options. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+ROS 2 node for autonomous mission planning and execution. 
+
+Coordinates drone missions including takeoff, waypoint navigation, hovering, and landing. Integrates with state machine, path planner, and drone control systems to provide complete autonomous flight. 
+
+Definition at line 183 of file mission\+\_\+node.\+h.
+
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1MissionPlannerNode_a7a80e0d7acbff0b07dadc4a79eddeb0a}\label{classdrone__swarm_1_1MissionPlannerNode_a7a80e0d7acbff0b07dadc4a79eddeb0a}} 
+\index{drone\_swarm::MissionPlannerNode@{drone\_swarm::MissionPlannerNode}!MissionPlannerNode@{MissionPlannerNode}}
+\index{MissionPlannerNode@{MissionPlannerNode}!drone\_swarm::MissionPlannerNode@{drone\_swarm::MissionPlannerNode}}
+\doxysubsubsection{\texorpdfstring{MissionPlannerNode()}{MissionPlannerNode()}}
+{\footnotesize\ttfamily drone\+\_\+swarm\+::\+Mission\+Planner\+Node\+::\+Mission\+Planner\+Node (\begin{DoxyParamCaption}\item[{const rclcpp\+::\+Node\+Options \&}]{options = {\ttfamily rclcpp\+:\+:NodeOptions()},  }\item[{const std\+::string \&}]{name = {\ttfamily \char`\"{}\char`\"{}} }\end{DoxyParamCaption})\hspace{0.3cm}{\ttfamily [explicit]}}
+
+
+
+Constructor with configurable node options. 
+
+
+\begin{DoxyParams}{Parameters}
+{\em options} & ROS 2 node options for composition and configuration \\
+\hline
+{\em name} & Optional node name override (defaults to mission\+\_\+planner\+\_\+$<$pid$>$) \\
+\hline
+\end{DoxyParams}
+
+
+Definition at line 13 of file mission\+\_\+node.\+cpp.
+
+
+
+The documentation for this class was generated from the following files\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{mission__node_8h}{mission\+\_\+node.\+h}}\item 
+src/\mbox{\hyperlink{mission__node_8cpp}{mission\+\_\+node.\+cpp}}\end{DoxyCompactItemize}

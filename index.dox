@@ -1,0 +1,46 @@
+/*!
+@mainpage Project 1: Terrain Drone Surveying - ROS2 Autonomous Quadcopter System
+ 
+@section overview Overview
+ 
+This package contains the relevant source code for our drone swarm model and its nodes that allow it
+to operate fully autonomously. This is 1 of 4 packages used for Robotics Studio 1. 
+
+The nodes this package contains is relevant for mission planning, path-planning and autonomous navigation 
+and control. This package does not contain any perception code, that is in the rs1_perception package. 
+ 
+@section features Key Features
+ 
+- **Autonomous Flight Control**: Complete takeoff, flight, and landing control
+- **Decentralised Swarm**: Swarm is decentralised and drones are able to communicate with each other for peer discovery
+- **Obstacle Detection**: 360-degree laser scanning for obstacle avoidance
+- **Path Planning**: Using a combination of default routes and randomly generated waypoints the drones are fully autonomous
+- **Altitude Control**: Altitude Control + Obstaclew detection allows for collision free navigation
+- **Dynamic and Scalable**: Dynamic gazebo bridge allows as many drones to be spawned, no hard coded maximum
+- **ROS2 Integration**: Full ROS2 component-based software engineering framework
+- **Composed Nodes**: Nodes in rs1_robot are composed. This ensures high speed communication and optimised performance for our swarm
+ 
+@section architecture System Architecture
+ 
+The system consists of two main ROS2 nodes:
+ 
+### Drone Node
+- Main control node managing ROS related drone operations
+- Handles drone control (flight control, PID, alititude control, sensor detection)
+- Implements obstacle avoidance algorithms
+ 
+### Mission Node  
+- Plans missions for all drones
+- Enables peer discovery for drone response co-ordination
+- Responsible for waypoint planning used for autonomous navigation
+- Contains detailed state machine with service-based response executors for handling various scenario response
+
+ 
+@section authors Authors
+ 
+Jackson Russell
+ 
+@date June 2025
+@version 1.0
+*/
+

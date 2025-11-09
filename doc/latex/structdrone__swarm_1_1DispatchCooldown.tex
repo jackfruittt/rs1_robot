@@ -1,0 +1,89 @@
+\hypertarget{structdrone__swarm_1_1DispatchCooldown}{}\doxysection{drone\+\_\+swarm\+::Dispatch\+Cooldown Struct Reference}
+\label{structdrone__swarm_1_1DispatchCooldown}\index{drone\_swarm::DispatchCooldown@{drone\_swarm::DispatchCooldown}}
+
+
+Cooldown tracking for incident dispatch.  
+
+
+
+
+{\ttfamily \#include $<$mission\+\_\+node.\+h$>$}
+
+
+
+Collaboration diagram for drone\+\_\+swarm\+::Dispatch\+Cooldown\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=259pt]{structdrone__swarm_1_1DispatchCooldown__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+rclcpp\+::\+Time \mbox{\hyperlink{structdrone__swarm_1_1DispatchCooldown_a3fdae1c0ea101f889b5edbf7f706caad}{until}}
+\begin{DoxyCompactList}\small\item\em Cooldown expires at this time. \end{DoxyCompactList}\item 
+geometry\+\_\+msgs\+::msg\+::\+Point \mbox{\hyperlink{structdrone__swarm_1_1DispatchCooldown_a72e352d17ceaab58a4840758def5ae1b}{target}}
+\begin{DoxyCompactList}\small\item\em Location of dispatched incident. \end{DoxyCompactList}\item 
+int \mbox{\hyperlink{structdrone__swarm_1_1DispatchCooldown_a91fc4d4a8fae566defd1114025fcac7b}{responder\+\_\+id}} \{-\/1\}
+\begin{DoxyCompactList}\small\item\em ID of drone assigned to respond. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Cooldown tracking for incident dispatch. 
+
+Prevents duplicate responses to the same incident by multiple drones 
+
+Definition at line 99 of file mission\+\_\+node.\+h.
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structdrone__swarm_1_1DispatchCooldown_a91fc4d4a8fae566defd1114025fcac7b}\label{structdrone__swarm_1_1DispatchCooldown_a91fc4d4a8fae566defd1114025fcac7b}} 
+\index{drone\_swarm::DispatchCooldown@{drone\_swarm::DispatchCooldown}!responder\_id@{responder\_id}}
+\index{responder\_id@{responder\_id}!drone\_swarm::DispatchCooldown@{drone\_swarm::DispatchCooldown}}
+\doxysubsubsection{\texorpdfstring{responder\_id}{responder\_id}}
+{\footnotesize\ttfamily int drone\+\_\+swarm\+::\+Dispatch\+Cooldown\+::responder\+\_\+id \{-\/1\}}
+
+
+
+ID of drone assigned to respond. 
+
+
+
+Definition at line 102 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1DispatchCooldown_a72e352d17ceaab58a4840758def5ae1b}\label{structdrone__swarm_1_1DispatchCooldown_a72e352d17ceaab58a4840758def5ae1b}} 
+\index{drone\_swarm::DispatchCooldown@{drone\_swarm::DispatchCooldown}!target@{target}}
+\index{target@{target}!drone\_swarm::DispatchCooldown@{drone\_swarm::DispatchCooldown}}
+\doxysubsubsection{\texorpdfstring{target}{target}}
+{\footnotesize\ttfamily geometry\+\_\+msgs\+::msg\+::\+Point drone\+\_\+swarm\+::\+Dispatch\+Cooldown\+::target}
+
+
+
+Location of dispatched incident. 
+
+
+
+Definition at line 101 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1DispatchCooldown_a3fdae1c0ea101f889b5edbf7f706caad}\label{structdrone__swarm_1_1DispatchCooldown_a3fdae1c0ea101f889b5edbf7f706caad}} 
+\index{drone\_swarm::DispatchCooldown@{drone\_swarm::DispatchCooldown}!until@{until}}
+\index{until@{until}!drone\_swarm::DispatchCooldown@{drone\_swarm::DispatchCooldown}}
+\doxysubsubsection{\texorpdfstring{until}{until}}
+{\footnotesize\ttfamily rclcpp\+::\+Time drone\+\_\+swarm\+::\+Dispatch\+Cooldown\+::until}
+
+
+
+Cooldown expires at this time. 
+
+
+
+Definition at line 100 of file mission\+\_\+node.\+h.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{mission__node_8h}{mission\+\_\+node.\+h}}\end{DoxyCompactItemize}

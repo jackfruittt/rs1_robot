@@ -1,0 +1,3 @@
+<map id="drone_swarm::DispatchCooldown" name="drone_swarm::DispatchCooldown">
+<area shape="rect" id="node1" title="Cooldown tracking for incident dispatch." alt="" coords="5,5,244,112"/>
+</map>

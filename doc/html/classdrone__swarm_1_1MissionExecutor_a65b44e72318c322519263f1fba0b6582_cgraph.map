@@ -1,0 +1,5 @@
+<map id="drone_swarm::MissionExecutor::restoreMissionState" name="drone_swarm::MissionExecutor::restoreMissionState">
+<area shape="rect" id="node1" title="Restore previously saved mission state." alt="" coords="5,39,229,80"/>
+<area shape="rect" id="node2" href="$classdrone__swarm_1_1WaypointPlanner.html#ab496b81cb775224630a29aef0bf528c6" title="Set current waypoint index." alt="" coords="277,5,505,47"/>
+<area shape="rect" id="node3" href="$classdrone__swarm_1_1WaypointPlanner.html#ae6cd04d08e48f76d4b06b3238af37763" title="Set new waypoint sequence for mission." alt="" coords="277,71,505,112"/>
+</map>

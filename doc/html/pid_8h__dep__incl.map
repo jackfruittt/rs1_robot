@@ -1,0 +1,13 @@
+<map id="include/pid.h" name="include/pid.h">
+<area shape="rect" id="node1" title="Enhanced PID Controller with windup protection for drone control systems." alt="" coords="479,5,584,32"/>
+<area shape="rect" id="node2" href="$drone__control_8h.html" title="Advanced drone control class with PID controllers and flight navigation." alt="" coords="365,80,540,107"/>
+<area shape="rect" id="node11" href="$pid_8cpp.html" title=" " alt="" coords="564,80,656,107"/>
+<area shape="rect" id="node3" href="$drone__node_8h.html" title="Drone controller node for autonomous flight operations." alt="" coords="111,162,272,189"/>
+<area shape="rect" id="node6" href="$mission__executor_8h.html" title="Mission execution class for simple and complex autonomous operations." alt="" coords="301,155,479,196"/>
+<area shape="rect" id="node9" href="$mission__executor_8cpp.html" title=" " alt="" coords="428,244,613,271"/>
+<area shape="rect" id="node10" href="$drone__control_8cpp.html" title=" " alt="" coords="555,162,716,189"/>
+<area shape="rect" id="node4" href="$drone__node_8cpp.html" title=" " alt="" coords="5,244,153,271"/>
+<area shape="rect" id="node5" href="$main__composition_8cpp.html" title=" " alt="" coords="95,319,287,345"/>
+<area shape="rect" id="node7" href="$mission__node_8h.html" title="Mission planning and coordination node for autonomous drone operations." alt="" coords="229,244,404,271"/>
+<area shape="rect" id="node8" href="$mission__node_8cpp.html" title=" " alt="" coords="311,319,474,345"/>
+</map>

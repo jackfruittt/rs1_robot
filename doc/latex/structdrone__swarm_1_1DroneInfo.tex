@@ -1,0 +1,161 @@
+\hypertarget{structdrone__swarm_1_1DroneInfo}{}\doxysection{drone\+\_\+swarm\+::Drone\+Info Struct Reference}
+\label{structdrone__swarm_1_1DroneInfo}\index{drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}}
+
+
+Information about a drone in the fleet.  
+
+
+
+
+{\ttfamily \#include $<$mission\+\_\+node.\+h$>$}
+
+
+
+Collaboration diagram for drone\+\_\+swarm\+::Drone\+Info\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=217pt]{structdrone__swarm_1_1DroneInfo__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+int \mbox{\hyperlink{structdrone__swarm_1_1DroneInfo_aae1fbb9031b72d879aa98da9bc918a1a}{drone\+\_\+id}}
+\begin{DoxyCompactList}\small\item\em Numeric drone identifier. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{structdrone__swarm_1_1DroneInfo_aec19786e58496629ad344fc50219df52}{x}}
+\item 
+double \mbox{\hyperlink{structdrone__swarm_1_1DroneInfo_a61dc2fa8bfba917fdaf6147b4e1887ec}{y}}
+\item 
+double \mbox{\hyperlink{structdrone__swarm_1_1DroneInfo_a7bd282a97dba98a2c0c7105ad2e7a0f9}{z}}
+\begin{DoxyCompactList}\small\item\em Position in world coordinates (metres) \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{structdrone__swarm_1_1DroneInfo_a312bb3bd0df025bc3b726448dfc680cf}{battery\+\_\+level}}
+\begin{DoxyCompactList}\small\item\em Battery level (0.\+0 to 1.\+0) \end{DoxyCompactList}\item 
+std\+::string \mbox{\hyperlink{structdrone__swarm_1_1DroneInfo_a235df2370e889749a5df11d68ed42a7c}{mission\+\_\+state}}
+\begin{DoxyCompactList}\small\item\em Current mission state as string. \end{DoxyCompactList}\item 
+rclcpp\+::\+Time \mbox{\hyperlink{structdrone__swarm_1_1DroneInfo_a0e936fd8647e6880f45219e27c57433a}{timestamp}}
+\begin{DoxyCompactList}\small\item\em Time of last update. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{structdrone__swarm_1_1DroneInfo_abfc59e86a68cb2efd0700a1aa65c881e}{valid}}
+\begin{DoxyCompactList}\small\item\em Whether the information is valid. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Information about a drone in the fleet. 
+
+Contains state, position, and capability information for coordination 
+
+Definition at line 85 of file mission\+\_\+node.\+h.
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structdrone__swarm_1_1DroneInfo_a312bb3bd0df025bc3b726448dfc680cf}\label{structdrone__swarm_1_1DroneInfo_a312bb3bd0df025bc3b726448dfc680cf}} 
+\index{drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}!battery\_level@{battery\_level}}
+\index{battery\_level@{battery\_level}!drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}}
+\doxysubsubsection{\texorpdfstring{battery\_level}{battery\_level}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Drone\+Info\+::battery\+\_\+level}
+
+
+
+Battery level (0.\+0 to 1.\+0) 
+
+
+
+Definition at line 88 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1DroneInfo_aae1fbb9031b72d879aa98da9bc918a1a}\label{structdrone__swarm_1_1DroneInfo_aae1fbb9031b72d879aa98da9bc918a1a}} 
+\index{drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}!drone\_id@{drone\_id}}
+\index{drone\_id@{drone\_id}!drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}}
+\doxysubsubsection{\texorpdfstring{drone\_id}{drone\_id}}
+{\footnotesize\ttfamily int drone\+\_\+swarm\+::\+Drone\+Info\+::drone\+\_\+id}
+
+
+
+Numeric drone identifier. 
+
+
+
+Definition at line 86 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1DroneInfo_a235df2370e889749a5df11d68ed42a7c}\label{structdrone__swarm_1_1DroneInfo_a235df2370e889749a5df11d68ed42a7c}} 
+\index{drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}!mission\_state@{mission\_state}}
+\index{mission\_state@{mission\_state}!drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}}
+\doxysubsubsection{\texorpdfstring{mission\_state}{mission\_state}}
+{\footnotesize\ttfamily std\+::string drone\+\_\+swarm\+::\+Drone\+Info\+::mission\+\_\+state}
+
+
+
+Current mission state as string. 
+
+
+
+Definition at line 89 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1DroneInfo_a0e936fd8647e6880f45219e27c57433a}\label{structdrone__swarm_1_1DroneInfo_a0e936fd8647e6880f45219e27c57433a}} 
+\index{drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}!timestamp@{timestamp}}
+\index{timestamp@{timestamp}!drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}}
+\doxysubsubsection{\texorpdfstring{timestamp}{timestamp}}
+{\footnotesize\ttfamily rclcpp\+::\+Time drone\+\_\+swarm\+::\+Drone\+Info\+::timestamp}
+
+
+
+Time of last update. 
+
+
+
+Definition at line 90 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1DroneInfo_abfc59e86a68cb2efd0700a1aa65c881e}\label{structdrone__swarm_1_1DroneInfo_abfc59e86a68cb2efd0700a1aa65c881e}} 
+\index{drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}!valid@{valid}}
+\index{valid@{valid}!drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}}
+\doxysubsubsection{\texorpdfstring{valid}{valid}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Drone\+Info\+::valid}
+
+
+
+Whether the information is valid. 
+
+
+
+Definition at line 91 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1DroneInfo_aec19786e58496629ad344fc50219df52}\label{structdrone__swarm_1_1DroneInfo_aec19786e58496629ad344fc50219df52}} 
+\index{drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}!x@{x}}
+\index{x@{x}!drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}}
+\doxysubsubsection{\texorpdfstring{x}{x}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Drone\+Info\+::x}
+
+
+
+Definition at line 87 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1DroneInfo_a61dc2fa8bfba917fdaf6147b4e1887ec}\label{structdrone__swarm_1_1DroneInfo_a61dc2fa8bfba917fdaf6147b4e1887ec}} 
+\index{drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}!y@{y}}
+\index{y@{y}!drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}}
+\doxysubsubsection{\texorpdfstring{y}{y}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Drone\+Info\+::y}
+
+
+
+Definition at line 87 of file mission\+\_\+node.\+h.
+
+\mbox{\Hypertarget{structdrone__swarm_1_1DroneInfo_a7bd282a97dba98a2c0c7105ad2e7a0f9}\label{structdrone__swarm_1_1DroneInfo_a7bd282a97dba98a2c0c7105ad2e7a0f9}} 
+\index{drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}!z@{z}}
+\index{z@{z}!drone\_swarm::DroneInfo@{drone\_swarm::DroneInfo}}
+\doxysubsubsection{\texorpdfstring{z}{z}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Drone\+Info\+::z}
+
+
+
+Position in world coordinates (metres) 
+
+
+
+Definition at line 87 of file mission\+\_\+node.\+h.
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{mission__node_8h}{mission\+\_\+node.\+h}}\end{DoxyCompactItemize}

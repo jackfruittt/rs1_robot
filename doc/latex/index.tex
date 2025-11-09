@@ -1,0 +1,37 @@
+\hypertarget{index_overview}{}\doxysection{Overview}\label{index_overview}
+This package contains the relevant source code for our drone swarm model and its nodes that allow it to operate fully autonomously. This is 1 of 4 packages used for Robotics Studio 1.
+
+The nodes this package contains is relevant for mission planning, path-\/planning and autonomous navigation and control. This package does not contain any perception code, that is in the rs1\+\_\+perception package.\hypertarget{index_features}{}\doxysection{Key Features}\label{index_features}
+
+\begin{DoxyItemize}
+\item {\bfseries{Autonomous Flight Control}}\+: Complete takeoff, flight, and landing control
+\item {\bfseries{Decentralised Swarm}}\+: Swarm is decentralised and drones are able to communicate with each other for peer discovery
+\item {\bfseries{Obstacle Detection}}\+: 360-\/degree laser scanning for obstacle avoidance
+\item {\bfseries{Path Planning}}\+: Using a combination of default routes and randomly generated waypoints the drones are fully autonomous
+\item {\bfseries{Altitude Control}}\+: Altitude Control + Obstaclew detection allows for collision free navigation
+\item {\bfseries{Dynamic and Scalable}}\+: Dynamic gazebo bridge allows as many drones to be spawned, no hard coded maximum
+\item {\bfseries{ROS2 Integration}}\+: Full ROS2 component-\/based software engineering framework
+\item {\bfseries{Composed Nodes}}\+: Nodes in rs1\+\_\+robot are composed. This ensures high speed communication and optimised performance for our swarm
+\end{DoxyItemize}\hypertarget{index_architecture}{}\doxysection{System Architecture}\label{index_architecture}
+The system consists of two main ROS2 nodes\+:\hypertarget{index_autotoc_md0}{}\doxysubsubsection{Drone Node}\label{index_autotoc_md0}
+
+\begin{DoxyItemize}
+\item Main control node managing ROS related drone operations
+\item Handles drone control (flight control, PID, alititude control, sensor detection)
+\item Implements obstacle avoidance algorithms
+\end{DoxyItemize}\hypertarget{index_autotoc_md1}{}\doxysubsubsection{Mission Node}\label{index_autotoc_md1}
+
+\begin{DoxyItemize}
+\item Plans missions for all drones
+\item Enables peer discovery for drone response co-\/ordination
+\item Responsible for waypoint planning used for autonomous navigation
+\item Contains detailed state machine with service-\/based response executors for handling various scenario response
+\end{DoxyItemize}\hypertarget{index_authors}{}\doxysection{Authors}\label{index_authors}
+Jackson Russell
+
+\begin{DoxyDate}{Date}
+June 2025 
+\end{DoxyDate}
+\begin{DoxyVersion}{Version}
+1.\+0 
+\end{DoxyVersion}

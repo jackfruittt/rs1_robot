@@ -1,0 +1,6 @@
+<map id="drone_swarm::DroneControl::navigateToWaypointWithAltitudeControl" name="drone_swarm::DroneControl::navigateToWaypointWithAltitudeControl">
+<area shape="rect" id="node1" title="Navigate to 2D waypoint using terrain&#45;following altitude control." alt="" coords="5,31,248,87"/>
+<area shape="rect" id="node2" href="$classdrone__swarm_1_1DroneControl.html#a987a901653f7c7201a764180c6421701" title="Enhanced position control with advanced features." alt="" coords="296,39,548,80"/>
+<area shape="rect" id="node3" href="$classdrone__swarm_1_1DroneControl.html#a5daa42996119115c1874f8f00b3ca3dc" title="Calculate yaw control command." alt="" coords="596,5,800,47"/>
+<area shape="rect" id="node4" href="$classdrone__swarm_1_1DroneControl.html#ad41e34dd67d09b987becab1e72cebdc9" title="Calculate desired yaw angle towards target." alt="" coords="596,71,800,112"/>
+</map>

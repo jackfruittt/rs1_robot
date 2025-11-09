@@ -1,0 +1,201 @@
+\hypertarget{structdrone__swarm_1_1ScenarioData}{}\doxysection{drone\+\_\+swarm\+::Scenario\+Data Struct Reference}
+\label{structdrone__swarm_1_1ScenarioData}\index{drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}}
+
+
+Simple data structure to hold parsed scenario information.  
+
+
+
+
+{\ttfamily \#include $<$mission\+\_\+node.\+h$>$}
+
+
+
+Collaboration diagram for drone\+\_\+swarm\+::Scenario\+Data\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=234pt]{structdrone__swarm_1_1ScenarioData__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Attributes}
+\begin{DoxyCompactItemize}
+\item 
+std\+::string \mbox{\hyperlink{structdrone__swarm_1_1ScenarioData_a57dc10fba38a306c67862d9abf6ec9aa}{scenario\+\_\+name}}
+\begin{DoxyCompactList}\small\item\em Scenario type (e.\+g., \char`\"{}\+STRANDED\+\_\+\+HIKER\char`\"{}, \char`\"{}\+WILDFIRE\char`\"{}, \char`\"{}\+DEBRIS\+\_\+\+OBSTRUCTION\char`\"{}) \end{DoxyCompactList}\item 
+int \mbox{\hyperlink{structdrone__swarm_1_1ScenarioData_a6330831f34e1fc015d561ddc182b4e68}{severity}}
+\begin{DoxyCompactList}\small\item\em Severity level (1-\/10) \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{structdrone__swarm_1_1ScenarioData_ac5f575443a23d385c52e1384c3cbb638}{x}}
+\begin{DoxyCompactList}\small\item\em X position in world coordinates (metres) \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{structdrone__swarm_1_1ScenarioData_a1ea4bb4f26255bd3abd9f6329af7df65}{y}}
+\begin{DoxyCompactList}\small\item\em Y position in world coordinates (metres) \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{structdrone__swarm_1_1ScenarioData_a2618ae51852fe9e7a265a53693ddfc04}{z}}
+\begin{DoxyCompactList}\small\item\em Z position (altitude) in metres. \end{DoxyCompactList}\item 
+double \mbox{\hyperlink{structdrone__swarm_1_1ScenarioData_a2195996d6c047daed619a770fc01f972}{yaw}}
+\begin{DoxyCompactList}\small\item\em Heading in radians. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{structdrone__swarm_1_1ScenarioData_ae2dadddc930b1476e0f903fbe3550db4}{can\+\_\+respond}}
+\begin{DoxyCompactList}\small\item\em Whether drone should respond to this scenario. \end{DoxyCompactList}\item 
+bool \mbox{\hyperlink{structdrone__swarm_1_1ScenarioData_a1a5796957f33082e10cb3421f4c8815f}{valid}}
+\begin{DoxyCompactList}\small\item\em Whether parsing was successful. \end{DoxyCompactList}\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+Simple data structure to hold parsed scenario information. 
+
+Contains all the information from a scenario detection message in an easy-\/to-\/use format. 
+
+Definition at line 124 of file mission\+\_\+node.\+h.
+
+
+
+\doxysubsection{Member Data Documentation}
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioData_ae2dadddc930b1476e0f903fbe3550db4}\label{structdrone__swarm_1_1ScenarioData_ae2dadddc930b1476e0f903fbe3550db4}} 
+\index{drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}!can\_respond@{can\_respond}}
+\index{can\_respond@{can\_respond}!drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}}
+\doxysubsubsection{\texorpdfstring{can\_respond}{can\_respond}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Scenario\+Data\+::can\+\_\+respond}
+
+
+
+Whether drone should respond to this scenario. 
+
+
+
+Definition at line 131 of file mission\+\_\+node.\+h.
+
+
+
+Referenced by drone\+\_\+swarm\+::parse\+Scenario\+Message().
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioData_a57dc10fba38a306c67862d9abf6ec9aa}\label{structdrone__swarm_1_1ScenarioData_a57dc10fba38a306c67862d9abf6ec9aa}} 
+\index{drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}!scenario\_name@{scenario\_name}}
+\index{scenario\_name@{scenario\_name}!drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}}
+\doxysubsubsection{\texorpdfstring{scenario\_name}{scenario\_name}}
+{\footnotesize\ttfamily std\+::string drone\+\_\+swarm\+::\+Scenario\+Data\+::scenario\+\_\+name}
+
+
+
+Scenario type (e.\+g., \char`\"{}\+STRANDED\+\_\+\+HIKER\char`\"{}, \char`\"{}\+WILDFIRE\char`\"{}, \char`\"{}\+DEBRIS\+\_\+\+OBSTRUCTION\char`\"{}) 
+
+
+
+Definition at line 125 of file mission\+\_\+node.\+h.
+
+
+
+Referenced by drone\+\_\+swarm\+::parse\+Scenario\+Message().
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioData_a6330831f34e1fc015d561ddc182b4e68}\label{structdrone__swarm_1_1ScenarioData_a6330831f34e1fc015d561ddc182b4e68}} 
+\index{drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}!severity@{severity}}
+\index{severity@{severity}!drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}}
+\doxysubsubsection{\texorpdfstring{severity}{severity}}
+{\footnotesize\ttfamily int drone\+\_\+swarm\+::\+Scenario\+Data\+::severity}
+
+
+
+Severity level (1-\/10) 
+
+
+
+Definition at line 126 of file mission\+\_\+node.\+h.
+
+
+
+Referenced by drone\+\_\+swarm\+::parse\+Scenario\+Message().
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioData_a1a5796957f33082e10cb3421f4c8815f}\label{structdrone__swarm_1_1ScenarioData_a1a5796957f33082e10cb3421f4c8815f}} 
+\index{drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}!valid@{valid}}
+\index{valid@{valid}!drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}}
+\doxysubsubsection{\texorpdfstring{valid}{valid}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Scenario\+Data\+::valid}
+
+
+
+Whether parsing was successful. 
+
+
+
+Definition at line 132 of file mission\+\_\+node.\+h.
+
+
+
+Referenced by drone\+\_\+swarm\+::parse\+Scenario\+Message().
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioData_ac5f575443a23d385c52e1384c3cbb638}\label{structdrone__swarm_1_1ScenarioData_ac5f575443a23d385c52e1384c3cbb638}} 
+\index{drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}!x@{x}}
+\index{x@{x}!drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}}
+\doxysubsubsection{\texorpdfstring{x}{x}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Scenario\+Data\+::x}
+
+
+
+X position in world coordinates (metres) 
+
+
+
+Definition at line 127 of file mission\+\_\+node.\+h.
+
+
+
+Referenced by drone\+\_\+swarm\+::parse\+Scenario\+Message().
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioData_a1ea4bb4f26255bd3abd9f6329af7df65}\label{structdrone__swarm_1_1ScenarioData_a1ea4bb4f26255bd3abd9f6329af7df65}} 
+\index{drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}!y@{y}}
+\index{y@{y}!drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}}
+\doxysubsubsection{\texorpdfstring{y}{y}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Scenario\+Data\+::y}
+
+
+
+Y position in world coordinates (metres) 
+
+
+
+Definition at line 128 of file mission\+\_\+node.\+h.
+
+
+
+Referenced by drone\+\_\+swarm\+::parse\+Scenario\+Message().
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioData_a2195996d6c047daed619a770fc01f972}\label{structdrone__swarm_1_1ScenarioData_a2195996d6c047daed619a770fc01f972}} 
+\index{drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}!yaw@{yaw}}
+\index{yaw@{yaw}!drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}}
+\doxysubsubsection{\texorpdfstring{yaw}{yaw}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Scenario\+Data\+::yaw}
+
+
+
+Heading in radians. 
+
+
+
+Definition at line 130 of file mission\+\_\+node.\+h.
+
+
+
+Referenced by drone\+\_\+swarm\+::parse\+Scenario\+Message().
+
+\mbox{\Hypertarget{structdrone__swarm_1_1ScenarioData_a2618ae51852fe9e7a265a53693ddfc04}\label{structdrone__swarm_1_1ScenarioData_a2618ae51852fe9e7a265a53693ddfc04}} 
+\index{drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}!z@{z}}
+\index{z@{z}!drone\_swarm::ScenarioData@{drone\_swarm::ScenarioData}}
+\doxysubsubsection{\texorpdfstring{z}{z}}
+{\footnotesize\ttfamily double drone\+\_\+swarm\+::\+Scenario\+Data\+::z}
+
+
+
+Z position (altitude) in metres. 
+
+
+
+Definition at line 129 of file mission\+\_\+node.\+h.
+
+
+
+Referenced by drone\+\_\+swarm\+::parse\+Scenario\+Message().
+
+
+
+The documentation for this struct was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/\mbox{\hyperlink{mission__node_8h}{mission\+\_\+node.\+h}}\end{DoxyCompactItemize}

@@ -1,0 +1,85 @@
+\hypertarget{classdrone__swarm_1_1SafetyMonitor}{}\doxysection{drone\+\_\+swarm\+::Safety\+Monitor Class Reference}
+\label{classdrone__swarm_1_1SafetyMonitor}\index{drone\_swarm::SafetyMonitor@{drone\_swarm::SafetyMonitor}}
+
+
+{\ttfamily \#include $<$safety\+\_\+monitor.\+h$>$}
+
+
+
+Collaboration diagram for drone\+\_\+swarm\+::Safety\+Monitor\+:
+\nopagebreak
+\begin{figure}[H]
+\begin{center}
+\leavevmode
+\includegraphics[width=238pt]{classdrone__swarm_1_1SafetyMonitor__coll__graph}
+\end{center}
+\end{figure}
+\doxysubsection*{Public Member Functions}
+\begin{DoxyCompactItemize}
+\item 
+\mbox{\hyperlink{classdrone__swarm_1_1SafetyMonitor_a9369b726d8285d121a2bddb934083ec3}{Safety\+Monitor}} ()
+\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1SafetyMonitor_a88d401e6251b9956b98207e86d704781}{update\+Limits}} (double max\+\_\+altitude, double max\+\_\+velocity, double max\+\_\+distance)
+\item 
+bool \mbox{\hyperlink{classdrone__swarm_1_1SafetyMonitor_ac51fc52fd19293e1bb0b01a7db8db654}{check\+Safety\+Limits}} (const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&pose, const geometry\+\_\+msgs\+::msg\+::\+Twist \&velocity)
+\item 
+void \mbox{\hyperlink{classdrone__swarm_1_1SafetyMonitor_a40feddf799a9b75052ee6260c78f3c52}{set\+Home\+Position}} (const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&home)
+\item 
+bool \mbox{\hyperlink{classdrone__swarm_1_1SafetyMonitor_a3b969e613ea65d197c11ffaea0c1d0da}{is\+Emergency\+Required}} () const
+\item 
+std\+::string \mbox{\hyperlink{classdrone__swarm_1_1SafetyMonitor_a7792c23a23bd42f7d5b27d467f193250}{get\+Last\+Violation}} () const
+\end{DoxyCompactItemize}
+
+
+\doxysubsection{Detailed Description}
+
+
+Definition at line 20 of file safety\+\_\+monitor.\+h.
+
+
+
+\doxysubsection{Constructor \& Destructor Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1SafetyMonitor_a9369b726d8285d121a2bddb934083ec3}\label{classdrone__swarm_1_1SafetyMonitor_a9369b726d8285d121a2bddb934083ec3}} 
+\index{drone\_swarm::SafetyMonitor@{drone\_swarm::SafetyMonitor}!SafetyMonitor@{SafetyMonitor}}
+\index{SafetyMonitor@{SafetyMonitor}!drone\_swarm::SafetyMonitor@{drone\_swarm::SafetyMonitor}}
+\doxysubsubsection{\texorpdfstring{SafetyMonitor()}{SafetyMonitor()}}
+{\footnotesize\ttfamily drone\+\_\+swarm\+::\+Safety\+Monitor\+::\+Safety\+Monitor (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption})}
+
+
+
+\doxysubsection{Member Function Documentation}
+\mbox{\Hypertarget{classdrone__swarm_1_1SafetyMonitor_ac51fc52fd19293e1bb0b01a7db8db654}\label{classdrone__swarm_1_1SafetyMonitor_ac51fc52fd19293e1bb0b01a7db8db654}} 
+\index{drone\_swarm::SafetyMonitor@{drone\_swarm::SafetyMonitor}!checkSafetyLimits@{checkSafetyLimits}}
+\index{checkSafetyLimits@{checkSafetyLimits}!drone\_swarm::SafetyMonitor@{drone\_swarm::SafetyMonitor}}
+\doxysubsubsection{\texorpdfstring{checkSafetyLimits()}{checkSafetyLimits()}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Safety\+Monitor\+::check\+Safety\+Limits (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&}]{pose,  }\item[{const geometry\+\_\+msgs\+::msg\+::\+Twist \&}]{velocity }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classdrone__swarm_1_1SafetyMonitor_a7792c23a23bd42f7d5b27d467f193250}\label{classdrone__swarm_1_1SafetyMonitor_a7792c23a23bd42f7d5b27d467f193250}} 
+\index{drone\_swarm::SafetyMonitor@{drone\_swarm::SafetyMonitor}!getLastViolation@{getLastViolation}}
+\index{getLastViolation@{getLastViolation}!drone\_swarm::SafetyMonitor@{drone\_swarm::SafetyMonitor}}
+\doxysubsubsection{\texorpdfstring{getLastViolation()}{getLastViolation()}}
+{\footnotesize\ttfamily std\+::string drone\+\_\+swarm\+::\+Safety\+Monitor\+::get\+Last\+Violation (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{classdrone__swarm_1_1SafetyMonitor_a3b969e613ea65d197c11ffaea0c1d0da}\label{classdrone__swarm_1_1SafetyMonitor_a3b969e613ea65d197c11ffaea0c1d0da}} 
+\index{drone\_swarm::SafetyMonitor@{drone\_swarm::SafetyMonitor}!isEmergencyRequired@{isEmergencyRequired}}
+\index{isEmergencyRequired@{isEmergencyRequired}!drone\_swarm::SafetyMonitor@{drone\_swarm::SafetyMonitor}}
+\doxysubsubsection{\texorpdfstring{isEmergencyRequired()}{isEmergencyRequired()}}
+{\footnotesize\ttfamily bool drone\+\_\+swarm\+::\+Safety\+Monitor\+::is\+Emergency\+Required (\begin{DoxyParamCaption}{ }\end{DoxyParamCaption}) const}
+
+\mbox{\Hypertarget{classdrone__swarm_1_1SafetyMonitor_a40feddf799a9b75052ee6260c78f3c52}\label{classdrone__swarm_1_1SafetyMonitor_a40feddf799a9b75052ee6260c78f3c52}} 
+\index{drone\_swarm::SafetyMonitor@{drone\_swarm::SafetyMonitor}!setHomePosition@{setHomePosition}}
+\index{setHomePosition@{setHomePosition}!drone\_swarm::SafetyMonitor@{drone\_swarm::SafetyMonitor}}
+\doxysubsubsection{\texorpdfstring{setHomePosition()}{setHomePosition()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Safety\+Monitor\+::set\+Home\+Position (\begin{DoxyParamCaption}\item[{const geometry\+\_\+msgs\+::msg\+::\+Pose\+Stamped \&}]{home }\end{DoxyParamCaption})}
+
+\mbox{\Hypertarget{classdrone__swarm_1_1SafetyMonitor_a88d401e6251b9956b98207e86d704781}\label{classdrone__swarm_1_1SafetyMonitor_a88d401e6251b9956b98207e86d704781}} 
+\index{drone\_swarm::SafetyMonitor@{drone\_swarm::SafetyMonitor}!updateLimits@{updateLimits}}
+\index{updateLimits@{updateLimits}!drone\_swarm::SafetyMonitor@{drone\_swarm::SafetyMonitor}}
+\doxysubsubsection{\texorpdfstring{updateLimits()}{updateLimits()}}
+{\footnotesize\ttfamily void drone\+\_\+swarm\+::\+Safety\+Monitor\+::update\+Limits (\begin{DoxyParamCaption}\item[{double}]{max\+\_\+altitude,  }\item[{double}]{max\+\_\+velocity,  }\item[{double}]{max\+\_\+distance }\end{DoxyParamCaption})}
+
+
+
+The documentation for this class was generated from the following file\+:\begin{DoxyCompactItemize}
+\item 
+include/drone/\mbox{\hyperlink{safety__monitor_8h}{safety\+\_\+monitor.\+h}}\end{DoxyCompactItemize}
