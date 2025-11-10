@@ -89,17 +89,14 @@ The autonomous mission system provides complete waypoint navigation capabilities
 # Source workspace
 source rs1_ws/install/setup.bash
 
-# Launch single drone with mission system
-ros2 run rs1_robot main_composition
+# Launch single drone with in world with gazebo headed
+./comp_drone_spawner.sh 1 gazebo:=true
 
-# In another terminal, start a mission
-ros2 service call /rs1_drone/start_mission std_srvs/srv/Trigger
-
-# Add waypoints for navigation
-ros2 service call /rs1_drone/add_waypoint geometry_msgs/srv/SetPose "{pose: {position: {x: 5.0, y: 0.0, z: 3.0}, orientation: {w: 1.0}}}"
+# Have the drone takeoff and begin navigating
+ros2 service call /rs1_drone_1/takeoff_drone std_srvs/srv/Trigger
 
 # Land the drone
-ros2 service call /rs1_drone/land_drone std_srvs/srv/Trigger
+ros2 service call /rs1_drone_/land_drone std_srvs/srv/Trigger
 ```
 
 #### Mission Services Available
