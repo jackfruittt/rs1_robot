@@ -1,34 +1,13 @@
 ## Overview
 
-This package provides a complete simulation environment and autonomous flight control system for the RS1 drone, a modified SJTU drone model optimised for modern Ignition Gazebo Fortress. The simulation includes realistic sensor models, flight dynamics, and a comprehensive sensor suite suitable for autonomous navigation, mapping, and surveillance applications.
+This package provides a basic simulation environment and autonomous flight control system for the RS1 drone, a modified SJTU drone model optimised for modern Ignition Gazebo Fortress. The drone nodes are composed and optimised to scale better. 
 
-**NEW: Advanced Mission Control System** - The package now features a complete autonomous mission planning and control system with composable ROS 2 nodes for scalable drone operations.
+**Mission Control Using Peer Detection** - Drones are decentralised, IDLE drones becomes responders if a surveiying drone detects a scenario by using peer discovery. If there are no IDLE drones the detector becomes the responder. 
 
-**NEW: Multi-Drone Support** - The package supports spawning and controlling multiple drones simultaneously with working sensor bridging and independent operation.
-
-**NEW: Multi-Drone Support** - The package now supports spawning and controlling multiple drones simultaneously with working sensor bridging and independent operation (to-do).
-
-## Features
-
-### Autonomous Mission Control System ✅ WORKING
-- **Composable Node Architecture**: Mission planner and drone controller as composable ROS 2 nodes
-- **Advanced PID Control**: Enhanced position control with integral windup protection
-- **Mission State Management**: Comprehensive state machine for takeoff, waypoint navigation, hovering, and landing
-- **Waypoint Navigation**: Intelligent path planning with distance-based speed adaptation
-- **Service-Based Missions**: ROS 2 services for mission commands and waypoint setting
-- **Real-Time Control**: 10Hz control loop with command smoothing and safety limits
-- **Professional Documentation**: Full Doxygen documentation with Australian English standards
-
-### Multi-Drone System ✅ WORKING
-- **Dynamic Spawning**: Launch 1-10 drones using simple command scripts
-- **Self-Contained Launch**: Each spawner handles world, bridge config, and drone spawning
-- **Independent Operation**: Each drone operates with isolated sensor topics and control
-- **Automatic Bridge Generation**: Dynamic YAML bridge configuration for all drones
-- **Linear Positioning**: Drones spawn 2 meters apart in a line for collision avoidance
-- **Full Sensor Suite Per Drone**: All sensors (IMU, cameras, sonar, LiDAR, GPS) work independently with their own unique topics which are generated dynamically
+**Dynamic Drone Spawing** - The package supports spawning and controlling multiple drones simultaneously, can spawn as many drones as system can handle.
 
 ### Available Launch Options
-- **Spawner**: `./launch_multi_drone_simple.sh <num_drones>` - Working spawner with full mission control
+- **Launching using shell script**: `./comp_multi_drone_simple.sh <num_drones> <gazebo headed/headless>` - Working spawner. Shell script automates process
 - **Composition**: `ros2 run rs1_robot main_composition` - Composable nodes for single drone
 - **Mission Services**: Autonomous waypoint navigation with service-based control
 
@@ -64,32 +43,6 @@ The system consists of two main composable nodes:
 - **Synchronised Updates**: Both nodes execute in same process for coordinated control
 - **Resource Efficiency**: Single executable handles both mission planning and control 
 
-### Flight Dynamics
-- Native Ignition Gazebo `VelocityControl` plugin
-- Realistic quadrotor physics with tuned control parameters
-- Odometry publishing for pose estimation
-- Collision detection and contact sensing
-
-### Sensor Suite
-- **IMU**: High-fidelity inertial measurement unit with realistic noise models
-- **GPS/NavSat**: Global positioning system for outdoor navigation
-- **Cameras**: 
-  - Front-facing camera (640x360, 60Hz) for forward vision
-  - Bottom-facing camera (640x360, 15Hz) for downward imaging
-- **Range Sensor**: Sonar for altitude measurement (0.02-25m range)
-- **2D LiDAR**:  For obstacle detection and mapping (0.1-30m range)
-
-### Simulation Environments
-- **Built-in World**: Simple environment with ground plane and obstacles
-
-### ROS2 Integration
-- Full ROS2 Humble compatibility with composable node architecture
-- Comprehensive topic bridging between Ignition and ROS2
-- Mission services for autonomous operation (`start_mission`, `add_waypoint`, `land_drone`)
-- Advanced PID control system with windup protection
-- Professional documentation standards with Australian English
-- RVIZ configuration for visualisation and mission monitoring
-
 ## Prerequisites
 
 ### System Requirements
@@ -99,24 +52,33 @@ The system consists of two main composable nodes:
 - Ignition-sensor6 Plugins
 
 ### Dependencies
-```bash
-sudo apt install ros-humble-ros-gz-sim ros-humble-ros-gz-bridge
-sudo apt install ros-humble-joint-state-publisher ros-humble-robot-state-publisher
-sudo apt install ros-humble-rviz2
-sudo apt install libignition-sensors6
-```
+- **Use our installaltion dependency shell script:** - This pacakge comes with a shell script that installs all dependencies. It assumes ROS Humble is installed but not necessarily the full (could be minimal).
 
 ## Installation
 
-1. **Clone the repository**:
+1. Make a Software directory and clone it into Software
    ```bash
-   cd ~/ros2_ws/src
+   mkdir Software
+   cd ~/Software
    git clone https://github.com/jackfruittt/rs1_robot.git
    ```
-
-2. **Build the package**:
+2. **Make rs1_ws/src (If not already made) and link the pakcage to src**
    ```bash
-   cd ~/ros2_ws
+   mkdir -p rs1_ws/src
+   cd rs1_ws/src
+   ln -s ~/Software/rs1_robot
+   ```
+
+3. **Run the installation shell script inside the rs1_robot root directory**
+   ```bash
+   cd ~/Software/rs1_robot
+   chmod u+x ./install_rs1_robot_dependencies.sh
+   ./install_rs1_robot_dependencies.sh
+   ```
+   
+4. **Build the package**:
+   ```bash
+   cd ~/rs1_ws
    colcon build --packages-select rs1_robot
    source install/setup.bash
    ```
@@ -146,62 +108,8 @@ ros2 service call /rs1_drone/land_drone std_srvs/srv/Trigger
 ```
 
 #### Mission Services Available
-- `/rs1_drone/start_mission` - Begin autonomous mission (takeoff and start waypoint navigation)
-- `/rs1_drone/add_waypoint` - Add waypoint to mission queue
+- `/rs1_drone/takeoff_drone` - Begin autonomous mission (takeoff and start waypoint navigation)
 - `/rs1_drone/land_drone` - Initiate controlled landing sequence
-- `/rs1_drone/mission_state` - Monitor current mission state
-
-#### Mission States
-The mission system follows this state sequence:
-1. **IDLE** - Drone on ground, ready for mission
-2. **TAKEOFF** - Autonomous takeoff to 3m altitude 
-3. **WAYPOINT_NAVIGATION** - Navigate through waypoint sequence
-4. **HOVERING** - Stable hover between waypoints
-5. **LANDING** - Controlled descent and landing
-
-**What Works**:
-- ✅ Complete autonomous takeoff sequence
-- ✅ Waypoint navigation with distance-based speed control
-- ✅ Advanced PID control with windup protection
-- ✅ Mission state management and service interface
-- ✅ Controlled landing with position hold
-- ✅ Real-time mission monitoring via ROS topics
-
-### Multi-Drone System ✅ WORKING
-
-The multi-drone spawning system is now fully functional and can used as such:
-
-#### Quick Start - Fixed Spawner (Recommended)
-```bash
-# Source ws 
-source rs1_ws/install/setup.bash
-
-# Launch 3 drones (note: Shell script is located in the root folder of rs1_robot, I recommend moving this to the home directory to avoid have to path the the shell script)
-./rs1_ws/src/rs1_robot/launch_multi_drone_simple.sh
-
-#If shell script is moved to home directory
-./launch_multi_drone_simple.sh
-```
-
-#### Direct ROS2 Launch
-```bash
-# Use the launch file directly
-ros2 launch rs1_robot rs1_drone_spawner.py num_drones:=3
-```
-
-**What Works**:
-- ✅ All drones spawn correctly in Gazebo
-- ✅ All sensors operational (IMU, cameras, sonar, LiDAR, GPS)
-- ✅ Independent topic namespaces: `/rs1_drone_1/`, `/rs1_drone_2/`, etc.
-- ✅ Dynamic bridge configuration generation
-- ✅ Self-contained launch (world + bridge + drones)
-- ✅ Linear positioning (2m spacing) for collision avoidance
-
-**Multi-Drone Topics**: Each drone operates independently:
-- `/rs1_drone_1/cmd_vel`, `/rs1_drone_1/odom`, `/rs1_drone_1/imu`
-- `/rs1_drone_1/front/image`, `/rs1_drone_1/sonar`, `/rs1_drone_1/lidar`
-- `/rs1_drone_2/cmd_vel`, `/rs1_drone_2/odom`, `/rs1_drone_2/imu`
-- And so on for each drone...
 
 ### Basic Simulation Launch for One drone
 
@@ -217,16 +125,14 @@ This will start:
 - RVIZ for visualisation
 
 ## Available Topics
-
+Note: the below topics only say `rs1_drone`, this is reflective of the namespace `rs1_drone_$` where `$` is the drone number. 
 ### Mission Control Topics
 For autonomous mission operation:
 - `/rs1_drone/mission_state` (std_msgs/String) - Current mission state
 - `/rs1_drone/target_pose` (geometry_msgs/PoseStamped) - Target waypoint position
 - `/rs1_drone/cmd_vel` (geometry_msgs/Twist) - Velocity commands from controller
 - `/rs1_drone/current_pose` (geometry_msgs/PoseStamped) - Current drone position
-
-### Single Drone Topics
-For single drone operation (or when referencing a specific drone in multi-drone setup):
+- `/rs1_drone/mission_assignment` (std_msgs/String) - Assign waypoints for the drone to travel (this is what the GUI uses in the backend, works manually)
 
 ### Control Topics
 - `/rs1_drone/cmd_vel` (geometry_msgs/Twist) - Single drone velocity commands
@@ -261,219 +167,28 @@ ros2 topic echo /rs1_drone_2/sonar
 ros2 topic echo /rs1_drone_3/lidar
 ```
 
-## Configuration
-
-### Drone Parameters
-Edit `config/drone.yaml` to modify:
-- Namespace settings
-- Control gains (velocity, attitude, angular rate)
-- Maximum velocities and accelerations
-
-### Bridge Configuration
-Modify `config/gazebo_bridge.yaml` to:
-- Add or remove topic bridges
-- Change message types
-- Adjust topic namespaces
-
-### World Selection
-The launch file loads `worlds/simple_trees_builtin.sdf` by default.
-
 ## Flight Control Examples
 
 ### Autonomous Mission Control (Recommended)
 ```bash
-# Start mission system
-ros2 run rs1_robot main_composition
 
-# Begin mission (autonomous takeoff)
-ros2 service call /rs1_drone/start_mission std_srvs/srv/Trigger
+# Takeoff drones (enters navigation after taking off)
+ros2 service call /rs1_drone_1/takeoff_drone std_srvs/srv/Trigger
 
-# Add multiple waypoints
-ros2 service call /rs1_drone/add_waypoint geometry_msgs/srv/SetPose "{pose: {position: {x: 10.0, y: 0.0, z: 3.0}, orientation: {w: 1.0}}}"
-ros2 service call /rs1_drone/add_waypoint geometry_msgs/srv/SetPose "{pose: {position: {x: 10.0, y: 10.0, z: 3.0}, orientation: {w: 1.0}}}"
-ros2 service call /rs1_drone/add_waypoint geometry_msgs/srv/SetPose "{pose: {position: {x: 0.0, y: 10.0, z: 3.0}, orientation: {w: 1.0}}}"
-
-# Monitor mission progress
-ros2 topic echo /rs1_drone/mission_state
+# Replace rs1_drone_1 with drone number you want to take off
+# e.g. if you want drone 3 to take off then its
+# ros2 service call /rs1_drone_3/takeoff_drone std_srvs/srv/Trigger
 
 # Land when mission complete
-ros2 service call /rs1_drone/land_drone std_srvs/srv/Trigger
+ros2 service call /rs1_drone_1/land_drone std_srvs/srv/Trigger
 ```
 
-### Manual Single Drone Control
+### Drone Control
 ```bash
-# Takeoff command (move up 2 metres)
-ros2 topic pub /rs1_drone/cmd_vel geometry_msgs/msg/Twist "linear: {x: 0.0, y: 0.0, z: 2.0}"
+ros2 topic pub /rs1_drone_1/mission_assignment std_msgs/msg/String "data: 'ASSIGN,ROUTE,-5.64,12.19,12.76'" -1
 
-# Move forward at 1 m/s
-ros2 topic pub /rs1_drone/cmd_vel geometry_msgs/msg/Twist "linear: {x: 1.0, y: 0.0, z: 0.0}"
-
-# Rotate about z-axis at 0.5 rad/s
-ros2 topic pub /rs1_drone/cmd_vel geometry_msgs/msg/Twist "angular: {x: 0.0, y: 0.0, z: 0.5}"
+ros2 topic pub /rs1_drone_2/mission_assignment std_msgs/msg/String "data: 'ASSIGN,ROUTE,-25,14,20'" -1
 ```
-
-### Multi-Drone Control (ToDO, In theory would work as such)
-```bash
-# Control drone 1
-ros2 topic pub /rs1_drone_1/cmd_vel geometry_msgs/msg/Twist "linear: {x: 0.0, y: 0.0, z: 2.0}"
-
-# Control drone 2 - move forward
-ros2 topic pub /rs1_drone_2/cmd_vel geometry_msgs/msg/Twist "linear: {x: 1.0, y: 0.0, z: 0.0}"
-
-# Control drone 3 - rotate
-ros2 topic pub /rs1_drone_3/cmd_vel geometry_msgs/msg/Twist "angular: {x: 0.0, y: 0.0, z: 0.5}"
-```
-
-## Sensor Data Monitoring
-
-### View Sensor Data
-```bash
-# Monitor IMU data
-ros2 topic echo /rs1_drone_X/imu
-
-# Monitor altitude from sonar
-ros2 topic echo /rs1_drone_X/sonar
-
-# Monitor GPS coordinates
-ros2 topic echo /rs1_drone_X/navsat
-
-# Monitor LiDAR scan data
-ros2 topic echo /rs1_drone_X/lidar
-```
-
-### Camera Streams
-Use RVIZ or image view to visualise camera feeds (alrady loaded into rviz by default but can use if you launch with rviz disabled at first):
-```bash
-ros2 run image_view image_view image:=/rs1_drone_X/front/image
-ros2 run image_view image_view image:=/rs1_drone_X/bottom/image
-```
-
-## Development
-
-### Package Structure
-```
-rs1_robot/
-├── config/                    # Configuration files
-│   ├── drone.yaml            # Drone parameters  
-│   ├── gazebo_bridge.yaml    # Static bridge configuration
-│   └── rs1_robot_config.rviz # RVIZ configuration
-├── include/                   # Header files (C++ interfaces)
-│   ├── drone_control.h       # Advanced flight control system
-│   ├── drone_node.h          # Drone controller composable node
-│   ├── mission_node.h        # Mission planner composable node
-│   ├── pid.h                 # Enhanced PID controller with windup protection
-│   ├── mission/              # Mission management components
-│   │   ├── mission_state.h   # Mission state enumeration
-│   │   ├── state_machine.h   # Mission state machine
-│   │   ├── path_planner.h    # Waypoint path planning
-│   │   └── mission_executor.h # Mission execution framework
-│   └── drone/
-│        ├── safety_monitior.h # Monitors drone states and implements safety measures
-│        └── sensor_manager.h # Responsible for processing and managing all sensor data
-│
-├── src/                      # Source files (C++ implementations)
-│   ├── main_composition.cpp  # Composable nodes main executable
-│   ├── drone_control.cpp     # Flight control implementation
-│   ├── drone_node.cpp        # Drone controller node implementation
-│   ├── mission_node.cpp      # Mission planner node implementation
-│   ├── pid.cpp               # PID controller implementation
-│   ├── state_machine.cpp     # State machine implementation
-│   ├── path_planner.cpp      # Path planning implementation
-│   └── mission_executor.cpp  # Mission execution implementation
-├── launch/                   # Launch files
-│   ├── rs1_robot_ignition.py     # Single drone simulation
-│   ├── rs1_drone_spawner.py      # Multi-drone spawner
-│   └── rs1_robot_rviz.py         # RVIZ launch
-├── scripts/                  # Utility scripts
-│   └── generate_dynamic_bridge.py # Dynamic bridge config generator
-├── models/                   # 3D model files
-│   ├── quadrotor_4.dae      # Drone visual model
-│   └── quadrotor_4.stl      # Drone collision model
-├── urdf/                     # Robot description files
-│   ├── rs1_drone.urdf.xacro         # Single drone URDF
-│   └── rs1_drone_adaptive.urdf.xacro # Multi-drone adaptive URDF
-└── worlds/                   # Simulation worlds
-    ├── simple_trees_builtin.sdf # Main world (used by multi-drone)
-    ├── simple_trees.sdf
-    └── simple_test.world
-```
-
-### Code Architecture
-
-#### Composable Node System
-The RS1 system uses a modern composable architecture for optimal performance:
-
-**Main Composition (`main_composition.cpp`)**:
-- Creates shared executor for both nodes
-- Enables intra-process communication
-- Manages node lifecycle and coordination
-
-**Mission Planner Node (`mission_node.h/.cpp`)**:
-- State machine management (IDLE → TAKEOFF → NAVIGATION → LANDING)
-- Service interfaces for mission control
-- Waypoint planning and coordination
-- High-level mission logic
-
-**Drone Controller Node (`drone_node.h/.cpp`)**:
-- Low-level flight control execution
-- PID-based position and velocity control
-- Safety monitoring and flight mode management
-- Direct actuator command generation
-
-#### Control System Components
-
-**Advanced PID Controller (`pid.h/.cpp`)**:
-- Enhanced PID implementation with integral windup protection
-- Configurable gains and output limits
-- Optimised for drone flight control applications
-
-**Flight Control System (`drone_control.h/.cpp`)**:
-- Multiple PID controllers for X, Y, Z position control
-- Distance-based speed adaptation from flyToGoal method
-- Command smoothing and safety limiting
-- Terrain following capabilities (future implementation)
-
-**Mission Management (`mission/` directory)**:
-- `mission_state.h`: Mission state enumeration and definitions
-- `state_machine.h/.cpp`: State transition management
-- `path_planner.h/.cpp`: Waypoint sequence planning
-- `mission_executor.h/.cpp`: Mission execution framework
-
-### Customisation
-
-#### Mission System Configuration
-1. **Control Parameters**: Modify PID gains in `drone_control.cpp` constructor
-2. **Mission Timing**: Adjust state timeouts in `mission_node.cpp`
-3. **Waypoint Tolerance**: Configure approach distances for waypoint completion
-4. **Flight Speeds**: Modify velocity limits in `calculateAdvancedPositionControl()`
-
-#### Composable Node Deployment
-```bash
-# Run as composed nodes (recommended for performance)
-ros2 run rs1_robot main_composition
-
-# Run as separate nodes (for debugging)
-ros2 run rs1_robot mission_planner_node
-ros2 run rs1_robot drone_controller_node  # In separate terminals
-```
-
-#### Multi-Drone Configuration
-1. **Number of Drones**: Modify shell scripts or use launch parameters
-2. **Positioning**: Edit `spawn_drones()` function in spawner files for different formations
-3. **Bridge Topics**: The system auto-generates bridge configs, or modify `generate_dynamic_bridge.py`
-4. **World Selection**: Currently uses `simple_trees_builtin.sdf` (can be changed in spawner files)
-
-#### Adding New Mission Types
-1. Add new states to `MissionState` enum in `mission_state.h`
-2. Implement state transitions in `state_machine.cpp`
-3. Add mission logic in `mission_node.cpp` mission update callback
-4. Create new service interfaces for mission-specific commands
-
-#### Extending Control Capabilities
-1. **New PID Controllers**: Add controllers in `drone_control.cpp` constructor
-2. **Advanced Control Modes**: Implement in `calculateAdvancedPositionControl()`
-3. **Sensor Integration**: Add sensor callbacks in `drone_node.cpp`
-4. **Safety Features**: Extend safety monitoring in drone controller
 
 ## Troubleshooting
 
@@ -506,64 +221,12 @@ ros2 run rs1_robot drone_controller_node  # In separate terminals
 - Ensure all dependencies are installed
 - Check that Ignition Gazebo Fortress is properly installed
 - Verify ROS2 Humble sourcing
-- Try cleaning: `pkill -f "ign gazebo" && pkill -f "parameter_bridge"`
+- Try cleaning: `pkill -f "ign gazebo" && pkill -f "ros2"`
 
 **No sensor data from specific drone**:
 - Check if bridge config was generated: `ls -la /tmp/rs1_dynamic_bridge.yaml`
 - Verify topics exist: `ros2 topic list | grep rs1_drone_X`
 - Check bridge logs for errors
-
-**Bridge generation fails**:
-- Ensure `scripts/generate_dynamic_bridge.py` is executable
-- Check Python dependencies: `python3 -c "import yaml"`
-- Verify script path in spawner files
-
-### Debug Commands
-```bash
-# Check mission system status
-ros2 service list | grep rs1_drone
-ros2 topic list | grep rs1_drone
-
-# Monitor mission execution
-ros2 topic echo /rs1_drone/mission_state
-ros2 topic echo /rs1_drone/target_pose
-ros2 topic hz /rs1_drone/cmd_vel
-
-# Test mission services
-ros2 service call /rs1_drone/start_mission std_srvs/srv/Trigger
-ros2 service call /rs1_drone/add_waypoint geometry_msgs/srv/SetPose "{pose: {position: {x: 5.0, y: 0.0, z: 3.0}, orientation: {w: 1.0}}}"
-
-# Check composable node status
-ps aux | grep main_composition
-ros2 node list | grep -E "(mission_planner|drone_controller)"
-
-# Monitor control performance
-ros2 topic echo /rs1_drone/cmd_vel --no-arr
-# List all drone topics
-ros2 topic list | grep rs1_drone
-
-# Check specific drone topic data rates
-ros2 topic hz /rs1_drone_1/imu
-ros2 topic hz /rs1_drone_2/sonar
-
-# Monitor bridge config generation
-cat /tmp/rs1_dynamic_bridge.yaml
-
-# Check drone count in bridge config
-grep -c "rs1_drone_" /tmp/rs1_dynamic_bridge.yaml
-
-# Verify all drones have topics
-for i in {1..3}; do echo "Drone $i:"; ros2 topic list | grep rs1_drone_$i | wc -l; done
-```
-
-### Performance Tips
-- Use composable nodes for best performance (`main_composition`)
-- Monitor system resources during autonomous missions
-- Adjust PID gains for smoother control if needed
-- Use mission services rather than manual control for efficiency
-- Reduce number of drones for better performance in multi-drone setups
-- Use `simple_trees_builtin.sdf` world for fastest simulation
-- Close unnecessary applications during complex missions
 
 ## Acknowledgements
 
