@@ -56,7 +56,7 @@ The system consists of two main composable nodes:
 
 ## Installation
 
-1. Make a Software directory and clone it into Software
+1. Make a Software directory (If not already made) and clone it into Software
    ```bash
    mkdir Software
    cd ~/Software
