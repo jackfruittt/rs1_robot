@@ -92,6 +92,9 @@ source rs1_ws/install/setup.bash
 # Launch single drone with in world with gazebo headed
 ./comp_drone_spawner.sh 1 gazebo:=true
 
+# If you wanted 3 drones gazebo headless
+./comp_drone_spawner.sh 3
+
 # Have the drone takeoff and begin navigating
 ros2 service call /rs1_drone_1/takeoff_drone std_srvs/srv/Trigger
 
