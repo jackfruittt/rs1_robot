@@ -1,7 +1,7 @@
 # PROJECT INFO
-PROJECT_NAME = "PFMS Assignment 3 | 14250803"
+PROJECT_NAME = "RS1 Robot Package | 14250803"
 PROJECT_NUMBER = "1.0"
-PROJECT_BRIEF = "ROS 2 Package for Autonomous Surveying Drone"
+PROJECT_BRIEF = "ROS 2 Package for Autonomous Drone Swarm"
 
 # GENERAL CONFIG
 EXTRACT_ALL = YES

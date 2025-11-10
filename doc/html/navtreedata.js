@@ -24,8 +24,8 @@
 */
 var NAVTREE =
 [
-  [ "PFMS Assignment 3 | 14250803", "index.html", [
-    [ "Project 1: Terrain Drone Surveying - ROS2 Autonomous Quadcopter System", "index.html", [
+  [ "RS1 Robot Package | 14250803", "index.html", [
+    [ "Project 1: RS1 ROBOT Package - ROS2 based Autonomous Drone Swarm Surveillance System", "index.html", [
       [ "Overview", "index.html#overview", null ],
       [ "Key Features", "index.html#features", null ],
       [ "System Architecture", "index.html#architecture", null ],
