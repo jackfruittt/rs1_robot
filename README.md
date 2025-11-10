@@ -8,8 +8,6 @@ This package provides a basic simulation environment and autonomous flight contr
 
 ### Available Launch Options
 - **Launching using shell script**: `./comp_multi_drone_simple.sh <num_drones> <gazebo headed/headless>` - Working spawner. Shell script automates process
-- **Composition**: `ros2 run rs1_robot main_composition` - Composable nodes for single drone
-- **Mission Services**: Autonomous waypoint navigation with service-based control
 
 ### Node Architecture & Composition
 
