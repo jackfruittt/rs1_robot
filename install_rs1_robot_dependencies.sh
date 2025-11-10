@@ -146,19 +146,6 @@ install_ignition_dependencies() {
     print_info "Ignition Fortress and ros_ign packages installed"
 }
 
-# Function to install robot state publishing tools
-install_robot_state_tools() {
-    print_step "Installing robot state publishing tools..."
-    
-    sudo apt-get install -y \
- 
-       ros-humble-robot-state-publisher \
-        ros-humble-joint-state-publisher \
-        ros-humble-xacro
-    
-    print_info "Robot state publishing tools installed"
-}
-
 # Function to install grid_map packages
 install_grid_map_packages() {
     print_step "Installing grid_map packages..."
@@ -286,7 +273,6 @@ main() {
     install_tf2_dependencies
     install_gazebo_dependencies
     install_ignition_dependencies
-    install_robot_state_tools
     install_grid_map_packages
     install_rosidl_generators
     install_testing_dependencies
