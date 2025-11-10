@@ -84,9 +84,6 @@ The system consists of two main composable nodes:
    ```
 
 ## Usage
-
-### Autonomous Mission Control ✅ WORKING
-
 The autonomous mission system provides complete waypoint navigation capabilities:
 
 #### Quick Start - Composable Nodes (Recommended)
